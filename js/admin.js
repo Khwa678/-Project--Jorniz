@@ -369,30 +369,70 @@ async function loadAdminJobs() {
   }).join("");
 }
 
+// async function submitNewJob() {
+//   const title = document.getElementById("job-title").value.trim();
+//   const company = document.getElementById("job-company").value.trim();
+//   if (!title || !company) { showToast("⚠️ Title and company required"); return; }
+//   const tagsRaw = document.getElementById("job-tags").value.trim();
+//   const tags = tagsRaw ? tagsRaw.split(",").map(t => t.trim()).filter(Boolean) : [];
+
+//   const res = await huFetch("/api/admin/jobs", {
+//     method: "POST",
+//     body: JSON.stringify({
+//       title, company,
+//       company_logo: document.getElementById("job-logo").value.trim(),
+//       location: document.getElementById("job-location").value.trim() || "Remote",
+//       job_type: document.getElementById("job-type").value,
+//       specialty: document.getElementById("job-specialty").value,
+//       salary: document.getElementById("job-salary").value.trim(),
+//       experience: document.getElementById("job-experience").value.trim(),
+//       deadline: document.getElementById("job-deadline").value.trim(),
+//       tags,
+//       description: document.getElementById("job-description").value.trim(),
+//       featured: document.getElementById("job-featured").checked,
+//     }),
+//   });
+//   if (res && res.ok) { showToast("✅ Job posted"); closeAddJobForm(); loadAdminJobs(); }
+// }
+
 async function submitNewJob() {
-  const title = document.getElementById("job-title").value.trim();
-  const company = document.getElementById("job-company").value.trim();
-  if (!title || !company) { showToast("⚠️ Title and company required"); return; }
-  const tagsRaw = document.getElementById("job-tags").value.trim();
-  const tags = tagsRaw ? tagsRaw.split(",").map(t => t.trim()).filter(Boolean) : [];
+  const title = document.getElementById("adm-job-title").value.trim();
+  const company = document.getElementById("adm-job-company").value.trim();
+  if (!title || !company) {
+    showToast("⚠️ Title and company required");
+    return;
+  }
+  const tagsRaw = document.getElementById("adm-job-tags").value.trim();
+  const tags = tagsRaw
+    ? tagsRaw
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
+    : [];
 
   const res = await huFetch("/api/admin/jobs", {
     method: "POST",
     body: JSON.stringify({
-      title, company,
-      company_logo: document.getElementById("job-logo").value.trim(),
-      location: document.getElementById("job-location").value.trim() || "Remote",
-      job_type: document.getElementById("job-type").value,
-      specialty: document.getElementById("job-specialty").value,
-      salary: document.getElementById("job-salary").value.trim(),
-      experience: document.getElementById("job-experience").value.trim(),
-      deadline: document.getElementById("job-deadline").value.trim(),
+      title,
+      company,
+      company_logo: document.getElementById("adm-job-logo").value.trim(),
+      location:
+        document.getElementById("adm-job-location").value.trim() || "Remote",
+      job_type: document.getElementById("adm-job-type").value,
+      specialty: document.getElementById("adm-job-specialty").value,
+      salary: document.getElementById("adm-job-salary").value.trim(),
+      experience: document.getElementById("adm-job-experience").value.trim(),
+      deadline: document.getElementById("adm-job-deadline").value.trim(),
       tags,
-      description: document.getElementById("job-description").value.trim(),
-      featured: document.getElementById("job-featured").checked,
+      description: document.getElementById("adm-job-description").value.trim(),
+      featured: document.getElementById("adm-job-featured").checked,
     }),
   });
-  if (res && res.ok) { showToast("✅ Job posted"); closeAddJobForm(); loadAdminJobs(); }
+  if (res && res.ok) {
+    showToast("✅ Job posted");
+    closeAddJobForm();
+    loadAdminJobs();
+  }
 }
 
 async function deleteAdminJob(id) {

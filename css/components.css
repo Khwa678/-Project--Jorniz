@@ -1776,3 +1776,87 @@ body.dark-mode .admin-inline-form textarea {
   border-color: #2d3444;
   color: #e2e8f0;
 }
+
+
+
+
+/* ============================================
+   ✨ DARK MODE FIX — Campaign / Ads Modal
+   ============================================ */
+
+body.dark-mode .campaign-modal-box,
+body.dark-mode .withdraw-modal-box,
+body.dark-mode .booking-modal-box,
+body.dark-mode .apply-modal-box,
+body.dark-mode .new-msg-modal-box,
+body.dark-mode .modal {
+  background: #1a1f2b;
+  color: #e2e8f0;
+}
+
+body.dark-mode .campaign-modal-header,
+body.dark-mode .withdraw-modal-header,
+body.dark-mode .booking-modal-header,
+body.dark-mode .apply-modal-header {
+  border-bottom-color: #2d3444;
+}
+
+body.dark-mode .campaign-modal-header h2,
+body.dark-mode .withdraw-modal-header h2,
+body.dark-mode .booking-modal-header h2,
+body.dark-mode .apply-modal-header h2 {
+  color: #f1f5f9;
+}
+
+body.dark-mode .campaign-section-title,
+body.dark-mode .settings-section-title {
+  color: #cbd5e1;
+  border-bottom-color: #2d3444;
+}
+
+body.dark-mode .settings-label,
+body.dark-mode .campaign-modal-body label {
+  color: #94a3b8;
+}
+
+body.dark-mode .settings-input,
+body.dark-mode .settings-textarea {
+  background: #252b3a;
+  border-color: #2d3444;
+  color: #f1f5f9;
+}
+
+body.dark-mode .settings-input::placeholder,
+body.dark-mode .settings-textarea::placeholder {
+  color: #64748b;
+}
+
+body.dark-mode .settings-input:focus,
+body.dark-mode .settings-textarea:focus {
+  border-color: var(--green, #377dff);
+  box-shadow: 0 0 0 3px rgba(55,125,255,0.15);
+}
+
+body.dark-mode .settings-input option {
+  background: #252b3a;
+  color: #f1f5f9;
+}
+
+body.dark-mode .modal-close,
+body.dark-mode .campaign-modal-header .modal-close {
+  color: #94a3b8;
+}
+body.dark-mode .modal-close:hover {
+  color: #f1f5f9;
+}
+
+body.dark-mode .campaign-modal-footer,
+body.dark-mode .withdraw-modal-body,
+body.dark-mode .apply-modal-body {
+  border-top-color: #2d3444;
+}
+
+/* Date input calendar icon visibility in dark mode */
+body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}

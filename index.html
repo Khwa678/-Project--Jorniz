@@ -721,7 +721,7 @@
       <h3>Job Postings</h3>
       <button class="admin-add-btn" onclick="openAddJobForm()">+ Add Job</button>
     </div>
-    <div id="admin-add-job-form" class="admin-inline-form" style="display:none;flex-wrap:wrap;gap:10px;">
+    <!-- <div id="admin-add-job-form" class="admin-inline-form" style="display:none;flex-wrap:wrap;gap:10px;">
       <input type="text" id="job-title" placeholder="Job Title"/>
       <input type="text" id="job-company" placeholder="Company / Hospital Name"/>
       <input type="url" id="job-logo" placeholder="Company Logo URL (optional)"/>
@@ -744,7 +744,83 @@
       <textarea id="job-description" placeholder="Job description..." style="width:100%;"></textarea>
       <button onclick="submitNewJob()">Save</button>
       <button onclick="closeAddJobForm()">Cancel</button>
-    </div>
+    </div> -->
+    <div id="admin-add-job-form" class="admin-inline-form" style="display:none;flex-wrap:wrap;gap:10px;">
+  <input type="text" id="adm-job-title" placeholder="Job Title"/>
+  <input type="text" id="adm-job-company" placeholder="Company / Hospital Name"/>
+  <input type="url" id="adm-job-logo" placeholder="Company Logo URL (optional)"/>
+  <input type="text" id="adm-job-location" placeholder="Location (e.g. Mumbai, Remote)"/>
+  <select id="adm-job-type">
+    <option>Full-Time</option><option>Part-Time</option><option>Internship</option><option>Residency</option>
+  </select>
+  <!-- <select id="adm-job-specialty">
+    <option>General Physician</option><option>Cardiology</option><option>Psychiatry</option>
+    <option>Nutrition</option><option>Dermatology</option><option>Orthopedics</option><option>Pediatrics</option>
+    <option>Ayurveda</option><option>Homeopathy</option><option>Nursing</option>
+  </select> -->
+  <select id="adm-job-specialty">
+  <optgroup label="Medical Specialties">
+    <option>General Physician</option>
+    <option>Cardiology</option>
+    <option>Psychiatry</option>
+    <option>Nutrition</option>
+    <option>Dermatology</option>
+    <option>Orthopedics</option>
+    <option>Pediatrics</option>
+    <option>Gynecology</option>
+    <option>Neurology</option>
+    <option>Oncology</option>
+    <option>ENT</option>
+    <option>Ophthalmology</option>
+    <option>Urology</option>
+    <option>Radiology</option>
+    <option>Anesthesiology</option>
+    <option>Surgery</option>
+    <option>Dentistry</option>
+  </optgroup>
+  <optgroup label="Alternative Medicine">
+    <option>Ayurveda</option>
+    <option>Homeopathy</option>
+    <option>Unani</option>
+    <option>Naturopathy</option>
+    <option>Yoga & Wellness</option>
+  </optgroup>
+  <optgroup label="Nursing & Allied Health">
+    <option>Nursing</option>
+    <option>Physiotherapy</option>
+    <option>Occupational Therapy</option>
+    <option>Speech Therapy</option>
+    <option>Dietetics</option>
+    <option>Psychology / Counseling</option>
+    <option>Lab Technician</option>
+    <option>Radiology Technician</option>
+    <option>Pharmacy</option>
+    <option>Optometry</option>
+  </optgroup>
+  <optgroup label="Non-Clinical / Support Roles">
+    <option>Hospital Administration</option>
+    <option>Medical Coding & Billing</option>
+    <option>Healthcare IT</option>
+    <option>HR & Recruitment</option>
+    <option>Marketing & Communications</option>
+    <option>Front Desk / Receptionist</option>
+    <option>Medical Content Writer</option>
+    <option>Research & Clinical Trials</option>
+    <option>Insurance & Claims</option>
+    <option>Other</option>
+  </optgroup>
+</select>
+  <input type="text" id="adm-job-salary" placeholder="Salary (e.g. ₹8L – ₹14L/yr)"/>
+  <input type="text" id="adm-job-experience" placeholder="Experience (e.g. 2-4 years)"/>
+  <input type="text" id="adm-job-deadline" placeholder="Deadline (e.g. Jan 15, 2026)"/>
+  <input type="text" id="adm-job-tags" placeholder="Tags, comma separated (MBBS, MD Cardiology)"/>
+  <label style="display:flex;align-items:center;gap:6px;font-size:13px;">
+    <input type="checkbox" id="adm-job-featured"/> Featured Job
+  </label>
+  <textarea id="adm-job-description" placeholder="Job description..." style="width:100%;"></textarea>
+  <button onclick="submitNewJob()">Save</button>
+  <button onclick="closeAddJobForm()">Cancel</button>
+</div>
     <div id="admin-jobs-list" class="admin-list"></div>
   </div>
 
@@ -756,11 +832,68 @@
     </div>
     <div id="admin-add-doctor-form" class="admin-inline-form" style="display:none;flex-wrap:wrap;gap:10px;">
       <input type="text" id="doc-name" placeholder="Dr. Full Name"/>
-      <select id="doc-specialty">
+      <!-- <select id="doc-specialty">
         <option>Cardiologist</option><option>Psychiatrist</option><option>Nutritionist</option>
         <option>Dermatologist</option><option>Orthopedic</option><option>Pediatrician</option>
         <option>General Physician</option><option>Ayurvedic Doctor</option><option>Homeopathic Doctor</option>
-      </select>
+      </select> -->
+      <select id="doc-specialty">
+  <optgroup label="General & Primary Care">
+    <option>General Physician</option>
+    <option>Family Medicine</option>
+    <option>Internal Medicine</option>
+  </optgroup>
+  <optgroup label="Medical Specialists">
+    <option>Cardiologist</option>
+    <option>Psychiatrist</option>
+    <option>Nutritionist</option>
+    <option>Dermatologist</option>
+    <option>Orthopedic</option>
+    <option>Pediatrician</option>
+    <option>Gynecologist</option>
+    <option>Neurologist</option>
+    <option>Oncologist</option>
+    <option>ENT Specialist</option>
+    <option>Ophthalmologist</option>
+    <option>Urologist</option>
+    <option>Nephrologist</option>
+    <option>Gastroenterologist</option>
+    <option>Pulmonologist</option>
+    <option>Endocrinologist</option>
+    <option>Rheumatologist</option>
+    <option>Hematologist</option>
+    <option>Radiologist</option>
+    <option>Anesthesiologist</option>
+  </optgroup>
+  <optgroup label="Surgical Specialties">
+    <option>General Surgeon</option>
+    <option>Orthopedic Surgeon</option>
+    <option>Neurosurgeon</option>
+    <option>Cardiac Surgeon</option>
+    <option>Plastic Surgeon</option>
+    <option>Dental Surgeon</option>
+  </optgroup>
+  <optgroup label="Dental & Oral Health">
+    <option>Dentist</option>
+    <option>Orthodontist</option>
+  </optgroup>
+  <optgroup label="Alternative Medicine">
+    <option>Ayurvedic Doctor</option>
+    <option>Homeopathic Doctor</option>
+    <option>Unani Practitioner</option>
+    <option>Naturopath</option>
+    <option>Yoga & Wellness Coach</option>
+  </optgroup>
+  <optgroup label="Allied Health Professionals">
+    <option>Physiotherapist</option>
+    <option>Psychologist / Counselor</option>
+    <option>Speech Therapist</option>
+    <option>Occupational Therapist</option>
+    <option>Dietitian</option>
+    <option>Sexologist</option>
+    <option>Sleep Specialist</option>
+  </optgroup>
+</select>
       <input type="text" id="doc-hospital" placeholder="Hospital / Clinic"/>
       <input type="url" id="doc-avatar" placeholder="Photo URL"/>
       <input type="number" id="doc-experience" placeholder="Experience (years)"/>
