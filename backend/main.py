@@ -896,19 +896,31 @@ def create_campaign():
     image_url = ""
     if image and image.filename:
         ct = image.content_type or ""
-        if ct not in ALLOWED_IMAGES:
-            return jsonify({"detail": "Ad creative must be an image (jpg/png/gif/webp)"}), 400
+        if ct not in (ALLOWED_IMAGES | ALLOWED_VIDEOS):
+            return jsonify({"detail": "Ad creative must be an image or video (jpg/png/gif/webp/mp4/webm)"}), 400
         file_bytes = image.read()
         if len(file_bytes) > MAX_FILE_BYTES:
-            return jsonify({"detail": "Image too large (max 50MB)"}), 400
-        # ext   = os.path.splitext(image.filename)[1] or ".jpg"
-        # fname = str(uuid.uuid4()) + ext
-        # with open(os.path.join(UPLOAD_DIR, fname), "wb") as f:
-        #     f.write(file_bytes)
-        # image_url = f"/uploads/{fname}"
+            return jsonify({"detail": "File too large (max 500MB)"}), 400
         ext   = os.path.splitext(image.filename)[1] or ".jpg"
         fname = str(uuid.uuid4()) + ext
         image_url = upload_to_supabase(file_bytes, fname, ct)
+
+    # image_url = ""
+    # if image and image.filename:
+    #     ct = image.content_type or ""
+    #     if ct not in ALLOWED_IMAGES:
+    #         return jsonify({"detail": "Ad creative must be an image (jpg/png/gif/webp)"}), 400
+    #     file_bytes = image.read()
+    #     if len(file_bytes) > MAX_FILE_BYTES:
+    #         return jsonify({"detail": "Image too large (max 50MB)"}), 400
+    #     # ext   = os.path.splitext(image.filename)[1] or ".jpg"
+    #     # fname = str(uuid.uuid4()) + ext
+    #     # with open(os.path.join(UPLOAD_DIR, fname), "wb") as f:
+    #     #     f.write(file_bytes)
+    #     # image_url = f"/uploads/{fname}"
+    #     ext   = os.path.splitext(image.filename)[1] or ".jpg"
+    #     fname = str(uuid.uuid4()) + ext
+    #     image_url = upload_to_supabase(file_bytes, fname, ct)
 
     cid = str(uuid.uuid4())
     db_run(

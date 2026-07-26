@@ -51,11 +51,18 @@
 }
 .job-delete-btn:hover{background:rgba(239,68,68,.24);}
 
+
 .hu-coins-pulse{ animation: huCoinsPulse .7s ease; }
 @keyframes huCoinsPulse {
   0%{ color:#22c55e; transform:scale(1.18); }
   100%{ color:inherit; transform:scale(1); }
 }
+.campaign-multiselect{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  border:1px solid #e2e8f0;border-radius:10px;padding:12px;max-height:220px;overflow-y:auto;
+}
+.campaign-checkbox-item{display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer;}
+.campaign-checkbox-item input{width:16px;height:16px;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -1730,13 +1737,34 @@
             <label class="settings-label">Cost Per Click ($)</label>
             <input type="number" class="settings-input" id="camp-bid" min="0.1" step="0.01" value="2.00"/>
           </div>
-          <div class="settings-field">
+          <!-- <div class="settings-field">
             <label class="settings-label">Target Specialty</label>
             <select class="settings-input" id="camp-specialty">
               <option>All</option><option>Cardiology</option><option>Psychiatry</option>
               <option>Nutrition</option><option>Dermatology</option><option>Orthopedics</option>
               <option>Pediatrics</option><option>General Physician</option>
             </select>
+          </div> -->
+          <div class="settings-field settings-field-full">
+            <label class="settings-label">Target Audience (select multiple)</label>
+            <div class="campaign-multiselect" id="camp-specialty-multiselect">
+              <label class="campaign-checkbox-item"><input type="checkbox" value="All" checked/> All Audiences</label>
+              <label class="campaign-checkbox-item"><input type="checkbox" value="Doctors"/> Doctors</label>
+              <label class="campaign-checkbox-item"><input type="checkbox" value="Medicine & Pharma"/> Medicine & Pharma</label>
+              <label class="campaign-checkbox-item"><input type="checkbox" value="Cardiology"/> Cardiology</label>
+              <label class="campaign-checkbox-item"><input type="checkbox" value="Psychiatry"/> Psychiatry</label>
+              <label class="campaign-checkbox-item"><input type="checkbox" value="Nutrition"/> Nutrition</label>
+              <label class="campaign-checkbox-item"><input type="checkbox" value="Dermatology"/> Dermatology</label>
+              <label class="campaign-checkbox-item"><input type="checkbox" value="Cosmetics & Skincare"/> Cosmetics & Skincare</label>
+              <label class="campaign-checkbox-item"><input type="checkbox" value="Orthopedics"/> Orthopedics</label>
+              <label class="campaign-checkbox-item"><input type="checkbox" value="Pediatrics"/> Pediatrics</label>
+              <label class="campaign-checkbox-item"><input type="checkbox" value="General Physician"/> General Physician</label>
+              <label class="campaign-checkbox-item"><input type="checkbox" value="Nursing & Allied Health"/> Nursing & Allied Health</label>
+              <label class="campaign-checkbox-item"><input type="checkbox" value="Commercial / Business"/> Commercial / Business</label>
+              <label class="campaign-checkbox-item"><input type="checkbox" value="Wellness & Fitness"/> Wellness & Fitness</label>
+              <label class="campaign-checkbox-item"><input type="checkbox" value="Alternative Medicine"/> Alternative Medicine</label>
+              <label class="campaign-checkbox-item"><input type="checkbox" value="Other Professions"/> Other Professions</label>
+            </div>
           </div>
           <!-- <div class="settings-field">
             <label class="settings-label">Target Location</label>
@@ -1925,9 +1953,14 @@
             <label class="settings-label">CTA Link (URL)</label>
             <input type="url" class="settings-input" id="camp-cta-link" placeholder="https://"/>
           </div>
-          <div class="settings-field settings-field-full">
+          <!-- <div class="settings-field settings-field-full">
             <label class="settings-label">Ad Image</label>
             <input type="file" class="settings-input" id="camp-image" accept="image/*"/>
+          </div> -->
+          <div class="settings-field settings-field-full">
+            <label class="settings-label">Ad Media (Image or Video)</label>
+            <input type="file" class="settings-input" id="camp-image" accept="image/*,video/*"/>
+            <span class="settings-field-hint">Accepts JPG, PNG, GIF, WEBP, MP4, WEBM</span>
           </div>
         </div>
       </div>

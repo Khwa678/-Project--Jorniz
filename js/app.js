@@ -1637,28 +1637,46 @@ async function renderAdsManager() {
   updateAdsStats(campaigns);
 
   list.innerHTML = campaigns.map(c => {
+    // const creative = c.creative || {};
+    // // const img = creative.image_url ? (HU_API + creative.image_url) : '';
+    // const img = creative.image_url
+    //   ? creative.image_url.startsWith("http")
+    //     ? creative.image_url
+    //     : HU_API + creative.image_url
+    //   : "";
+    // const pct = c.budget > 0 ? Math.min(100, Math.round((c.spent / c.budget) * 100)) : 0;
+    // return `
+    //   <div class="campaign-card">
+    //     <div class="campaign-card-top">
+    //       ${img ? `<img src="${img}" class="campaign-thumb"/>` : '<div class="campaign-thumb"></div>'}
     const creative = c.creative || {};
-    // const img = creative.image_url ? (HU_API + creative.image_url) : '';
     const img = creative.image_url
       ? creative.image_url.startsWith("http")
         ? creative.image_url
         : HU_API + creative.image_url
       : "";
-    const pct = c.budget > 0 ? Math.min(100, Math.round((c.spent / c.budget) * 100)) : 0;
+    const isVideoThumb = /\.(mp4|webm|mov)$/i.test(img);
+    const thumbHtml = img
+      ? isVideoThumb
+        ? `<video src="${img}" class="campaign-thumb" muted></video>`
+        : `<img src="${img}" class="campaign-thumb"/>`
+      : '<div class="campaign-thumb"></div>';
+    const pct =
+      c.budget > 0 ? Math.min(100, Math.round((c.spent / c.budget) * 100)) : 0;
     return `
       <div class="campaign-card">
         <div class="campaign-card-top">
-          ${img ? `<img src="${img}" class="campaign-thumb"/>` : '<div class="campaign-thumb"></div>'}
+          ${thumbHtml}
           <div class="campaign-info">
             <div class="campaign-name">${c.name}</div>
-            <div class="campaign-headline">${creative.headline || ''}</div>
+            <div class="campaign-headline">${creative.headline || ""}</div>
             <div class="campaign-badges">
-              <span class="campaign-badge ${c.status}">${c.status === 'active' ? '● Active' : '⏸ Paused'}</span>
+              <span class="campaign-badge ${c.status}">${c.status === "active" ? "● Active" : "⏸ Paused"}</span>
               <span class="campaign-badge objective">${c.objective}</span>
             </div>
           </div>
           <div class="campaign-actions">
-            <button class="campaign-action-btn" onclick="toggleCampaignStatus('${c.id}','${c.status === 'active' ? 'paused' : 'active'}')">${c.status === 'active' ? 'Pause' : 'Resume'}</button>
+            <button class="campaign-action-btn" onclick="toggleCampaignStatus('${c.id}','${c.status === "active" ? "paused" : "active"}')">${c.status === "active" ? "Pause" : "Resume"}</button>
             <button class="campaign-action-btn danger" onclick="removeCampaign('${c.id}')">Delete</button>
           </div>
         </div>
@@ -1698,77 +1716,142 @@ async function removeCampaign(id) {
   renderAdsManager();
 }
 
+// function openNewCampaignModal() {
+//   ['camp-name','camp-headline','camp-body-text','camp-cta-link','camp-location'].forEach(id => {
+//     const el = document.getElementById(id); if (el) el.value = '';
+//   });
+//   const budget = document.getElementById('camp-budget'); if (budget) budget.value = '';
+//   const img = document.getElementById('camp-image'); if (img) img.value = '';
+//   document.getElementById('campaign-modal').classList.add('open');
+//   document.body.style.overflow = 'hidden';
+// }
+
 function openNewCampaignModal() {
-  ['camp-name','camp-headline','camp-body-text','camp-cta-link','camp-location'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
+  [
+    "camp-name",
+    "camp-headline",
+    "camp-body-text",
+    "camp-cta-link",
+    "camp-location",
+  ].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
   });
-  const budget = document.getElementById('camp-budget'); if (budget) budget.value = '';
-  const img = document.getElementById('camp-image'); if (img) img.value = '';
-  document.getElementById('campaign-modal').classList.add('open');
-  document.body.style.overflow = 'hidden';
+  const budget = document.getElementById("camp-budget");
+  if (budget) budget.value = "";
+  const img = document.getElementById("camp-image");
+  if (img) img.value = "";
+
+  document
+    .querySelectorAll('#camp-specialty-multiselect input[type="checkbox"]')
+    .forEach((cb) => {
+      cb.checked = cb.value === "All";
+    });
+
+  document.getElementById("campaign-modal").classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+// function closeCampaignModal() {
+//   document.getElementById('campaign-modal').classList.remove('open');
+//   document.body.style.overflow = '';
+// }
+
+// async function submitCampaign() {
+function closeCampaignModal() {
+  document.getElementById("campaign-modal").classList.remove("open");
+  document.body.style.overflow = "";
 }
 
-function closeCampaignModal() {
-  document.getElementById('campaign-modal').classList.remove('open');
-  document.body.style.overflow = '';
-}
+document.addEventListener("change", function (e) {
+  if (e.target.matches('#camp-specialty-multiselect input[type="checkbox"]')) {
+    const container = document.getElementById("camp-specialty-multiselect");
+    const allCb = container.querySelector('input[value="All"]');
+    if (e.target.value === "All" && e.target.checked) {
+      container
+        .querySelectorAll('input[type="checkbox"]:not([value="All"])')
+        .forEach((cb) => (cb.checked = false));
+    } else if (e.target.value !== "All" && e.target.checked) {
+      if (allCb) allCb.checked = false;
+    }
+  }
+});
 
 async function submitCampaign() {
-  const name = document.getElementById('camp-name').value.trim();
-  const headline = document.getElementById('camp-headline').value.trim();
-  const budget = document.getElementById('camp-budget').value;
+  const name = document.getElementById("camp-name").value.trim();
+  const headline = document.getElementById("camp-headline").value.trim();
+  const budget = document.getElementById("camp-budget").value;
 
-  if (!name) { showToast('⚠️ Campaign name required'); return; }
-  if (!headline) { showToast('⚠️ Ad headline required'); return; }
-  if (!budget || parseFloat(budget) <= 0) { showToast('⚠️ Enter a valid budget'); return; }
+  if (!name) {
+    showToast("⚠️ Campaign name required");
+    return;
+  }
+  if (!headline) {
+    showToast("⚠️ Ad headline required");
+    return;
+  }
+  if (!budget || parseFloat(budget) <= 0) {
+    showToast("⚠️ Enter a valid budget");
+    return;
+  }
 
-  const btn = document.getElementById('camp-submit-btn');
+  const btn = document.getElementById("camp-submit-btn");
   btn.disabled = true;
-  btn.textContent = 'Launching…';
+  btn.textContent = "Launching…";
 
   try {
     await huCreateCampaign({
       name: name,
-      objective: document.getElementById('camp-objective').value,
+      objective: document.getElementById("camp-objective").value,
       budget: budget,
-      bidAmount: document.getElementById('camp-bid').value,
-      targetSpecialty: document.getElementById('camp-specialty').value,
-      targetLocation: document.getElementById('camp-location').value,
-      endDate: document.getElementById('camp-end-date').value,
+      bidAmount: document.getElementById("camp-bid").value,
+      targetSpecialty: document.getElementById("camp-specialty").value,
+      targetLocation: document.getElementById("camp-location").value,
+      endDate: document.getElementById("camp-end-date").value,
       headline: headline,
-      bodyText: document.getElementById('camp-body-text').value,
-      ctaText: document.getElementById('camp-cta-text').value,
-      ctaLink: document.getElementById('camp-cta-link').value,
-      imageFile: (document.getElementById('camp-image').files || [])[0] || null,
+      bodyText: document.getElementById("camp-body-text").value,
+      ctaText: document.getElementById("camp-cta-text").value,
+      ctaLink: document.getElementById("camp-cta-link").value,
+      imageFile: (document.getElementById("camp-image").files || [])[0] || null,
     });
-    showToast('🚀 Campaign launched!');
+    showToast("🚀 Campaign launched!");
     closeCampaignModal();
     renderAdsManager();
   } catch (err) {
-    showToast('❌ ' + (err.message || 'Failed to create campaign'));
+    showToast("❌ " + (err.message || "Failed to create campaign"));
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Launch Campaign';
+    btn.textContent = "Launch Campaign";
   }
 }
 
 /* ============================================
    SPONSORED AD INJECTION INTO FEED
    ============================================ */
-async function injectSponsoredAd() {
-  const ad = await huServeAd();
-  if (!ad || !ad.creative_id) return;
 
-  const container = document.getElementById('feed-container');
-  if (!container) return;
+   async function injectSponsoredAd() {
+     const ad = await huServeAd();
+     if (!ad || !ad.creative_id) return;
 
-  // const img = ad.image_url ? (HU_API + ad.image_url) : '';
-  const img = ad.image_url
-    ? ad.image_url.startsWith("http")
-      ? ad.image_url
-      : HU_API + ad.image_url
-    : "";
-  const html = `
+     const container = document.getElementById("feed-container");
+     if (!container) return;
+
+     // Resolve media URL (handles absolute and relative backend paths)
+     const img = ad.image_url
+       ? ad.image_url.startsWith("http")
+         ? ad.image_url
+         : HU_API + ad.image_url
+       : "";
+
+     // Check if media is video or image
+     const isVideoAd = /\.(mp4|webm|mov)$/i.test(img);
+     const mediaHtml = img
+       ? isVideoAd
+         ? `<div class="post-image-wrap"><video src="${img}" class="post-image" controls></video></div>`
+         : `<div class="post-image-wrap"><img src="${img}" class="post-image"/></div>`
+       : "";
+
+     // Build the complete ad post HTML
+     const html = `
     <article class="post-card sponsored-post" data-campaign-id="${ad.id}" data-creative-id="${ad.creative_id}">
       <div class="post-top">
         <img src="${getLetterAvatar(ad.advertiser_name, 80)}" alt="${ad.advertiser_name}"/>
@@ -1780,24 +1863,97 @@ async function injectSponsoredAd() {
       </div>
       <div class="post-body">
         <div class="post-title">${ad.headline}</div>
-        <div class="post-text">${ad.body_text || ''}</div>
+        <div class="post-text">${ad.body_text || ""}</div>
       </div>
-      ${img ? `<div class="post-image-wrap"><img src="${img}" class="post-image"/></div>` : ''}
+      ${mediaHtml}
       <div style="padding:14px 16px;">
-        <button class="sponsored-cta-btn" onclick="handleAdClick('${ad.id}','${ad.creative_id}','${ad.cta_link || ''}')">${ad.cta_text || 'Learn More'}</button>
+        <button class="sponsored-cta-btn" onclick="handleAdClick('${ad.id}','${ad.creative_id}','${ad.cta_link || ""}')">
+          ${ad.cta_text || "Learn More"}
+        </button>
       </div>
     </article>
   `;
 
-  const posts = container.querySelectorAll('.post-card');
-  if (posts.length >= 3) {
-    posts[2].insertAdjacentHTML('afterend', html);
-  } else {
-    container.insertAdjacentHTML('beforeend', html);
-  }
+     // Inject after the 3rd post, or append if fewer posts exist
+     const posts = container.querySelectorAll(".post-card");
+     if (posts.length >= 3) {
+       posts[2].insertAdjacentHTML("afterend", html);
+     } else {
+       container.insertAdjacentHTML("beforeend", html);
+     }
 
-  huLogAdImpression(ad.id, ad.creative_id);
-}
+     // Log impression for analytics
+     huLogAdImpression(ad.id, ad.creative_id);
+   }
+// async function injectSponsoredAd() {
+//   const ad = await huServeAd();
+//   if (!ad || !ad.creative_id) return;
+
+//   const container = document.getElementById('feed-container');
+//   if (!container) return;
+
+//   // // const img = ad.image_url ? (HU_API + ad.image_url) : '';
+//   // const img = ad.image_url
+//   //   ? ad.image_url.startsWith("http")
+//   //     ? ad.image_url
+//   //     : HU_API + ad.image_url
+//   //   : "";
+//   // const html = `
+//   //   <article class="post-card sponsored-post" data-campaign-id="${ad.id}" data-creative-id="${ad.creative_id}">
+//   //     <div class="post-top">
+//   //       <img src="${getLetterAvatar(ad.advertiser_name, 80)}" alt="${ad.advertiser_name}"/>
+//   //       <div class="post-meta">
+//   //         <div class="post-name">${ad.advertiser_name}</div>
+//   //         <div class="post-role">Sponsored</div>
+//   //       </div>
+//   //       <span class="sponsored-label">Sponsored</span>
+//   //     </div>
+//   //     <div class="post-body">
+//   //       <div class="post-title">${ad.headline}</div>
+//   //       <div class="post-text">${ad.body_text || ''}</div>
+//   //     </div>
+//   //     ${img ? `<div class="post-image-wrap"><img src="${img}" class="post-image"/></div>` : ''}
+//   const img = ad.image_url
+//     ? ad.image_url.startsWith("http")
+//       ? ad.image_url
+//       : HU_API + ad.image_url
+//     : "";
+//   const isVideoAd = /\.(mp4|webm|mov)$/i.test(img);
+//   const mediaHtml = img
+//     ? isVideoAd
+//       ? `<div class="post-image-wrap"><video src="${img}" class="post-image" controls></video></div>`
+//       : `<div class="post-image-wrap"><img src="${img}" class="post-image"/></div>`
+//     : "";
+//   const html = `
+//     <article class="post-card sponsored-post" data-campaign-id="${ad.id}" data-creative-id="${ad.creative_id}">
+//       <div class="post-top">
+//         <img src="${getLetterAvatar(ad.advertiser_name, 80)}" alt="${ad.advertiser_name}"/>
+//         <div class="post-meta">
+//           <div class="post-name">${ad.advertiser_name}</div>
+//           <div class="post-role">Sponsored</div>
+//         </div>
+//         <span class="sponsored-label">Sponsored</span>
+//       </div>
+//       <div class="post-body">
+//         <div class="post-title">${ad.headline}</div>
+//         <div class="post-text">${ad.body_text || ""}</div>
+//       </div>
+//       ${mediaHtml}
+//       <div style="padding:14px 16px;">
+//         <button class="sponsored-cta-btn" onclick="handleAdClick('${ad.id}','${ad.creative_id}','${ad.cta_link || ""}')">${ad.cta_text || "Learn More"}</button>
+//       </div>
+//     </article>
+//   `;
+
+//   const posts = container.querySelectorAll('.post-card');
+//   if (posts.length >= 3) {
+//     posts[2].insertAdjacentHTML('afterend', html);
+//   } else {
+//     container.insertAdjacentHTML('beforeend', html);
+//   }
+
+//   huLogAdImpression(ad.id, ad.creative_id);
+// }
 
 function handleAdClick(campaignId, creativeId, link) {
   huLogAdClick(campaignId, creativeId);
