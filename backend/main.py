@@ -45,9 +45,10 @@ COST_PER_IMPRESSION        = float(os.getenv("COST_PER_IMPRESSION", 0.01))
 ALLOWED_IMAGES = {"image/jpeg","image/png","image/gif","image/webp"}
 ALLOWED_VIDEOS = {"video/mp4","video/webm","video/quicktime"}
 ALLOWED_AUDIO = {"audio/webm","audio/mp4","audio/mpeg","audio/ogg","audio/wav"}
-MAX_FILE_BYTES = 5000 * 1024 * 1024
+MAX_FILE_BYTES = 500 * 1024 * 1024
 
 # 2. Stream the request to disk so RAM doesn't crash
+app = Flask(__name__)
 @app.route('/upload', methods=['POST'])
 def upload_file():
     file = request.files['video']
