@@ -3,6 +3,32 @@
    components.css
    ============================================ */
 
+   /* Default / Light Mode Variables */
+:root {
+  --modal-bg: #ffffff;
+  --modal-text: #1e293b;
+  --modal-border: #e2e8f0;
+  --input-bg: #f8fafc;
+  --input-text: #0f172a;
+  --input-border: #cbd5e1;
+  --label-color: #475569;
+  --subtext-color: #64748b;
+}
+
+/* Dark Mode Variables (Triggered via .dark or data-theme) */
+body.dark,
+.dark,
+[data-theme="dark"] {
+  --modal-bg: #151821;
+  --modal-text: #ffffff;
+  --modal-border: #2d3748;
+  --input-bg: #242b3d;
+  --input-text: #ffffff;
+  --input-border: #333a4d;
+  --label-color: #cbd5e1;
+  --subtext-color: #94a3b8;
+}
+
 /* ============================================
    EXPLORE PAGE
    ============================================ */
@@ -987,6 +1013,78 @@ body.dark-mode .hu-dot          { background:var(--muted); }
 .sponsored-label { display:inline-flex; align-items:center; gap:4px; background:var(--green-bg); color:var(--green); font-size:11px; font-weight:700; padding:3px 10px; border-radius:99px; margin-left:auto; }
 .sponsored-cta-btn { background:var(--green); color:white; border:none; border-radius:var(--radius-sm); padding:9px 20px; font-size:13.5px; font-weight:700; font-family:inherit; cursor:pointer; transition:background .15s; }
 .sponsored-cta-btn:hover { background:var(--green-hover); }
+
+
+
+/* ============================================
+   ADS MANAGER - DARK MODE ONLY (Scoped)
+   ============================================ */
+
+/* Modal Box Container */
+.campaign-modal-box {
+  background: var(--modal-bg) !important;
+  color: var(--modal-text) !important;
+  border: 1px solid var(--modal-border) !important;
+  border-radius: var(--radius, 16px);
+  width: 640px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.3);
+  animation: fadeUp 0.22s ease;
+}
+
+/* Modal Headers & Labels */
+.campaign-modal-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  flex: 1;
+  color: var(--modal-text) !important;
+}
+
+.campaign-section-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--modal-text) !important;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--modal-border) !important;
+}
+
+.campaign-modal-box label,
+.campaign-modal-box .settings-label {
+  color: var(--label-color) !important;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  display: inline-block;
+}
+
+/* Form Inputs, Selects, Textarea */
+.campaign-modal-box input,
+.campaign-modal-box select,
+.campaign-modal-box textarea {
+  background-color: var(--input-bg) !important;
+  color: var(--input-text) !important;
+  border: 1px solid var(--input-border) !important;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* Dropdown Options List Fix */
+.campaign-modal-box select option,
+.campaign-modal-box select optgroup {
+  background-color: var(--modal-bg) !important;
+  color: var(--modal-text) !important;
+}
+
+/* Calendar icon adaptive color */
+body.dark .campaign-modal-box input[type="date"]::-webkit-calendar-picker-indicator,
+[data-theme="dark"] .campaign-modal-box input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
 
 @media (max-width:900px) { .campaign-metrics { grid-template-columns:repeat(3,1fr); } }
 @media (max-width:600px) { .campaign-metrics { grid-template-columns:repeat(2,1fr); } .campaign-modal-box { width:95vw; } }

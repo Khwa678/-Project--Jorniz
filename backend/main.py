@@ -45,8 +45,24 @@ COST_PER_IMPRESSION        = float(os.getenv("COST_PER_IMPRESSION", 0.01))
 ALLOWED_IMAGES = {"image/jpeg","image/png","image/gif","image/webp"}
 ALLOWED_VIDEOS = {"video/mp4","video/webm","video/quicktime"}
 ALLOWED_AUDIO = {"audio/webm","audio/mp4","audio/mpeg","audio/ogg","audio/wav"}
-MAX_FILE_BYTES = 50 * 1024 * 1024
+MAX_FILE_BYTES = 5000 * 1024 * 1024
 
+# 2. Stream the request to disk so RAM doesn't crash
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    file = request.files['video']
+    
+    # Do NOT use file.save() directly for 5GB files! 
+    # Use chunked saving instead:
+    save_path = f"./uploads/{file.filename}"
+    with open(save_path, 'wb') as f:
+        while True:
+            chunk = file.stream.read(4096 * 1024) # Read 4MB at a time
+            if not chunk:
+                break
+            f.write(chunk)
+            
+    return {'status': 'success'}
 # ─── APP ───────────────────────────────────────────────────────────────────────
 app = Flask(__name__)
 CORS(app, origins=os.getenv("ALLOWED_ORIGINS","*").split(","))
@@ -342,7 +358,9 @@ def init_db():
             """)
             cur.execute("CREATE INDEX IF NOT EXISTS idx_messages_conv_created ON messages(conversation_id, created_at);")
 
+            # cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT FALSE;")
             cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT FALSE;")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS location VARCHAR(100) DEFAULT '';")
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS reports (
                     id          VARCHAR(36) NOT NULL PRIMARY KEY,
@@ -541,13 +559,14 @@ def update_profile():
     specialty =  data.get("specialty") or request.current_user.get("specialty","")
     hospital  =  data.get("hospital")  or ""
     bio       =  data.get("bio")       or ""
+    location  =  data.get("location")  or request.current_user.get("location","")
 
     if not name:
         return jsonify({"detail": "Name cannot be empty"}), 400
 
     db_run(
-        "UPDATE users SET name=%s, specialty=%s, hospital=%s, bio=%s WHERE id=%s",
-        (name, specialty, hospital, bio, uid)
+        "UPDATE users SET name=%s, specialty=%s, hospital=%s, bio=%s, location=%s WHERE id=%s",
+        (name, specialty, hospital, bio, location, uid)
     )
     user = safe_user(db_one("SELECT * FROM users WHERE id=%s", (uid,)))
     return jsonify({"user": user, "message": "Profile updated successfully ✅"})

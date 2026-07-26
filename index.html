@@ -1738,10 +1738,164 @@
               <option>Pediatrics</option><option>General Physician</option>
             </select>
           </div>
-          <div class="settings-field">
+          <!-- <div class="settings-field">
             <label class="settings-label">Target Location</label>
             <input type="text" class="settings-input" id="camp-location" placeholder="All / Mumbai / Delhi..."/>
-          </div>
+          </div> -->
+          <!-- <div class="settings-field">
+            <label class="settings-label">Target Location</label>
+            <select class="settings-input" id="camp-location">
+              <option value="All">All Locations</option>
+              <option value="Mumbai">Mumbai</option>
+              <option value="Delhi">Delhi</option>
+              <option value="Bangalore">Bangalore</option>
+              <option value="Chennai">Chennai</option>
+              <option value="Hyderabad">Hyderabad</option>
+              <option value="Pune">Pune</option>
+              <option value="Remote">Remote</option>
+            </select>
+          </div> -->
+          <div class="settings-field">
+  <label class="settings-label">Target Location</label>
+  <select class="settings-input" id="camp-location">
+    <!-- Default Options -->
+    <option value="All">All Locations</option>
+    <option value="Remote">Remote / Online</option>
+
+    <!-- Popular Metro Cities -->
+    <optgroup label="Popular Metro Cities">
+      <option value="Mumbai">Mumbai</option>
+      <option value="Delhi-NCR">Delhi NCR</option>
+      <option value="Bangalore">Bangalore</option>
+      <option value="Chennai">Chennai</option>
+      <option value="Hyderabad">Hyderabad</option>
+      <option value="Kolkata">Kolkata</option>
+      <option value="Pune">Pune</option>
+      <option value="Ahmedabad">Ahmedabad</option>
+    </optgroup>
+
+    <!-- Major Cities & Healthcare Hubs -->
+    <optgroup label="Major Cities & Healthcare Hubs">
+      <option value="Agra">Agra</option>
+      <option value="Ajmer">Ajmer</option>
+      <option value="Aligarh">Aligarh</option>
+      <option value="Allahabad">Allahabad (Prayagraj)</option>
+      <option value="Amritsar">Amritsar</option>
+      <option value="Aurangabad">Aurangabad (Chhatrapati Sambhajinagar)</option>
+      <option value="Bareilly">Bareilly</option>
+      <option value="Belgaum">Belgaum</option>
+      <option value="Bhubaneswar">Bhubaneswar</option>
+      <option value="Bhopal">Bhopal</option>
+      <option value="Bikaner">Bikaner</option>
+      <option value="Chandigarh">Chandigarh</option>
+      <option value="Coimbatore">Coimbatore</option>
+      <option value="Cuttack">Cuttack</option>
+      <option value="Dehradun">Dehradun</option>
+      <option value="Dhanbad">Dhanbad</option>
+      <option value="Durgapur">Durgapur</option>
+      <option value="Faridabad">Faridabad</option>
+      <option value="Ghaziabad">Ghaziabad</option>
+      <option value="Gorakhpur">Gorakhpur</option>
+      <option value="Guntur">Guntur</option>
+      <option value="Gurgaon">Gurgaon (Gurugram)</option>
+      <option value="Guwahati">Guwahati</option>
+      <option value="Gwalior">Gwalior</option>
+      <option value="Hubli">Hubli-Dharwad</option>
+      <option value="Indore">Indore</option>
+      <option value="Jabalpur">Jabalpur</option>
+      <option value="Jaipur">Jaipur</option>
+      <option value="Jalandhar">Jalandhar</option>
+      <option value="Jammu">Jammu</option>
+      <option value="Jamshedpur">Jamshedpur</option>
+      <option value="Jodhpur">Jodhpur</option>
+      <option value="Kakinada">Kakinada</option>
+      <option value="Kannur">Kannur</option>
+      <option value="Kanpur">Kanpur</option>
+      <option value="Kochi">Kochi (Cochin)</option>
+      <option value="Kolhapur">Kolhapur</option>
+      <option value="Kollam">Kollam</option>
+      <option value="Kozhikode">Kozhikode (Calicut)</option>
+      <option value="Lucknow">Lucknow</option>
+      <option value="Ludhiana">Ludhiana</option>
+      <option value="Madurai">Madurai</option>
+      <option value="Mangalore">Mangalore</option>
+      <option value="Meerut">Meerut</option>
+      <option value="Moradabad">Moradabad</option>
+      <option value="Mysore">Mysore</option>
+      <option value="Nagpur">Nagpur</option>
+      <option value="Nashik">Nashik</option>
+      <option value="Noida">Noida</option>
+      <option value="Patna">Patna</option>
+      <option value="Pondicherry">Puducherry</option>
+      <option value="Raipur">Raipur</option>
+      <option value="Rajkot">Rajkot</option>
+      <option value="Ranchi">Ranchi</option>
+      <option value="Rourkela">Rourkela</option>
+      <option value="Salem">Salem</option>
+      <option value="Shillong">Shillong</option>
+      <option value="Shimla">Shimla</option>
+      <option value="Siliguri">Siliguri</option>
+      <option value="Solapur">Solapur</option>
+      <option value="Srinagar">Srinagar</option>
+      <option value="Surat">Surat</option>
+      <option value="Thane">Thane</option>
+      <option value="Thiruvananthapuram">Thiruvananthapuram (Trivandrum)</option>
+      <option value="Thrissur">Thrissur</option>
+      <option value="Tiruchirappalli">Tiruchirappalli (Trichy)</option>
+      <option value="Udaipur">Udaipur</option>
+      <option value="Ujjain">Ujjain</option>
+      <option value="Vadodara">Vadodara (Baroda)</option>
+      <option value="Varanasi">Varanasi</option>
+      <option value="Vijayawada">Vijayawada</option>
+      <option value="Visakhapatnam">Visakhapatnam (Vizag)</option>
+      <option value="Warangal">Warangal</option>
+    </optgroup>
+
+    <!-- All 28 States -->
+    <optgroup label="States">
+      <option value="Andhra Pradesh">Andhra Pradesh</option>
+      <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+      <option value="Assam">Assam</option>
+      <option value="Bihar">Bihar</option>
+      <option value="Chhattisgarh">Chhattisgarh</option>
+      <option value="Goa">Goa</option>
+      <option value="Gujarat">Gujarat</option>
+      <option value="Haryana">Haryana</option>
+      <option value="Himachal Pradesh">Himachal Pradesh</option>
+      <option value="Jharkhand">Jharkhand</option>
+      <option value="Karnataka">Karnataka</option>
+      <option value="Kerala">Kerala</option>
+      <option value="Madhya Pradesh">Madhya Pradesh</option>
+      <option value="Maharashtra">Maharashtra</option>
+      <option value="Manipur">Manipur</option>
+      <option value="Meghalaya">Meghalaya</option>
+      <option value="Mizoram">Mizoram</option>
+      <option value="Nagaland">Nagaland</option>
+      <option value="Odisha">Odisha</option>
+      <option value="Punjab">Punjab</option>
+      <option value="Rajasthan">Rajasthan</option>
+      <option value="Sikkim">Sikkim</option>
+      <option value="Tamil Nadu">Tamil Nadu</option>
+      <option value="Telangana">Telangana</option>
+      <option value="Tripura">Tripura</option>
+      <option value="Uttar Pradesh">Uttar Pradesh</option>
+      <option value="Uttarakhand">Uttarakhand</option>
+      <option value="West Bengal">West Bengal</option>
+    </optgroup>
+
+    <!-- Union Territories -->
+    <optgroup label="Union Territories">
+      <option value="Andaman and Nicobar Islands">Andaman and Nicobar Islands</option>
+      <option value="Chandigarh UT">Chandigarh</option>
+      <option value="Dadra and Nagar Haveli and Daman and Diu">Dadra and Nagar Haveli and Daman and Diu</option>
+      <option value="Delhi UT">Delhi (NCT)</option>
+      <option value="Jammu and Kashmir UT">Jammu and Kashmir</option>
+      <option value="Ladakh">Ladakh</option>
+      <option value="Lakshadweep">Lakshadweep</option>
+      <option value="Puducherry UT">Puducherry</option>
+    </optgroup>
+  </select>
+</div>
           <div class="settings-field">
             <label class="settings-label">End Date <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
             <input type="date" class="settings-input" id="camp-end-date"/>
