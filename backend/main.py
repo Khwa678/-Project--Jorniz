@@ -11,6 +11,33 @@ from flask_socketio import SocketIO, emit, join_room
 
 load_dotenv()
 
+
+from supabase import create_client
+
+SUPABASE_URL         = os.getenv("SUPABASE_URL", "")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
+SUPABASE_BUCKET       = os.getenv("SUPABASE_BUCKET", "media")
+
+supabase_client = None
+if SUPABASE_URL and SUPABASE_SERVICE_KEY:
+    supabase_client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    print("✅ Supabase Storage client ready")
+else:
+    print("⚠️ Supabase Storage not configured — check .env")
+
+
+def upload_to_supabase(file_bytes: bytes, filename: str, content_type: str) -> str:
+    """Uploads bytes to Supabase Storage and returns a public URL."""
+    if not supabase_client:
+        raise RuntimeError("Supabase Storage is not configured")
+
+    supabase_client.storage.from_(SUPABASE_BUCKET).upload(
+        filename,
+        file_bytes,
+        {"content-type": content_type}
+    )
+    return supabase_client.storage.from_(SUPABASE_BUCKET).get_public_url(filename)
+
 # ─── CONFIG ────────────────────────────────────────────────────────────────────
 SECRET_KEY        = os.getenv("SECRET_KEY", "hu-super-secret-key-change-in-prod-2024")
 
@@ -743,11 +770,15 @@ def create_post():
         file_bytes = media.read()
         if len(file_bytes) > MAX_FILE_BYTES:
             return jsonify({"detail": "File too large (max 50MB)"}), 400
+        # ext   = os.path.splitext(media.filename)[1] or ".bin"
+        # fname = str(uuid.uuid4()) + ext
+        # with open(os.path.join(UPLOAD_DIR, fname), "wb") as f:
+        #     f.write(file_bytes)
+        # media_url  = f"/uploads/{fname}"
+        # media_type = "image" if ct in ALLOWED_IMAGES else "video"
         ext   = os.path.splitext(media.filename)[1] or ".bin"
         fname = str(uuid.uuid4()) + ext
-        with open(os.path.join(UPLOAD_DIR, fname), "wb") as f:
-            f.write(file_bytes)
-        media_url  = f"/uploads/{fname}"
+        media_url  = upload_to_supabase(file_bytes, fname, ct)
         media_type = "image" if ct in ALLOWED_IMAGES else "video"
 
     post_id = str(uuid.uuid4())
@@ -870,11 +901,14 @@ def create_campaign():
         file_bytes = image.read()
         if len(file_bytes) > MAX_FILE_BYTES:
             return jsonify({"detail": "Image too large (max 50MB)"}), 400
+        # ext   = os.path.splitext(image.filename)[1] or ".jpg"
+        # fname = str(uuid.uuid4()) + ext
+        # with open(os.path.join(UPLOAD_DIR, fname), "wb") as f:
+        #     f.write(file_bytes)
+        # image_url = f"/uploads/{fname}"
         ext   = os.path.splitext(image.filename)[1] or ".jpg"
         fname = str(uuid.uuid4()) + ext
-        with open(os.path.join(UPLOAD_DIR, fname), "wb") as f:
-            f.write(file_bytes)
-        image_url = f"/uploads/{fname}"
+        image_url = upload_to_supabase(file_bytes, fname, ct)
 
     cid = str(uuid.uuid4())
     db_run(
@@ -1182,14 +1216,22 @@ def upload_message_media():
     if len(file_bytes) > MAX_FILE_BYTES:
         return jsonify({"detail": "File too large (max 50MB)"}), 400
 
+    # ext = os.path.splitext(media.filename)[1] or ".bin"
+    # fname = str(uuid.uuid4()) + ext
+    # with open(os.path.join(UPLOAD_DIR, fname), "wb") as f:
+    #     f.write(file_bytes)
+
+    # media_type = "image" if ct in ALLOWED_IMAGES else ("video" if ct in ALLOWED_VIDEOS else "audio")
+    # return jsonify({"media_url": f"/uploads/{fname}", "media_type": media_type})
+
     ext = os.path.splitext(media.filename)[1] or ".bin"
     fname = str(uuid.uuid4()) + ext
-    with open(os.path.join(UPLOAD_DIR, fname), "wb") as f:
-        f.write(file_bytes)
+    media_url = upload_to_supabase(file_bytes, fname, ct)
 
     media_type = "image" if ct in ALLOWED_IMAGES else ("video" if ct in ALLOWED_VIDEOS else "audio")
-    return jsonify({"media_url": f"/uploads/{fname}", "media_type": media_type})
+    return jsonify({"media_url": media_url, "media_type": media_type})
 
+     
 
 @app.route("/api/messages/<message_id>", methods=["DELETE"])
 @require_auth

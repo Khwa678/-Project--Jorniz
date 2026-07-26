@@ -1638,7 +1638,12 @@ async function renderAdsManager() {
 
   list.innerHTML = campaigns.map(c => {
     const creative = c.creative || {};
-    const img = creative.image_url ? (HU_API + creative.image_url) : '';
+    // const img = creative.image_url ? (HU_API + creative.image_url) : '';
+    const img = creative.image_url
+      ? creative.image_url.startsWith("http")
+        ? creative.image_url
+        : HU_API + creative.image_url
+      : "";
     const pct = c.budget > 0 ? Math.min(100, Math.round((c.spent / c.budget) * 100)) : 0;
     return `
       <div class="campaign-card">
@@ -1757,7 +1762,12 @@ async function injectSponsoredAd() {
   const container = document.getElementById('feed-container');
   if (!container) return;
 
-  const img = ad.image_url ? (HU_API + ad.image_url) : '';
+  // const img = ad.image_url ? (HU_API + ad.image_url) : '';
+  const img = ad.image_url
+    ? ad.image_url.startsWith("http")
+      ? ad.image_url
+      : HU_API + ad.image_url
+    : "";
   const html = `
     <article class="post-card sponsored-post" data-campaign-id="${ad.id}" data-creative-id="${ad.creative_id}">
       <div class="post-top">
