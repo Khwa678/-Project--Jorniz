@@ -621,10 +621,14 @@ function renderDoctors(list) {
       '<div class="no-doctors-msg"><h3>No doctors found</h3><p>Try adjusting your search or specialty filter</p></div>';
     return;
   }
+  const myUser = huGetUser();
+  const myId = myUser ? String(myUser.id) : null;
   grid.innerHTML = data
-    .map(
-      (doc, idx) => `
+    .map((doc, idx) => {
+      const canDelete = doc.addedBy && myId && String(doc.addedBy) === myId;
+      return `
     <div class="doctor-card" style="animation-delay:${idx * 0.05}s">
+      ${canDelete ? `<button class="doc-delete-btn" onclick="deleteMyDoctor('${doc.id}', event)">🗑 Remove</button>` : ""}
       <div class="doc-card-top">
         <div class="doc-avatar-wrap">
           <img src="${doc.avatar}" alt="${doc.name}" class="doc-avatar" loading="lazy"/>
@@ -650,11 +654,102 @@ function renderDoctors(list) {
       </div>
       <div class="doc-next-slot">🕐 Next: ${doc.nextSlot}</div>
     </div>
-  `,
-    )
+  `;
+    })
     .join("");
   const c = document.getElementById("doc-count");
   if (c) c.textContent = data.length;
+}
+
+function openAddDoctorModal() {
+  if (!huGetToken()) {
+    showToast("⚠️ Please log in to add a doctor");
+    return;
+  }
+  document.getElementById("add-doctor-form").reset();
+  document.getElementById("add-doctor-modal").style.display = "flex";
+  document.body.style.overflow = "hidden";
+}
+
+function closeAddDoctorModal() {
+  document.getElementById("add-doctor-modal").style.display = "none";
+  document.body.style.overflow = "";
+}
+
+async function handleAddDoctorSubmit(event) {
+  event.preventDefault();
+  const name = document.getElementById("ud-doc-name").value.trim();
+  const specialty = document.getElementById("ud-doc-specialty").value;
+  if (!name) {
+    showToast("⚠️ Doctor name is required");
+    return;
+  }
+
+  const tags = document
+    .getElementById("ud-doc-tags")
+    .value.split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  const payload = {
+    name: name,
+    specialty: specialty,
+    hospital: document.getElementById("ud-doc-hospital").value.trim(),
+    avatar_url: document.getElementById("ud-doc-avatar").value.trim(),
+    experience:
+      parseInt(document.getElementById("ud-doc-experience").value) || 0,
+    price: parseFloat(document.getElementById("ud-doc-price").value) || 0,
+    tags: tags,
+    next_slot:
+      document.getElementById("ud-doc-nextslot").value.trim() ||
+      "Available Now",
+  };
+
+  const btn = document.getElementById("ud-doc-submit-btn");
+  btn.disabled = true;
+  btn.textContent = "Adding…";
+
+  try {
+    const res = await huFetch("/api/doctors/add", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    if (!res) return;
+    const data = await res.json();
+    if (!res.ok) {
+      showToast("❌ " + (data.detail || "Could not add doctor"));
+      return;
+    }
+
+    DOCTORS.push(data);
+    renderDoctors();
+    closeAddDoctorModal();
+    showToast("✅ Doctor added successfully!");
+  } catch (e) {
+    showToast("❌ Could not connect to server");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Add Doctor";
+  }
+}
+
+async function deleteMyDoctor(doctorId, event) {
+  if (event) event.stopPropagation();
+  if (!confirm("Remove this doctor you added? This cannot be undone.")) return;
+  try {
+    const res = await huFetch("/api/doctors/" + doctorId, { method: "DELETE" });
+    if (!res) return;
+    const data = await res.json();
+    if (!res.ok) {
+      showToast("❌ " + (data.detail || "Could not remove doctor"));
+      return;
+    }
+    DOCTORS = DOCTORS.filter((d) => d.id !== doctorId);
+    renderDoctors();
+    showToast("🗑️ Doctor removed");
+  } catch (e) {
+    showToast("❌ Could not connect to server");
+  }
 }
 
 function filterDoctors(q) {

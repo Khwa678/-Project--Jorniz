@@ -25,6 +25,22 @@
 .profile-avatar    { width: 90px !important; height: 90px !important; }
 .settings-avatar   { width: 72px !important; height: 72px !important; }
 #modal-user-avatar { width: 42px !important; height: 42px !important; }
+
+.consult-header-actions{display:flex;align-items:center;gap:10px;}
+.consult-add-doctor-btn{
+  background:#2563eb;color:#fff;border:none;border-radius:10px;
+  padding:10px 16px;font-weight:600;font-size:14px;cursor:pointer;
+  display:flex;align-items:center;gap:6px;transition:.2s;white-space:nowrap;
+}
+.consult-add-doctor-btn:hover{background:#1d4ed8;}
+.doctor-card{position:relative;}
+.doc-delete-btn{
+  position:absolute;top:12px;right:12px;
+  background:rgba(239,68,68,.14);color:#ef4444;border:1px solid rgba(239,68,68,.35);
+  border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;
+  transition:.2s;z-index:2;
+}
+.doc-delete-btn:hover{background:rgba(239,68,68,.24);}
 </style>
 </head>
 <body>
@@ -299,7 +315,10 @@
         <h1>Book a Consultation</h1>
         <p>Connect with verified healthcare professionals</p>
       </div>
-      <div class="consult-balance-pill">🪙 <span id="consult-coins">500</span> HU Coins available</div>
+      <div class="consult-header-actions">
+        <div class="consult-balance-pill">🪙 <span id="consult-coins">500</span> HU Coins available</div>
+        <button class="consult-add-doctor-btn" onclick="openAddDoctorModal()">+ Add Doctor</button>
+      </div>
     </div>
     <div class="consult-search-row">
       <div class="search-bar consult-search">
@@ -331,6 +350,72 @@
     </div>
     <div class="doctors-grid" id="doctors-grid"></div>
   </section>
+
+  <!-- ADD DOCTOR MODAL (user-facing) -->
+  <div id="add-doctor-modal" class="hu-modal" style="display:none;">
+    <div class="hu-modal-overlay" onclick="closeAddDoctorModal()"></div>
+    <div class="hu-modal-content">
+      <div class="hu-modal-header">
+        <h3>🩺 Add a Doctor</h3>
+        <button type="button" class="close-btn" onclick="closeAddDoctorModal()">&times;</button>
+      </div>
+      <form id="add-doctor-form" onsubmit="handleAddDoctorSubmit(event)">
+        <div class="form-group">
+          <label for="ud-doc-name">Doctor Full Name *</label>
+          <input type="text" id="ud-doc-name" required placeholder="Dr. Full Name"/>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="ud-doc-specialty">Specialty *</label>
+            <select id="ud-doc-specialty" required>
+              <option>General Physician</option>
+              <option>Cardiologist</option>
+              <option>Psychiatrist</option>
+              <option>Nutritionist</option>
+              <option>Dermatologist</option>
+              <option>Orthopedic</option>
+              <option>Pediatrician</option>
+              <option>Gynecologist</option>
+              <option>Neurologist</option>
+              <option>ENT Specialist</option>
+              <option>Ayurvedic Doctor</option>
+              <option>Homeopathic Doctor</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="ud-doc-hospital">Hospital / Clinic</label>
+            <input type="text" id="ud-doc-hospital" placeholder="e.g. Apollo Hospital, Mumbai"/>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="ud-doc-experience">Experience (years)</label>
+            <input type="number" id="ud-doc-experience" min="0" placeholder="e.g. 8"/>
+          </div>
+          <div class="form-group">
+            <label for="ud-doc-price">Consultation Fee (₹)</label>
+            <input type="number" id="ud-doc-price" min="0" placeholder="e.g. 500"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="ud-doc-avatar">Photo URL</label>
+          <input type="url" id="ud-doc-avatar" placeholder="https://..."/>
+        </div>
+        <div class="form-group">
+          <label for="ud-doc-tags">Tags (comma separated)</label>
+          <input type="text" id="ud-doc-tags" placeholder="e.g. Acne, Skin Allergy"/>
+        </div>
+        <div class="form-group">
+          <label for="ud-doc-nextslot">Next Available Slot</label>
+          <input type="text" id="ud-doc-nextslot" placeholder="e.g. Today, 3:00 PM"/>
+        </div>
+        <div class="hu-modal-actions">
+          <button type="button" class="btn-secondary" onclick="closeAddDoctorModal()">Cancel</button>
+          <button type="submit" class="btn-primary" id="ud-doc-submit-btn">Add Doctor</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- JOBS PAGE -->
   <!-- JOBS PAGE -->

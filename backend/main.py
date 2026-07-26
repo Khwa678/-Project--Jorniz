@@ -419,6 +419,7 @@ def init_db():
                     created_at    TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
                 );
             """)
+            cur.execute("ALTER TABLE doctors ADD COLUMN IF NOT EXISTS added_by VARCHAR(36) REFERENCES users(id) ON DELETE SET NULL;")
             # ── END NEW TABLES ───────────────────────────────────────────────
 
         conn.commit()
@@ -1681,6 +1682,7 @@ def doctor_to_frontend_shape(d) -> dict:
         "rating": float(d["rating"]), "reviews": d["reviews"], "experience": d["experience"],
         "consultations": d["consultations"], "status": d["status"], "price": float(d["price"]),
         "coins": d["coins"], "tags": tags, "nextSlot": d["next_slot"],
+        "addedBy": str(d["added_by"]) if d.get("added_by") else None,
     }
 
 
@@ -1731,54 +1733,6 @@ def admin_delete_job(job_id):
     return jsonify({"message": "Job deleted"})
 
 
-# ── USER-POSTED JOBS (non-admin) ──────────────────────────────────
-@app.route("/api/jobs/add", methods=["POST"])
-@require_auth
-def user_add_job():
-    data = request.get_json(force=True) or {}
-    title = (data.get("title") or "").strip()
-    company = (data.get("company") or "").strip()
-    description = (data.get("description") or "").strip()
-    if not title or not company:
-        return jsonify({"detail": "Job title and hospital/company are required"}), 400
-
-    tags = data.get("tags") or []
-    if isinstance(tags, str):
-        tags = [t.strip() for t in tags.split(",") if t.strip()]
-
-    uid = str(request.current_user["id"])
-    jid = str(uuid.uuid4())
-    db_run(
-        """INSERT INTO jobs (id, title, company, company_logo, location, job_type,
-           specialty, salary, experience, deadline, tags, description, featured, added_by)
-           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-        (jid, title, company,
-         data.get("company_logo") or "", data.get("location") or "Remote",
-         data.get("job_type") or "Full-Time", data.get("specialty") or "General Physician",
-         data.get("salary") or "", data.get("experience") or "", data.get("deadline") or "",
-         _json.dumps(tags), description, False, uid)
-    )
-    job = db_one("SELECT * FROM jobs WHERE id=%s", (jid,))
-    return jsonify(job_to_frontend_shape(job)), 201
-
-
-@app.route("/api/jobs/<job_id>", methods=["DELETE"])
-@require_auth
-def user_delete_job(job_id):
-    uid = str(request.current_user["id"])
-    job = db_one("SELECT * FROM jobs WHERE id=%s", (job_id,))
-    if not job:
-        return jsonify({"detail": "Job not found"}), 404
-
-    is_owner = job.get("added_by") and str(job["added_by"]) == uid
-    is_admin = request.current_user["email"].lower() in {e.lower() for e in ADMIN_EMAILS if e}
-    if not is_owner and not is_admin:
-        return jsonify({"detail": "You can only remove jobs you posted"}), 403
-
-    db_run("DELETE FROM jobs WHERE id=%s", (job_id,))
-    return jsonify({"message": "Job deleted"})
-
-
 # ── DOCTORS / CONSULTATIONS ───────────────────────────────────────
 @app.route("/api/doctors")
 def get_doctors():
@@ -1824,6 +1778,55 @@ def admin_delete_doctor(doctor_id):
         return jsonify({"detail": "Doctor not found"}), 404
     db_run("DELETE FROM doctors WHERE id=%s", (doctor_id,))
     return jsonify({"message": "Doctor removed"})
+
+
+# ── USER-ADDED DOCTORS (non-admin) ────────────────────────────────
+@app.route("/api/doctors/add", methods=["POST"])
+@require_auth
+def user_add_doctor():
+    data = request.get_json(force=True) or {}
+    name = (data.get("name") or "").strip()
+    specialty = (data.get("specialty") or "").strip()
+    if not name or not specialty:
+        return jsonify({"detail": "Name and specialty are required"}), 400
+
+    tags = data.get("tags") or []
+    if isinstance(tags, str):
+        tags = [t.strip() for t in tags.split(",") if t.strip()]
+
+    uid = str(request.current_user["id"])
+    did = str(uuid.uuid4())
+    db_run(
+        """INSERT INTO doctors (id, name, specialty, hospital, avatar_url, verified,
+           rating, reviews, experience, consultations, status, price, coins, tags, next_slot, added_by)
+           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+        (did, name, specialty, data.get("hospital") or "", data.get("avatar_url") or "",
+         bool(data.get("verified", True)), data.get("rating") or 4.8, data.get("reviews") or 0,
+         data.get("experience") or 0, data.get("consultations") or 0, data.get("status") or "online",
+         data.get("price") or 0, data.get("coins") or (float(data.get("price") or 0) * 2),
+         _json.dumps(tags), data.get("next_slot") or "Available Now", uid)
+    )
+    doctor = db_one("SELECT * FROM doctors WHERE id=%s", (did,))
+    return jsonify(doctor_to_frontend_shape(doctor)), 201
+
+
+@app.route("/api/doctors/<doctor_id>", methods=["DELETE"])
+@require_auth
+def user_delete_doctor(doctor_id):
+    uid = str(request.current_user["id"])
+    doctor = db_one("SELECT * FROM doctors WHERE id=%s", (doctor_id,))
+    if not doctor:
+        return jsonify({"detail": "Doctor not found"}), 404
+
+    is_owner = doctor.get("added_by") and str(doctor["added_by"]) == uid
+    is_admin = request.current_user["email"].lower() in {e.lower() for e in ADMIN_EMAILS if e}
+    if not is_owner and not is_admin:
+        return jsonify({"detail": "You can only remove doctors you added"}), 403
+
+    db_run("DELETE FROM doctors WHERE id=%s", (doctor_id,))
+    return jsonify({"message": "Doctor removed"})
+
+
 # ─── RUN ───────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     print("\n" + "="*50)
