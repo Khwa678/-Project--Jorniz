@@ -397,6 +397,7 @@ def init_db():
                     created_at    TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
                 );
             """)
+            cur.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS added_by VARCHAR(36) REFERENCES users(id) ON DELETE SET NULL;")
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS doctors (
                     id            VARCHAR(36)  NOT NULL PRIMARY KEY,
@@ -1665,6 +1666,7 @@ def job_to_frontend_shape(j) -> dict:
         "experience": j["experience"], "posted": posted, "deadline": j["deadline"],
         "applicants": j["applicants"], "tags": tags, "description": j["description"],
         "featured": j["featured"], "saved": False, "applied": False,
+        "addedBy": str(j["added_by"]) if j.get("added_by") else None,
     }
 
 def doctor_to_frontend_shape(d) -> dict:
@@ -1725,6 +1727,54 @@ def admin_list_jobs():
 def admin_delete_job(job_id):
     if not db_one("SELECT id FROM jobs WHERE id=%s", (job_id,)):
         return jsonify({"detail": "Job not found"}), 404
+    db_run("DELETE FROM jobs WHERE id=%s", (job_id,))
+    return jsonify({"message": "Job deleted"})
+
+
+# ── USER-POSTED JOBS (non-admin) ──────────────────────────────────
+@app.route("/api/jobs/add", methods=["POST"])
+@require_auth
+def user_add_job():
+    data = request.get_json(force=True) or {}
+    title = (data.get("title") or "").strip()
+    company = (data.get("company") or "").strip()
+    description = (data.get("description") or "").strip()
+    if not title or not company:
+        return jsonify({"detail": "Job title and hospital/company are required"}), 400
+
+    tags = data.get("tags") or []
+    if isinstance(tags, str):
+        tags = [t.strip() for t in tags.split(",") if t.strip()]
+
+    uid = str(request.current_user["id"])
+    jid = str(uuid.uuid4())
+    db_run(
+        """INSERT INTO jobs (id, title, company, company_logo, location, job_type,
+           specialty, salary, experience, deadline, tags, description, featured, added_by)
+           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+        (jid, title, company,
+         data.get("company_logo") or "", data.get("location") or "Remote",
+         data.get("job_type") or "Full-Time", data.get("specialty") or "General Physician",
+         data.get("salary") or "", data.get("experience") or "", data.get("deadline") or "",
+         _json.dumps(tags), description, False, uid)
+    )
+    job = db_one("SELECT * FROM jobs WHERE id=%s", (jid,))
+    return jsonify(job_to_frontend_shape(job)), 201
+
+
+@app.route("/api/jobs/<job_id>", methods=["DELETE"])
+@require_auth
+def user_delete_job(job_id):
+    uid = str(request.current_user["id"])
+    job = db_one("SELECT * FROM jobs WHERE id=%s", (job_id,))
+    if not job:
+        return jsonify({"detail": "Job not found"}), 404
+
+    is_owner = job.get("added_by") and str(job["added_by"]) == uid
+    is_admin = request.current_user["email"].lower() in {e.lower() for e in ADMIN_EMAILS if e}
+    if not is_owner and not is_admin:
+        return jsonify({"detail": "You can only remove jobs you posted"}), 403
+
     db_run("DELETE FROM jobs WHERE id=%s", (job_id,))
     return jsonify({"message": "Job deleted"})
 

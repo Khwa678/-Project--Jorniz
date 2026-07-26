@@ -901,13 +901,18 @@ function renderJobs(list) {
       '<div class="no-jobs-msg"><h3>No jobs found</h3><p>Try adjusting your search or filters</p></div>';
     return;
   }
+  const myUser = huGetUser();
+  const myId = myUser ? String(myUser.id) : null;
   container.innerHTML = data
-    .map(
-      (job, idx) => `
+    .map((job, idx) => {
+      const canDelete = job.addedBy && myId && String(job.addedBy) === myId;
+      const logo = job.companyLogo || getLetterAvatar(job.company, 80);
+      return `
     <div class="job-card ${job.featured ? "featured" : ""}" id="job-${job.id}" style="animation-delay:${idx * 0.05}s">
       ${job.featured ? '<div class="job-featured-badge">⭐ FEATURED</div>' : ""}
+      ${canDelete ? `<button class="job-delete-btn" onclick="deleteMyJob('${job.id}', event)">🗑 Remove</button>` : ""}
       <div class="job-card-top">
-        <img src="${job.companyLogo}" alt="${job.company}" class="job-company-logo" loading="lazy"/>
+        <img src="${logo}" alt="${job.company}" class="job-company-logo" loading="lazy"/>
         <div class="job-card-info">
           <div class="job-title" onclick="openApplyModal('${job.id}')">${job.title}</div>
           <div class="job-company"><strong>${job.company}</strong> · 📍 ${job.location}</div>
@@ -919,7 +924,7 @@ function renderJobs(list) {
         </div>
       </div>
       <div class="job-description">${job.description}</div>
-      <div class="job-tags">${job.tags.map((t) => `<span class="job-tag">${t}</span>`).join("")}</div>
+      <div class="job-tags">${(job.tags || []).map((t) => `<span class="job-tag">${t}</span>`).join("")}</div>
       <div class="job-card-footer">
         <div class="job-footer-left">
           <div class="job-salary">${job.salary}</div>
@@ -937,11 +942,30 @@ function renderJobs(list) {
         </div>
       </div>
     </div>
-  `,
-    )
+  `;
+    })
     .join("");
   const countEl = document.getElementById("jobs-count");
   if (countEl) countEl.textContent = data.length;
+}
+
+async function deleteMyJob(jobId, event) {
+  if (event) event.stopPropagation();
+  if (!confirm("Remove this job you posted? This cannot be undone.")) return;
+  try {
+    const res = await huFetch("/api/jobs/" + jobId, { method: "DELETE" });
+    if (!res) return;
+    const data = await res.json();
+    if (!res.ok) {
+      showToast("❌ " + (data.detail || "Could not remove job"));
+      return;
+    }
+    JOBS = JOBS.filter((j) => j.id !== jobId);
+    renderJobs();
+    showToast("🗑️ Job removed");
+  } catch (e) {
+    showToast("❌ Could not connect to server");
+  }
 }
 
 function getTypePillClass(type) {
@@ -2286,15 +2310,19 @@ document.addEventListener("keydown", (e) => {
 ============================ */
 
 window.openPostJobModal = function () {
-    const modal = document.getElementById("post-job-modal");
+  if (!huGetToken()) {
+    showToast("⚠️ Please log in to post a job");
+    return;
+  }
+  const modal = document.getElementById("post-job-modal");
 
-    if (!modal) {
-        console.error("Post Job Modal not found!");
-        return;
-    }
+  if (!modal) {
+    console.error("Post Job Modal not found!");
+    return;
+  }
 
-    modal.style.display = "flex";
-    document.body.style.overflow = "hidden";
+  modal.style.display = "flex";
+  document.body.style.overflow = "hidden";
 };
 
 window.closePostJobModal = function () {
@@ -2410,60 +2438,71 @@ Apply Now
    Publish Job
 ============================ */
 
-window.handlePostJobSubmit = function (event) {
+window.handlePostJobSubmit = async function (event) {
+  event.preventDefault();
 
-    event.preventDefault();
+  const title = document.getElementById("job-title").value.trim();
+  const company = document.getElementById("job-hospital").value.trim();
+  const location = document.getElementById("job-location").value.trim();
+  const jobType = document.getElementById("job-type").value;
+  const specialty = document.getElementById("job-specialty").value.trim();
+  const experience = document.getElementById("job-experience").value.trim();
+  const salary = document.getElementById("job-salary").value.trim();
+  const description = document.getElementById("job-description").value.trim();
+  const tags = document
+    .getElementById("job-tags")
+    .value.split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+  const deadline = document.getElementById("job-deadline").value;
 
-    const job = {
+  if (!title || !company || !description) {
+    showToast("⚠️ Please fill in job title, hospital, and description");
+    return;
+  }
 
-        title: document.getElementById("job-title").value,
+  const payload = {
+    title: title,
+    company: company,
+    location: location || "Remote",
+    job_type: jobType,
+    specialty: specialty || "General Physician",
+    salary: salary,
+    experience: experience,
+    deadline: deadline,
+    tags: tags,
+    description: description,
+  };
 
-        hospital: document.getElementById("job-hospital").value,
+  const submitBtn = event.target.querySelector('button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Posting…";
+  }
 
-        location: document.getElementById("job-location").value,
+  try {
+    const res = await huFetch("/api/jobs/add", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    if (!res) return;
+    const data = await res.json();
+    if (!res.ok) {
+      showToast("❌ " + (data.detail || "Could not post job"));
+      return;
+    }
 
-        type: document.getElementById("job-type").value,
-
-        specialty: document.getElementById("job-specialty").value,
-
-        experience: document.getElementById("job-experience").value,
-
-        salary: document.getElementById("job-salary").value,
-
-        description: document.getElementById("job-description").value,
-
-        tags: document
-            .getElementById("job-tags")
-            .value
-            .split(",")
-            .map(tag => tag.trim())
-            .filter(tag => tag !== ""),
-
-        deadline: document.getElementById("job-deadline").value
-    };
-
-
-    /* Insert card */
-
-    const jobsList = document.getElementById("jobs-list");
-
-    jobsList.insertAdjacentHTML(
-        "afterbegin",
-        buildJobCard(job)
-    );
-
-
-    /* Update counter */
-
-    const counter = document.getElementById("jobs-count");
-
-    counter.textContent =
-        parseInt(counter.textContent) + 1;
-
-
-    /* Close modal */
+    JOBS.unshift(data);
+    renderJobs();
 
     closePostJobModal();
-
-    alert("✅ Job posted successfully!");
+    showToast("✅ Job posted successfully!");
+  } catch (e) {
+    showToast("❌ Could not connect to server");
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Publish Job";
+    }
+  }
 };
