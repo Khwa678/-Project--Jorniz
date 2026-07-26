@@ -2601,3 +2601,58 @@ window.handlePostJobSubmit = async function (event) {
     }
   }
 };
+
+
+// Open Specialty Modal
+function openSpecialtyModal() {
+  const modal = document.getElementById('specialtyModal');
+  if (modal) {
+    modal.classList.add('open');
+  }
+}
+
+// Close Specialty Modal
+function closeSpecialtyModal() {
+  const modal = document.getElementById('specialtyModal');
+  if (modal) {
+    modal.classList.remove('open');
+  }
+}
+
+// Close when clicking outside modal box
+window.addEventListener('click', function(event) {
+  const modal = document.getElementById('specialtyModal');
+  if (event.target === modal) {
+    modal.classList.remove('open');
+  }
+});
+
+// Select specialty from modal
+function selectModalSpecialty(specialtyValue) {
+  document.querySelectorAll('.specialty-pill').forEach(pill => {
+    pill.classList.remove('active');
+  });
+
+  const moreBtn = document.getElementById('morePillBtn');
+  if (moreBtn) {
+    moreBtn.innerText = `✓ ${specialtyValue}`;
+    moreBtn.classList.add('active');
+  }
+
+  if (typeof filterBySpecialty === 'function') {
+    filterBySpecialty(specialtyValue, moreBtn);
+  }
+
+  closeSpecialtyModal();
+}
+
+// Search functionality
+function searchSpecialties() {
+  const input = document.getElementById('specialtySearch').value.toLowerCase();
+  const buttons = document.getElementById('modalSpecialtyList').getElementsByTagName('button');
+
+  for (let btn of buttons) {
+    const text = btn.innerText.toLowerCase();
+    btn.style.display = text.includes(input) ? 'block' : 'none';
+  }
+}

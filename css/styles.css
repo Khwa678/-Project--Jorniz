@@ -1235,3 +1235,120 @@ body.dark-mode ::-webkit-scrollbar-thumb {
     min-width: 100%;
   }
 }
+
+/* --- Default Modal State: HIDDEN --- */
+.custom-modal-overlay {
+  display: none !important; /* Forces it to remain hidden by default */
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(10, 12, 18, 0.85); /* Dark dim backdrop */
+  backdrop-filter: blur(5px);
+  z-index: 99999 !important; /* Top layer above all cards */
+  justify-content: center;
+  align-items: center;
+}
+
+/* Modal Open State */
+.custom-modal-overlay.open {
+  display: flex !important;
+}
+
+/* Floating Card Container */
+.custom-modal-box {
+  background-color: #151821;
+  border: 1px solid #2d3748;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 580px;
+  padding: 20px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+  box-sizing: border-box;
+}
+
+/* Header */
+.custom-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.custom-modal-header h3 {
+  color: #ffffff;
+  margin: 0;
+  font-size: 18px;
+}
+
+.custom-close-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 26px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.custom-close-btn:hover {
+  color: #ffffff;
+}
+
+/* Search input inside modal */
+.custom-modal-search {
+  margin-bottom: 15px;
+}
+
+.custom-modal-search input {
+  width: 100%;
+  padding: 10px 14px;
+  background-color: #1a1e29;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.custom-modal-search input:focus {
+  border-color: #3b82f6;
+}
+
+/* Grid layout for buttons */
+.custom-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+.custom-modal-grid::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-modal-grid::-webkit-scrollbar-thumb {
+  background: #2d3748;
+  border-radius: 4px;
+}
+
+.custom-modal-grid button {
+  background-color: #1a1e29;
+  color: #cbd5e1;
+  border: 1px solid #2d3748;
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.custom-modal-grid button:hover {
+  background-color: #3b82f6;
+  color: #ffffff;
+  border-color: #3b82f6;
+}

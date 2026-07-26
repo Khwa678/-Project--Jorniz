@@ -347,7 +347,7 @@
         <option value="experience">Most Experienced</option>
       </select>
     </div>
-    <div class="specialty-pills">
+    <!-- <div class="specialty-pills">
       <button class="specialty-pill active" onclick="filterBySpecialty('All', this)">🏥 All</button>
       <button class="specialty-pill" onclick="filterBySpecialty('Cardiologist', this)">❤️ Cardiology</button>
       <button class="specialty-pill" onclick="filterBySpecialty('Psychiatrist', this)">🧠 Psychiatry</button>
@@ -356,7 +356,64 @@
       <button class="specialty-pill" onclick="filterBySpecialty('Orthopedic', this)">🦴 Orthopedics</button>
       <button class="specialty-pill" onclick="filterBySpecialty('Pediatrician', this)">👶 Pediatrics</button>
       <button class="specialty-pill" onclick="filterBySpecialty('General Physician', this)">🩺 General</button>
+    </div> -->
+    <!-- Top Pills Container -->
+<div class="specialty-pills">
+  <button class="specialty-pill active" onclick="filterBySpecialty('All', this)">🌐 All</button>
+  <button class="specialty-pill" onclick="filterBySpecialty('Cardiologist', this)">❤️ Cardiology</button>
+  <button class="specialty-pill" onclick="filterBySpecialty('Psychiatrist', this)">🧠 Psychiatry</button>
+  <button class="specialty-pill" onclick="filterBySpecialty('Nutritionist', this)">🥗 Nutrition</button>
+  <button class="specialty-pill" onclick="filterBySpecialty('Dermatologist', this)">✨ Dermatology</button>
+  <button class="specialty-pill" onclick="filterBySpecialty('Orthopedic', this)">🦴 Orthopedics</button>
+  <button class="specialty-pill" onclick="filterBySpecialty('Pediatrician', this)">👶 Pediatrics</button>
+  <button class="specialty-pill" onclick="filterBySpecialty('General Physician', this)">🩺 General</button>
+  
+  <!-- More Trigger Button -->
+  <button class="specialty-pill more-btn" id="morePillBtn" onclick="openSpecialtyModal()">➕ More</button>
+</div>
+
+
+<!-- Complete Modal (BODY KE END ME PASTE KAREIN) -->
+<div id="specialtyModal" class="custom-modal-overlay">
+  <div class="custom-modal-box">
+    
+    <div class="custom-modal-header">
+      <h3>Select Specialty</h3>
+      <button class="custom-close-btn" onclick="closeSpecialtyModal()">&times;</button>
     </div>
+
+    <div class="custom-modal-search">
+      <input type="text" id="specialtySearch" onkeyup="searchSpecialties()" placeholder="🔍 Search specialty (e.g. ENT, Eye, Dentist)...">
+    </div>
+
+    <div class="custom-modal-grid" id="modalSpecialtyList">
+      <button onclick="selectModalSpecialty('General Physician')">🩺 General Physician</button>
+      <button onclick="selectModalSpecialty('Cardiologist')">❤️ Cardiologist (Heart)</button>
+      <button onclick="selectModalSpecialty('Psychiatrist')">🧠 Psychiatrist</button>
+      <button onclick="selectModalSpecialty('Nutritionist')">🥗 Nutritionist & Dietitian</button>
+      <button onclick="selectModalSpecialty('Dermatologist')">✨ Dermatologist (Skin/Hair)</button>
+      <button onclick="selectModalSpecialty('Orthopedic')">🦴 Orthopedic (Bones/Joints)</button>
+      <button onclick="selectModalSpecialty('Pediatrician')">👶 Pediatrician (Child Specialist)</button>
+      <button onclick="selectModalSpecialty('Gynecologist')">👩‍⚕️ Gynecologist & OB-GYN</button>
+      <button onclick="selectModalSpecialty('ENT Specialist')">👂 ENT Specialist</button>
+      <button onclick="selectModalSpecialty('Neurologist')">⚡ Neurologist</button>
+      <button onclick="selectModalSpecialty('Ophthalmologist')">👁️ Ophthalmologist (Eye)</button>
+      <button onclick="selectModalSpecialty('Dentist')">🦷 Dentist & Oral Care</button>
+      <button onclick="selectModalSpecialty('Gastroenterologist')">🧪 Gastroenterologist</button>
+      <button onclick="selectModalSpecialty('Pulmonologist')">🫁 Pulmonologist (Lungs)</button>
+      <button onclick="selectModalSpecialty('Endocrinologist')">🩸 Diabetologist & Thyroid</button>
+      <button onclick="selectModalSpecialty('Nephrologist')">🩺 Nephrologist (Kidney)</button>
+      <button onclick="selectModalSpecialty('Urologist')">💧 Urologist</button>
+      <button onclick="selectModalSpecialty('Oncologist')">🎗️ Oncologist (Cancer)</button>
+      <button onclick="selectModalSpecialty('General Surgeon')">🔪 General Surgeon</button>
+      <button onclick="selectModalSpecialty('Rheumatologist')">🦴 Rheumatologist</button>
+      <button onclick="selectModalSpecialty('Physiotherapist')">🏃 Physiotherapist</button>
+      <button onclick="selectModalSpecialty('Ayurvedic Doctor')">🌿 Ayurvedic Doctor</button>
+      <button onclick="selectModalSpecialty('Homeopathic Doctor')">💧 Homeopathic Doctor</button>
+    </div>
+
+  </div>
+</div>
     <div class="consult-stats-bar">
       <div class="consult-stat"><strong id="doc-count">8</strong><span>Doctors Available</span></div>
       <div class="consult-stat"><strong>~8 min</strong><span>Avg. Wait Time</span></div>
