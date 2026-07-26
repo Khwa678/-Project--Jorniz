@@ -41,6 +41,21 @@
   transition:.2s;z-index:2;
 }
 .doc-delete-btn:hover{background:rgba(239,68,68,.24);}
+
+.job-card{position:relative;}
+.job-delete-btn{
+  position:absolute;top:16px;right:16px;
+  background:rgba(239,68,68,.14);color:#ef4444;border:1px solid rgba(239,68,68,.35);
+  border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;
+  transition:.2s;z-index:2;
+}
+.job-delete-btn:hover{background:rgba(239,68,68,.24);}
+
+.hu-coins-pulse{ animation: huCoinsPulse .7s ease; }
+@keyframes huCoinsPulse {
+  0%{ color:#22c55e; transform:scale(1.18); }
+  100%{ color:inherit; transform:scale(1); }
+}
 </style>
 </head>
 <body>
@@ -368,18 +383,127 @@
           <div class="form-group">
             <label for="ud-doc-specialty">Specialty *</label>
             <select id="ud-doc-specialty" required>
-              <option>General Physician</option>
-              <option>Cardiologist</option>
-              <option>Psychiatrist</option>
-              <option>Nutritionist</option>
-              <option>Dermatologist</option>
-              <option>Orthopedic</option>
-              <option>Pediatrician</option>
-              <option>Gynecologist</option>
-              <option>Neurologist</option>
-              <option>ENT Specialist</option>
-              <option>Ayurvedic Doctor</option>
-              <option>Homeopathic Doctor</option>
+              <!-- General & Primary Care -->
+<option value="general-physician">General Physician / Internal Medicine</option>
+<option value="family-physician">Family Physician</option>
+
+<!-- Heart & Vascular -->
+<option value="cardiologist">Cardiologist (Heart Specialist)</option>
+<option value="interventional-cardiologist">Interventional Cardiologist</option>
+<option value="cardiothoracic-surgeon">Cardiothoracic Surgeon</option>
+<option value="vascular-surgeon">Vascular Surgeon</option>
+
+<!-- Brain, Nerves & Spine -->
+<option value="neurologist">Neurologist</option>
+<option value="neurosurgeon">Neurosurgeon</option>
+<option value="spine-specialist">Spine Specialist</option>
+
+<!-- Bones, Joints & Muscles -->
+<option value="orthopedist">Orthopedic Surgeon / Orthopedist</option>
+<option value="rheumatologist">Rheumatologist (Arthritis & Autoimmune)</option>
+<option value="sports-medicine">Sports Medicine Specialist</option>
+<option value="physiatrist">Physiatrist (Physical Medicine & Rehab)</option>
+
+<!-- Women's Health & Reproduction -->
+<option value="gynecologist-obstetrician">Gynecologist & Obstetrician (OB-GYN)</option>
+<option value="maternal-fetal-medicine">Maternal-Fetal Medicine Specialist</option>
+<option value="reproductive-endocrinologist">Reproductive Endocrinologist (IVF / Fertility)</option>
+<option value="urogynecologist">Urogynecologist</option>
+
+<!-- Children & Infants -->
+<option value="pediatrician">Pediatrician</option>
+<option value="neonatologist">Neonatologist (Newborn Specialist)</option>
+<option value="pediatric-surgeon">Pediatric Surgeon</option>
+<option value="pediatric-cardiologist">Pediatric Cardiologist</option>
+<option value="pediatric-neurologist">Pediatric Neurologist</option>
+
+<!-- Mind & Mental Health -->
+<option value="psychiatrist">Psychiatrist</option>
+<option value="child-psychiatrist">Child & Adolescent Psychiatrist</option>
+<option value="psychologist">Psychologist / Clinical Psychologist</option>
+<option value="addiction-psychiatrist">Addiction Psychiatrist</option>
+
+<!-- Skin, Hair & Aesthetics -->
+<option value="dermatologist">Dermatologist</option>
+<option value="trichologist">Trichologist (Hair Specialist)</option>
+<option value="cosmetologist">Cosmetologist / Aesthetic Physician</option>
+<option value="plastic-surgeon">Plastic & Reconstructive Surgeon</option>
+
+<!-- Eyes & Vision -->
+<option value="ophthalmologist">Ophthalmologist (Eye Surgeon)</option>
+<option value="optometrist">Optometrist</option>
+<option value="vitreoretinal-specialist">Retina / Cornea Specialist</option>
+
+<!-- Ear, Nose, Throat & Head/Neck -->
+<option value="ent-specialist">ENT Specialist (Otolaryngologist)</option>
+<option value="audiologist">Audiologist</option>
+<option value="head-neck-surgeon">Head & Neck Surgeon</option>
+
+<!-- Digestive & Liver -->
+<option value="gastroenterologist">Gastroenterologist</option>
+<option value="hepatologist">Hepatologist (Liver Specialist)</option>
+<option value="gastrointestinal-surgeon">GI / Surgical Gastroenterologist</option>
+<option value="proctologist">Proctologist / Colorectal Surgeon</option>
+
+<!-- Kidneys & Urinary Tract -->
+<option value="nephrologist">Nephrologist (Kidney Specialist)</option>
+<option value="urologist">Urologist</option>
+
+<!-- Hormones & Metabolism -->
+<option value="endocrinologist">Endocrinologist (Diabetes & Thyroid)</option>
+
+<!-- Lungs & Breathing -->
+<option value="pulmonologist">Pulmonologist / Chest Physician</option>
+
+<!-- Cancer & Tumors -->
+<option value="medical-oncologist">Medical Oncologist</option>
+<option value="surgical-oncologist">Surgical Oncologist</option>
+<option value="radiation-oncologist">Radiation Oncologist</option>
+<option value="hematologist-oncologist">Hematologist (Blood & Blood Cancer Specialist)</option>
+
+<!-- Blood & Immune System -->
+<option value="allergist-immunologist">Allergist & Immunologist</option>
+
+<!-- Infection & Critical Care -->
+<option value="infectious-disease">Infectious Disease Specialist</option>
+<option value="intensivist">Intensivist / Critical Care Specialist</option>
+
+<!-- Dental & Oral Health -->
+<option value="dentist">Dentist (General)</option>
+
+<!-- Surgery (General & Specialized) -->
+<option value="general-surgeon">General Surgeon</option>
+<option value="laparoscopic-surgeon">Laparoscopic / Bariatric Surgeon</option>
+<option value="trauma-surgeon">Trauma & Emergency Surgeon</option>
+
+<!-- Pain, Anesthesia & Emergency -->
+<option value="anesthesiologist">Anesthesiologist</option>
+<option value="pain-management">Pain Management Specialist</option>
+<option value="emergency-physician">Emergency Medicine Specialist</option>
+
+<!-- Pathology & Radiology -->
+<option value="radiologist">Radiologist / Interventional Radiologist</option>
+<option value="pathologist">Pathologist</option>
+
+<!-- Geriatrics & Palliative Care -->
+<option value="geriatrician">Geriatrician (Elderly Care)</option>
+<option value="palliative-care">Palliative Care Specialist</option>
+
+<!-- Nutrition, Therapy & Allied Health -->
+<option value="nutritionist-dietitian">Clinical Nutritionist / Dietitian</option>
+<option value="physiotherapist">Physiotherapist</option>
+<option value="occupational-therapist">Occupational Therapist</option>
+<option value="speech-therapist">Speech Therapist</option>
+<option value="podiatrist">Podiatrist (Foot Specialist)</option>
+
+<!-- Alternative & AYUSH Systems -->
+<option value="ayurvedic">Ayurvedic Doctor (BAMS)</option>
+<option value="homeopathic">Homeopathic Doctor (BHMS)</option>
+<option value="naturopathic">Naturopath / Yoga Specialist (BNYS)</option>
+<option value="unani">Unani Medicine Specialist (BUMS)</option>
+<option value="siddha">Siddha Practitioner (BSMS)</option>
+<option value="chiropractor">Chiropractor</option>
+<option value="acupuncturist">Acupuncturist</option>
             </select>
           </div>
           <div class="form-group">
