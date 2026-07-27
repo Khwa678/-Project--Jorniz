@@ -2822,3 +2822,4 @@ function searchSpecialties() {
     btn.style.display = text.includes(input) ? 'block' : 'none';
   }
 }
+

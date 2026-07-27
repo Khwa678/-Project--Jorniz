@@ -352,52 +352,50 @@
 
     <div class="field">
       <label for="signup-role">Role</label>
-<!-- <select id="signup-role">
-    <option value="">Select your role</option>
-    <option value="Patient">Patient / General User</option>
-    <option value="Doctor">Doctor</option>
-    <option value="Nurse">Nurse</option>
-    <option value="Medical Student">Medical Student</option>
-    <option value="Dentist">Dentist</option>
-    <option value="Pharmacist">Pharmacist</option>
-    <option value="Physiotherapist">Physiotherapist</option>
-    <option value="Psychologist">Psychologist</option>
-    <option value="Nutritionist">Nutritionist / Dietitian</option>
-    <option value="Researcher">Medical Researcher</option>
-    <option value="Fitness Professional">Fitness Professional</option>
-    <option value="Healthcare Professional">Other Healthcare Professional</option>
-</select> -->
-<select id="signup-role">
-    <option value="">Select your role</option>
-    <option value="Patient">Patient / General User</option>
-    <option value="Doctor">Doctor (Allopathic)</option>
-    <option value="Ayurvedic Doctor">Ayurvedic Doctor</option>
-    <option value="Homeopathic Doctor">Homeopathic Doctor</option>
-    <option value="Unani Practitioner">Unani Practitioner</option>
-    <option value="Naturopath">Naturopath</option>
-    <option value="Nurse">Nurse</option>
-    <option value="Medical Student">Medical Student</option>
-    <option value="Dentist">Dentist</option>
-    <option value="Pharmacist">Pharmacist</option>
-    <option value="Physiotherapist">Physiotherapist</option>
-    <option value="Psychologist">Psychologist</option>
-    <option value="Nutritionist">Nutritionist / Dietitian</option>
-    <option value="Yoga Instructor">Yoga Instructor / Wellness Coach</option>
-    <option value="Researcher">Medical Researcher</option>
-    <option value="Fitness Professional">Fitness Professional</option>
-    <option value="Healthcare Professional">Other Healthcare Professional</option>
-</select>
+      <select id="signup-role" onchange="handleRoleChange()">
+        <option value="">Select your role</option>
+        <option value="Patient">Patient / General User</option>
+        <option value="Doctor">Doctor (Allopathic)</option>
+        <option value="Ayurvedic Doctor">Ayurvedic Doctor</option>
+        <option value="Homeopathic Doctor">Homeopathic Doctor</option>
+        <option value="Unani Practitioner">Unani Practitioner</option>
+        <option value="Naturopath">Naturopath</option>
+        <option value="Nurse">Nurse</option>
+        <option value="Medical Student">Medical Student</option>
+        <option value="Dentist">Dentist</option>
+        <option value="Pharmacist">Pharmacist</option>
+        <option value="Physiotherapist">Physiotherapist</option>
+        <option value="Psychologist">Psychologist</option>
+        <option value="Nutritionist">Nutritionist / Dietitian</option>
+        <option value="Yoga Instructor">Yoga Instructor / Wellness Coach</option>
+        <option value="Researcher">Medical Researcher</option>
+        <option value="Fitness Professional">Fitness Professional</option>
+        <option value="Healthcare Professional">Other Healthcare Professional</option>
+      </select>
+    </div>
 
-<div id="specialty-container" style="display:none; margin-top:15px;">
-    <label for="signup-specialty">Specialization</label>
-    <select id="signup-specialty">
-    </select>
-</div>
+    <div id="specialty-container" style="display:none;">
+      <div class="field">
+        <label for="signup-specialty">Specialization</label>
+        <select id="signup-specialty"></select>
+      </div>
     </div>
 
     <div class="field">
       <label>Hospital / Organisation <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
       <input type="text" id="signup-hospital" placeholder="e.g. AIIMS Delhi" autocomplete="organization"/>
+    </div>
+
+    <!-- Shown only for professional roles: signup is blocked until this is attached -->
+    <div id="verification-doc-container" style="display:none;">
+      <div class="field">
+        <label for="signup-doc">Upload Degree / Registration / License Certificate *</label>
+        <input type="file" id="signup-doc" accept=".pdf,.jpg,.jpeg,.png,.webp"/>
+        <small style="color:var(--muted);display:block;margin-top:4px;">
+          Required to verify you as a professional. Your account is created right away
+          but marked <strong>pending review</strong> until our team approves this document.
+        </small>
+      </div>
     </div>
 
     <div class="field">
@@ -521,6 +519,59 @@
     });
   }
 
+  // ── Role / Specialty handling ──────────────────────────────────────────────────
+  var SPECIALTIES = {
+    'Doctor': ['General Medicine', 'Cardiology', 'Dermatology', 'Pediatrics', 'Orthopedics', 'Gynecology', 'Neurology', 'ENT', 'Ophthalmology', 'Psychiatry', 'Other'],
+    'Ayurvedic Doctor': ['Panchakarma', 'Kayachikitsa', 'General Ayurveda', 'Other'],
+    'Homeopathic Doctor': ['General Homeopathy', 'Pediatric Homeopathy', 'Other'],
+    'Unani Practitioner': ['General Unani', 'Other'],
+    'Naturopath': ['General Naturopathy', 'Other'],
+    'Nurse': ['General Nursing', 'ICU/Critical Care', 'Pediatric Nursing', 'Other'],
+    'Dentist': ['General Dentistry', 'Orthodontics', 'Endodontics', 'Oral Surgery', 'Other'],
+    'Physiotherapist': ['Sports Physiotherapy', 'Neuro Physiotherapy', 'Orthopedic Physiotherapy', 'Other'],
+    'Psychologist': ['Clinical Psychology', 'Counseling Psychology', 'Other'],
+    'Nutritionist': ['Clinical Nutrition', 'Sports Nutrition', 'Other'],
+    'Researcher': ['Clinical Research', 'Public Health Research', 'Other'],
+  };
+
+  // Roles that require a verification document at signup (must match backend PROFESSIONAL_ROLES)
+  var PROFESSIONAL_ROLES = [
+    'Doctor', 'Ayurvedic Doctor', 'Homeopathic Doctor', 'Unani Practitioner',
+    'Naturopath', 'Nurse', 'Dentist', 'Pharmacist', 'Physiotherapist',
+    'Psychologist', 'Nutritionist', 'Researcher', 'Healthcare Professional'
+  ];
+
+  function handleRoleChange() {
+    var role = document.getElementById('signup-role').value;
+    var container = document.getElementById('specialty-container');
+    var select = document.getElementById('signup-specialty');
+    var docContainer = document.getElementById('verification-doc-container');
+    var docInput = document.getElementById('signup-doc');
+
+    var list = SPECIALTIES[role];
+    select.innerHTML = '';
+
+    if (list && list.length) {
+      list.forEach(function(spec) {
+        var opt = document.createElement('option');
+        opt.value = spec;
+        opt.textContent = spec;
+        select.appendChild(opt);
+      });
+      container.style.display = 'block';
+    } else {
+      container.style.display = 'none';
+    }
+
+    // Only professional roles need a verification document — Patients/General Users don't.
+    var needsDoc = PROFESSIONAL_ROLES.indexOf(role) !== -1;
+    docContainer.style.display = needsDoc ? 'block' : 'none';
+    if (docInput) {
+      if (needsDoc) docInput.setAttribute('required', 'required');
+      else { docInput.removeAttribute('required'); docInput.value = ''; }
+    }
+  }
+
   // ── Password Toggle ───────────────────────────────────────────────────────────
   function togglePw(inputId, btn) {
     var input  = document.getElementById(inputId);
@@ -607,6 +658,8 @@
   }
 
   // ── SIGNUP ────────────────────────────────────────────────────────────────────
+  // NOTE: verification only happens here, at account-creation time. Login never
+  // asks for or checks this document again.
   async function submitSignup(e) {
     e.preventDefault();
     hideMsg('signup-error');
@@ -616,9 +669,13 @@
     var name      = document.getElementById('signup-name').value.trim();
     var email     = document.getElementById('signup-email').value.trim();
     var password  = document.getElementById('signup-password').value;
+    var role      = document.getElementById('signup-role').value;
     var specialtyEl = document.getElementById('signup-specialty');
-    var specialty = specialtyEl ? specialtyEl.value : '';
+    var specialty = (specialtyEl && specialtyEl.offsetParent !== null) ? specialtyEl.value : '';
     var hospital  = document.getElementById('signup-hospital').value.trim();
+    var docInput  = document.getElementById('signup-doc');
+    var docFile   = (docInput && docInput.files && docInput.files[0]) || null;
+    var needsDoc  = PROFESSIONAL_ROLES.indexOf(role) !== -1;
 
     if (!name) {
       showError('signup-error', 'Please enter your full name.');
@@ -628,22 +685,32 @@
       showError('signup-error', 'Please enter a valid email address.');
       setLoading('signup-btn', false); return;
     }
+    if (!role) {
+      showError('signup-error', 'Please select your role.');
+      setLoading('signup-btn', false); return;
+    }
     if (password.length < 6) {
       showError('signup-error', 'Password must be at least 6 characters.');
       setLoading('signup-btn', false); return;
     }
+    if (needsDoc && !docFile) {
+      showError('signup-error', 'Please upload your degree / registration / license certificate to sign up as a ' + role + '.');
+      setLoading('signup-btn', false); return;
+    }
 
     try {
+      var fd = new FormData();
+      fd.append('name', name);
+      fd.append('email', email);
+      fd.append('password', password);
+      fd.append('role', role);
+      fd.append('specialty', specialty);
+      fd.append('hospital', hospital);
+      if (needsDoc && docFile) fd.append('verification_doc', docFile);
+
       var res = await fetch(API + '/api/auth/signup', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          name:      name,
-          email:     email,
-          password:  password,
-          specialty: specialty,
-          hospital:  hospital,
-        }),
+        method: 'POST',
+        body:   fd, // multipart/form-data — browser sets the boundary header itself
       });
 
       var data = await res.json();
@@ -831,6 +898,5 @@
     });
   });
 </script>
-<script src="js/auth.js"></script>
 </body>
 </html>
