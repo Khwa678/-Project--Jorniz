@@ -676,6 +676,43 @@ function closeAddDoctorModal() {
   document.body.style.overflow = "";
 }
 
+// async function handleAddDoctorSubmit(event) {
+//   event.preventDefault();
+//   const name = document.getElementById("ud-doc-name").value.trim();
+//   const specialty = document.getElementById("ud-doc-specialty").value;
+//   if (!name) {
+//     showToast("⚠️ Doctor name is required");
+//     return;
+//   }
+
+//   const tags = document
+//     .getElementById("ud-doc-tags")
+//     .value.split(",")
+//     .map((t) => t.trim())
+//     .filter(Boolean);
+
+//   const payload = {
+//     name: name,
+//     specialty: specialty,
+//     hospital: document.getElementById("ud-doc-hospital").value.trim(),
+//     avatar_url: document.getElementById("ud-doc-avatar").value.trim(),
+//     experience:
+//       parseInt(document.getElementById("ud-doc-experience").value) || 0,
+//     price: parseFloat(document.getElementById("ud-doc-price").value) || 0,
+//     tags: tags,
+//     next_slot:
+//       document.getElementById("ud-doc-nextslot").value.trim() ||
+//       "Available Now",
+//   };
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (error) => reject(error);
+    reader.readAsDataURL(file);
+  });
+}
+
 async function handleAddDoctorSubmit(event) {
   event.preventDefault();
   const name = document.getElementById("ud-doc-name").value.trim();
@@ -691,11 +728,25 @@ async function handleAddDoctorSubmit(event) {
     .map((t) => t.trim())
     .filter(Boolean);
 
+  // Handle image upload from file input
+  const fileInput = document.getElementById("ud-doc-avatar");
+  let avatarUrl = "";
+
+  if (fileInput && fileInput.files && fileInput.files[0]) {
+    try {
+      avatarUrl = await readFileAsBase64(fileInput.files[0]);
+    } catch (err) {
+      console.error("Error reading photo file:", err);
+      showToast("⚠️ Failed to process image file");
+      return;
+    }
+  }
+
   const payload = {
     name: name,
     specialty: specialty,
     hospital: document.getElementById("ud-doc-hospital").value.trim(),
-    avatar_url: document.getElementById("ud-doc-avatar").value.trim(),
+    avatar_url: avatarUrl, // Contains the Base64 image string
     experience:
       parseInt(document.getElementById("ud-doc-experience").value) || 0,
     price: parseFloat(document.getElementById("ud-doc-price").value) || 0,
