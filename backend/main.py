@@ -72,25 +72,18 @@ COST_PER_IMPRESSION        = float(os.getenv("COST_PER_IMPRESSION", 0.01))
 ALLOWED_IMAGES = {"image/jpeg","image/png","image/gif","image/webp"}
 ALLOWED_VIDEOS = {"video/mp4","video/webm","video/quicktime"}
 ALLOWED_AUDIO = {"audio/webm","audio/mp4","audio/mpeg","audio/ogg","audio/wav"}
+ALLOWED_DOCS = {"application/pdf","image/jpeg","image/png","image/webp"}
 MAX_FILE_BYTES = 500 * 1024 * 1024
 
-# 2. Stream the request to disk so RAM doesn't crash
-app = Flask(__name__)
-@app.route('/upload', methods=['POST'])
-def upload_file():
-    file = request.files['video']
-    
-    # Do NOT use file.save() directly for 5GB files! 
-    # Use chunked saving instead:
-    save_path = f"./uploads/{file.filename}"
-    with open(save_path, 'wb') as f:
-        while True:
-            chunk = file.stream.read(4096 * 1024) # Read 4MB at a time
-            if not chunk:
-                break
-            f.write(chunk)
-            
-    return {'status': 'success'}
+# ─── ROLES THAT REQUIRE A VERIFICATION DOCUMENT AT SIGNUP ─────────────────────
+# Anyone signing up as one of these professional roles MUST attach a degree /
+# registration / license document at signup time. Patients / general users don't.
+PROFESSIONAL_ROLES = {
+    "Doctor", "Ayurvedic Doctor", "Homeopathic Doctor", "Unani Practitioner",
+    "Naturopath", "Nurse", "Dentist", "Pharmacist", "Physiotherapist",
+    "Psychologist", "Nutritionist", "Researcher", "Healthcare Professional",
+}
+
 # ─── APP ───────────────────────────────────────────────────────────────────────
 app = Flask(__name__)
 CORS(app, origins=os.getenv("ALLOWED_ORIGINS","*").split(","))
@@ -143,7 +136,28 @@ def safe_user(u) -> dict:
             u[k] = v.isoformat()
     return u
 
-def post_with_author(post) -> dict:
+def create_notification(user_id, actor_id, ntype, post_id=None, message=""):
+    """user_id = recipient, actor_id = who did the action. Never notify yourself."""
+    if not user_id or not actor_id or str(user_id) == str(actor_id):
+        return
+    db_run(
+        "INSERT INTO notifications (id, user_id, actor_id, type, post_id, message) VALUES (%s,%s,%s,%s,%s,%s)",
+        (str(uuid.uuid4()), user_id, actor_id, ntype, post_id, message)
+    )
+
+def broadcast_new_post_notification(actor_id, post_id, snippet):
+    """A new post notifies every OTHER user on the platform."""
+    others = db_all("SELECT id FROM users WHERE id != %s", (actor_id,))
+    for row in others:
+        create_notification(row["id"], actor_id, "post", post_id, snippet)
+
+def optional_uid_from_request():
+    """Best-effort: return the user id from an Authorization header, or None."""
+    auth  = request.headers.get("Authorization", "")
+    token = auth[7:] if auth.startswith("Bearer ") else None
+    return decode_token(token) if token else None
+
+def post_with_author(post, viewer_id=None) -> dict:
     if not post: return {}
     post = dict(post)
     for k, v in post.items():
@@ -157,6 +171,14 @@ def post_with_author(post) -> dict:
         "avatar":    a.get("avatar_url",""),
         "verified":  bool(a.get("is_verified", False)),
     }
+    cc = db_one("SELECT COUNT(*) AS n FROM post_comments WHERE post_id=%s", (post["id"],))
+    post["comments_count"] = cc["n"] if cc else 0
+    post["shares"] = post.get("shares", 0) or 0
+    if viewer_id:
+        liked = db_one("SELECT id FROM post_likes WHERE post_id=%s AND user_id=%s", (post["id"], viewer_id))
+        post["liked_by_me"] = bool(liked)
+    else:
+        post["liked_by_me"] = False
     return post
 
 # ─── JWT ───────────────────────────────────────────────────────────────────────
@@ -386,9 +408,14 @@ def init_db():
             """)
             cur.execute("CREATE INDEX IF NOT EXISTS idx_messages_conv_created ON messages(conversation_id, created_at);")
 
-            # cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT FALSE;")
             cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT FALSE;")
             cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS location VARCHAR(100) DEFAULT '';")
+
+            # ── NEW: professional-verification columns ─────────────────────
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'Patient';")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_doc_url VARCHAR(500) DEFAULT '';")
+            cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_status VARCHAR(20) DEFAULT 'not_required';")
+
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS reports (
                     id          VARCHAR(36) NOT NULL PRIMARY KEY,
@@ -409,7 +436,7 @@ def init_db():
                 );
             """)
 
-            # ── NEW: PASSWORD RESET / OTP TABLE ─────────────────────────────
+            # ── PASSWORD RESET / OTP TABLE ───────────────────────────────────
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS password_resets (
                     id          VARCHAR(36) NOT NULL PRIMARY KEY,
@@ -466,6 +493,46 @@ def init_db():
                 );
             """)
             cur.execute("ALTER TABLE doctors ADD COLUMN IF NOT EXISTS added_by VARCHAR(36) REFERENCES users(id) ON DELETE SET NULL;")
+
+            # ── NEW: real-time engagement tables (likes / comments / shares) ─
+            cur.execute("ALTER TABLE posts ADD COLUMN IF NOT EXISTS shares INT DEFAULT 0;")
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS post_likes (
+                    id          VARCHAR(36) NOT NULL PRIMARY KEY,
+                    post_id     VARCHAR(36) NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+                    user_id     VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE (post_id, user_id)
+                );
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS post_comments (
+                    id          VARCHAR(36) NOT NULL PRIMARY KEY,
+                    post_id     VARCHAR(36) NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+                    user_id     VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    content     TEXT NOT NULL,
+                    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_post_comments_post ON post_comments(post_id, created_at);")
+
+            # ── NEW: notifications ────────────────────────────────────────────
+            # type = 'like' | 'comment' | 'post'
+            #   like/comment  → only sent to the post's OWNER
+            #   post          → broadcast to EVERY other user when someone posts
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS notifications (
+                    id          VARCHAR(36) NOT NULL PRIMARY KEY,
+                    user_id     VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    actor_id    VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    type        VARCHAR(20) NOT NULL,
+                    post_id     VARCHAR(36),
+                    message     TEXT DEFAULT '',
+                    is_read     BOOLEAN DEFAULT FALSE,
+                    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, created_at DESC);")
             # ── END NEW TABLES ───────────────────────────────────────────────
 
         conn.commit()
@@ -499,8 +566,35 @@ def health():
         "status":    "ok",
         "database":  db_status,
         "message":   "Healthy Universe API 🏥",
-        "version":   "2.0.0"
+        "version":   "2.1.0"
     })
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  GENERIC IMAGE UPLOAD — used by "browse photo" fields (doctor avatar, job logo)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/api/upload/image", methods=["POST"])
+@require_auth
+def upload_generic_image():
+    """Generic image upload used by any 'browse for a photo' field in the UI
+    (doctor avatar, job/company logo, profile picture, etc). Returns a public URL."""
+    file = request.files.get("file") or request.files.get("image")
+    if not file or not file.filename:
+        return jsonify({"detail": "No file provided"}), 400
+
+    ct = file.content_type or ""
+    if ct not in ALLOWED_IMAGES:
+        return jsonify({"detail": "Only jpg/png/gif/webp images are allowed"}), 400
+
+    file_bytes = file.read()
+    if len(file_bytes) > MAX_FILE_BYTES:
+        return jsonify({"detail": "File too large"}), 400
+
+    ext   = os.path.splitext(file.filename)[1] or ".jpg"
+    fname = str(uuid.uuid4()) + ext
+    url   = upload_to_supabase(file_bytes, fname, ct)
+    return jsonify({"url": url})
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  AUTH ROUTES
@@ -508,11 +602,26 @@ def health():
 
 @app.route("/api/auth/signup", methods=["POST"])
 def signup():
-    data      = request.get_json(force=True) or {}
+    """
+    Signup now accepts multipart/form-data (so a verification document can be
+    attached in the same request). Professional roles (doctor, nurse, dentist,
+    etc.) MUST attach a degree / registration / license document — the account
+    is only created after that document has been received and uploaded.
+    Patients / general users don't need to attach anything.
+    """
+    is_multipart = request.content_type and "multipart/form-data" in request.content_type
+    if is_multipart:
+        data = request.form
+        doc_file = request.files.get("verification_doc")
+    else:
+        data = request.get_json(force=True, silent=True) or {}
+        doc_file = None
+
     name      = (data.get("name")      or "").strip()
     email     = (data.get("email")     or "").strip().lower()
     password  =  data.get("password")  or ""
-    specialty =  data.get("specialty") or "General User"
+    role      = (data.get("role")      or "Patient").strip() or "Patient"
+    specialty =  data.get("specialty") or role or "General User"
     hospital  =  data.get("hospital")  or ""
 
     if not name:
@@ -525,22 +634,52 @@ def signup():
     if db_one("SELECT id FROM users WHERE email=%s", (email,)):
         return jsonify({"detail": "This email is already registered. Please log in."}), 400
 
+    # ── Professional verification gate ──────────────────────────────────────
+    needs_verification = role in PROFESSIONAL_ROLES
+    verification_doc_url = ""
+    verification_status = "not_required"
+
+    if needs_verification:
+        if not doc_file or not doc_file.filename:
+            return jsonify({
+                "detail": f"Please upload your degree / registration / license certificate to sign up as a {role}."
+            }), 400
+        ct = doc_file.content_type or ""
+        if ct not in ALLOWED_DOCS:
+            return jsonify({"detail": "Verification document must be a PDF, JPG, PNG, or WEBP file"}), 400
+        file_bytes = doc_file.read()
+        if len(file_bytes) > MAX_FILE_BYTES:
+            return jsonify({"detail": "Verification document is too large"}), 400
+        ext   = os.path.splitext(doc_file.filename)[1] or ".pdf"
+        fname = "verification/" + str(uuid.uuid4()) + ext
+        try:
+            verification_doc_url = upload_to_supabase(file_bytes, fname, ct)
+        except Exception as e:
+            return jsonify({"detail": f"Could not upload verification document: {e}"}), 500
+        # Document received → account is created, but flagged as pending admin review.
+        verification_status = "pending"
+
     uid    = str(uuid.uuid4())
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
     db_run(
-        """INSERT INTO users (id, name, email, password, specialty, hospital)
-           VALUES (%s, %s, %s, %s, %s, %s)""",
-        (uid, name, email, hashed, specialty, hospital)
+        """INSERT INTO users (id, name, email, password, specialty, hospital, role,
+                               verification_doc_url, verification_status, is_verified)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+        (uid, name, email, hashed, specialty, hospital, role,
+         verification_doc_url, verification_status, False)
     )
 
     user  = safe_user(db_one("SELECT * FROM users WHERE id=%s", (uid,)))
     token = make_token(uid)
+    msg = f"Welcome to Healthy Universe, {name}! 🎉"
+    if needs_verification:
+        msg += " Your professional documents are under review — you'll be marked verified once approved."
     return jsonify({
         "access_token": token,
         "token_type":   "bearer",
         "user":         user,
-        "message":      f"Welcome to Healthy Universe, {name}! 🎉"
+        "message":      msg
     }), 201
 
 
@@ -636,14 +775,11 @@ def forgot_password():
         return jsonify({"detail": "Email is required"}), 400
 
     user = db_one("SELECT id, name, email FROM users WHERE email=%s", (email,))
-    # Always return a generic success message even if the email isn't registered —
-    # this avoids leaking which emails have accounts.
     generic_response = {"message": "If that email is registered, a verification code has been sent."}
 
     if not user:
         return jsonify(generic_response)
 
-    # invalidate any previous unused OTPs for this user
     db_run("UPDATE password_resets SET is_used=TRUE WHERE user_id=%s AND is_used=FALSE", (user["id"],))
 
     otp_code   = generate_otp_code()
@@ -656,7 +792,6 @@ def forgot_password():
 
     sent = send_otp_email(user["email"], user["name"], otp_code)
     if not sent:
-        # Don't reveal server email config issues to the client; log server-side only.
         print(f"⚠️ Could not send OTP email to {user['email']}")
 
     return jsonify(generic_response)
@@ -664,7 +799,6 @@ def forgot_password():
 
 @app.route("/api/auth/verify-otp", methods=["POST"])
 def verify_otp():
-    """Step 2: user submits the OTP they received → we confirm it's valid."""
     data     = request.get_json(force=True) or {}
     email    = (data.get("email") or "").strip().lower()
     otp_code = (data.get("otp") or "").strip()
@@ -703,7 +837,6 @@ def verify_otp():
 
 @app.route("/api/auth/reset-password", methods=["POST"])
 def reset_password():
-    """Step 3: user submits the OTP again + new password → password is updated."""
     data         = request.get_json(force=True) or {}
     email        = (data.get("email") or "").strip().lower()
     otp_code     = (data.get("otp") or "").strip()
@@ -770,12 +903,6 @@ def create_post():
         file_bytes = media.read()
         if len(file_bytes) > MAX_FILE_BYTES:
             return jsonify({"detail": "File too large (max 50MB)"}), 400
-        # ext   = os.path.splitext(media.filename)[1] or ".bin"
-        # fname = str(uuid.uuid4()) + ext
-        # with open(os.path.join(UPLOAD_DIR, fname), "wb") as f:
-        #     f.write(file_bytes)
-        # media_url  = f"/uploads/{fname}"
-        # media_type = "image" if ct in ALLOWED_IMAGES else "video"
         ext   = os.path.splitext(media.filename)[1] or ".bin"
         fname = str(uuid.uuid4()) + ext
         media_url  = upload_to_supabase(file_bytes, fname, ct)
@@ -788,18 +915,25 @@ def create_post():
         (post_id, uid, content, media_url, media_type, category)
     )
     post = db_one("SELECT * FROM posts WHERE id=%s", (post_id,))
-    return jsonify(post_with_author(post)), 201
+
+    # Broadcast: everyone on the platform gets notified about a new post.
+    actor_name = request.current_user.get("name", "Someone")
+    snippet = (content[:80] + "…") if len(content) > 80 else content
+    broadcast_new_post_notification(uid, post_id, f"{actor_name} shared a new post: \"{snippet}\"" if snippet else f"{actor_name} shared a new post")
+
+    return jsonify(post_with_author(post, uid)), 201
 
 
 @app.route("/api/posts")
 def get_posts():
     limit  = min(int(request.args.get("limit",  20)), 100)
     offset = int(request.args.get("offset", 0))
+    viewer_id = optional_uid_from_request()
     posts  = db_all(
         "SELECT * FROM posts ORDER BY created_at DESC LIMIT %s OFFSET %s",
         (limit, offset)
     )
-    return jsonify([post_with_author(p) for p in posts])
+    return jsonify([post_with_author(p, viewer_id) for p in posts])
 
 
 @app.route("/api/posts/mine")
@@ -809,17 +943,103 @@ def get_my_posts():
     posts = db_all(
         "SELECT * FROM posts WHERE user_id=%s ORDER BY created_at DESC", (uid,)
     )
-    return jsonify([post_with_author(p) for p in posts])
+    return jsonify([post_with_author(p, uid) for p in posts])
 
 
 @app.route("/api/posts/<post_id>/like", methods=["POST"])
 @require_auth
 def like_post(post_id):
+    """Toggle like on/off for the current user (real per-user like state,
+    not just a counter)."""
+    uid = str(request.current_user["id"])
     if not db_one("SELECT id FROM posts WHERE id=%s", (post_id,)):
         return jsonify({"detail": "Post not found"}), 404
-    db_run("UPDATE posts SET likes=likes+1 WHERE id=%s", (post_id,))
+
+    existing = db_one("SELECT id FROM post_likes WHERE post_id=%s AND user_id=%s", (post_id, uid))
+    if existing:
+        db_run("DELETE FROM post_likes WHERE id=%s", (existing["id"],))
+        db_run("UPDATE posts SET likes=GREATEST(likes-1,0) WHERE id=%s", (post_id,))
+        liked = False
+    else:
+        db_run("INSERT INTO post_likes (id, post_id, user_id) VALUES (%s,%s,%s)",
+               (str(uuid.uuid4()), post_id, uid))
+        db_run("UPDATE posts SET likes=likes+1 WHERE id=%s", (post_id,))
+        liked = True
+        # Notify ONLY the post's owner (not on unlike, and never notify yourself).
+        post_row = db_one("SELECT user_id FROM posts WHERE id=%s", (post_id,))
+        actor_name = request.current_user.get("name", "Someone")
+        if post_row:
+            create_notification(post_row["user_id"], uid, "like", post_id, f"{actor_name} liked your post")
+
     updated = db_one("SELECT likes FROM posts WHERE id=%s", (post_id,))
-    return jsonify({"likes": updated["likes"]})
+    return jsonify({"likes": updated["likes"], "liked": liked})
+
+
+@app.route("/api/posts/<post_id>/share", methods=["POST"])
+def share_post(post_id):
+    """Log a share/reshare. Works for logged-out viewers too (just bumps the count)."""
+    if not db_one("SELECT id FROM posts WHERE id=%s", (post_id,)):
+        return jsonify({"detail": "Post not found"}), 404
+    db_run("UPDATE posts SET shares=COALESCE(shares,0)+1 WHERE id=%s", (post_id,))
+    updated = db_one("SELECT shares FROM posts WHERE id=%s", (post_id,))
+    return jsonify({"shares": updated["shares"]})
+
+
+@app.route("/api/posts/<post_id>/comments", methods=["GET"])
+def get_comments(post_id):
+    if not db_one("SELECT id FROM posts WHERE id=%s", (post_id,)):
+        return jsonify({"detail": "Post not found"}), 404
+    rows = db_all(
+        "SELECT * FROM post_comments WHERE post_id=%s ORDER BY created_at ASC", (post_id,)
+    )
+    out = []
+    for c in rows:
+        c = dict(c)
+        for k, v in c.items():
+            if isinstance(v, datetime): c[k] = v.isoformat()
+        a = db_one("SELECT name, avatar_url, is_verified FROM users WHERE id=%s", (c["user_id"],)) or {}
+        c["author"] = {
+            "name": a.get("name", "Unknown"),
+            "avatar": a.get("avatar_url", ""),
+            "verified": bool(a.get("is_verified", False)),
+        }
+        out.append(c)
+    return jsonify(out)
+
+
+@app.route("/api/posts/<post_id>/comments", methods=["POST"])
+@require_auth
+def add_comment(post_id):
+    uid = str(request.current_user["id"])
+    data = request.get_json(force=True) or {}
+    content = (data.get("content") or "").strip()
+    if not content:
+        return jsonify({"detail": "Comment cannot be empty"}), 400
+    if not db_one("SELECT id FROM posts WHERE id=%s", (post_id,)):
+        return jsonify({"detail": "Post not found"}), 404
+
+    cid = str(uuid.uuid4())
+    db_run(
+        "INSERT INTO post_comments (id, post_id, user_id, content) VALUES (%s,%s,%s,%s)",
+        (cid, post_id, uid, content)
+    )
+
+    # Notify ONLY the post's owner (not everyone) — never notify yourself.
+    post_row = db_one("SELECT user_id FROM posts WHERE id=%s", (post_id,))
+    actor_name = request.current_user.get("name", "Someone")
+    if post_row:
+        snippet = (content[:60] + "…") if len(content) > 60 else content
+        create_notification(post_row["user_id"], uid, "comment", post_id, f'{actor_name} commented: "{snippet}"')
+
+    comment = dict(db_one("SELECT * FROM post_comments WHERE id=%s", (cid,)))
+    for k, v in comment.items():
+        if isinstance(v, datetime): comment[k] = v.isoformat()
+    comment["author"] = {
+        "name": request.current_user.get("name", "Unknown"),
+        "avatar": request.current_user.get("avatar_url", ""),
+        "verified": bool(request.current_user.get("is_verified", False)),
+    }
+    return jsonify(comment), 201
 
 
 @app.route("/api/posts/<post_id>", methods=["DELETE"])
@@ -833,6 +1053,85 @@ def delete_post(post_id):
         return jsonify({"detail": "You can only delete your own posts"}), 403
     db_run("DELETE FROM posts WHERE id=%s", (post_id,))
     return jsonify({"message": "Post deleted"})
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  NOTIFICATIONS
+#  - like / comment  → only ever sent to the post owner
+#  - post            → broadcast to every other user (see broadcast_new_post_notification)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def notification_to_frontend_shape(n) -> dict:
+    n = dict(n)
+    for k, v in n.items():
+        if isinstance(v, datetime): n[k] = v.isoformat()
+    actor = db_one("SELECT name, avatar_url FROM users WHERE id=%s", (n["actor_id"],)) or {}
+    icon_map = {"like": "heart", "comment": "comment", "post": "post"}
+    return {
+        "id": n["id"],
+        "name": actor.get("name", "Someone"),
+        "avatar": actor.get("avatar_url", ""),
+        "action": n.get("message", ""),
+        "quote": None,
+        "time": timeago_label(n["created_at"]),
+        "iconType": icon_map.get(n["type"], "post"),
+        "unread": not n.get("is_read", False),
+        "post_id": n.get("post_id"),
+    }
+
+def timeago_label(iso_str):
+    try:
+        dt = datetime.fromisoformat(iso_str) if isinstance(iso_str, str) else iso_str
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        diff = datetime.now(timezone.utc) - dt
+        mins = int(diff.total_seconds() // 60)
+        if mins < 1: return "Just now"
+        if mins < 60: return f"{mins}m ago"
+        hrs = mins // 60
+        if hrs < 24: return f"{hrs}h ago"
+        return f"{hrs // 24}d ago"
+    except Exception:
+        return ""
+
+
+@app.route("/api/notifications")
+@require_auth
+def get_notifications():
+    uid = str(request.current_user["id"])
+    limit = min(int(request.args.get("limit", 50)), 100)
+    rows = db_all(
+        "SELECT * FROM notifications WHERE user_id=%s ORDER BY created_at DESC LIMIT %s",
+        (uid, limit)
+    )
+    return jsonify([notification_to_frontend_shape(r) for r in rows])
+
+
+@app.route("/api/notifications/unread-count")
+@require_auth
+def get_unread_notification_count():
+    uid = str(request.current_user["id"])
+    row = db_one("SELECT COUNT(*) AS n FROM notifications WHERE user_id=%s AND is_read=FALSE", (uid,))
+    return jsonify({"unread": row["n"] if row else 0})
+
+
+@app.route("/api/notifications/<notif_id>/read", methods=["POST"])
+@require_auth
+def mark_notification_read(notif_id):
+    uid = str(request.current_user["id"])
+    n = db_one("SELECT id FROM notifications WHERE id=%s AND user_id=%s", (notif_id, uid))
+    if not n:
+        return jsonify({"detail": "Notification not found"}), 404
+    db_run("UPDATE notifications SET is_read=TRUE WHERE id=%s", (notif_id,))
+    return jsonify({"message": "marked read"})
+
+
+@app.route("/api/notifications/read-all", methods=["POST"])
+@require_auth
+def mark_all_notifications_read():
+    uid = str(request.current_user["id"])
+    db_run("UPDATE notifications SET is_read=TRUE WHERE user_id=%s AND is_read=FALSE", (uid,))
+    return jsonify({"message": "all marked read"})
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -905,23 +1204,6 @@ def create_campaign():
         fname = str(uuid.uuid4()) + ext
         image_url = upload_to_supabase(file_bytes, fname, ct)
 
-    # image_url = ""
-    # if image and image.filename:
-    #     ct = image.content_type or ""
-    #     if ct not in ALLOWED_IMAGES:
-    #         return jsonify({"detail": "Ad creative must be an image (jpg/png/gif/webp)"}), 400
-    #     file_bytes = image.read()
-    #     if len(file_bytes) > MAX_FILE_BYTES:
-    #         return jsonify({"detail": "Image too large (max 50MB)"}), 400
-    #     # ext   = os.path.splitext(image.filename)[1] or ".jpg"
-    #     # fname = str(uuid.uuid4()) + ext
-    #     # with open(os.path.join(UPLOAD_DIR, fname), "wb") as f:
-    #     #     f.write(file_bytes)
-    #     # image_url = f"/uploads/{fname}"
-    #     ext   = os.path.splitext(image.filename)[1] or ".jpg"
-    #     fname = str(uuid.uuid4()) + ext
-    #     image_url = upload_to_supabase(file_bytes, fname, ct)
-
     cid = str(uuid.uuid4())
     db_run(
         """INSERT INTO ad_campaigns
@@ -982,7 +1264,6 @@ def delete_campaign(campaign_id):
 
 @app.route("/api/ads/serve")
 def serve_ad():
-    """Pick one eligible active ad to show in the feed."""
     row = db_one(
         """SELECT c.*, cr.id AS creative_id, cr.headline, cr.body_text,
                   cr.image_url, cr.cta_text, cr.cta_link
@@ -1001,8 +1282,6 @@ def serve_ad():
         if isinstance(v, datetime): row[k] = v.isoformat()
     advertiser = db_one("SELECT name, avatar_url FROM users WHERE id=%s", (row["user_id"],)) or {}
     row["advertiser_name"] = advertiser.get("name", "Sponsored")
-    # Let the frontend know how many coins viewing/clicking this ad will earn,
-    # so it can show "+1 HU Coin" style UI before the user even acts.
     row["impression_reward"] = COIN_REWARD_PER_IMPRESSION
     row["click_reward"]      = COIN_REWARD_PER_CLICK
     return jsonify(row)
@@ -1010,13 +1289,6 @@ def serve_ad():
 
 @app.route("/api/ads/impression", methods=["POST"])
 def log_impression():
-    """
-    Logs an ad view. The FIRST time a given logged-in user sees a given campaign,
-    they earn HU Coins and a tiny amount is deducted from the campaign's budget.
-    Repeat views by the same user on the same campaign are still logged (for
-    accurate impression counts) but do not pay out again, to prevent coin-farming
-    by refreshing the feed.
-    """
     data = request.get_json(force=True) or {}
     campaign_id = data.get("campaign_id")
     creative_id = data.get("creative_id")
@@ -1063,11 +1335,6 @@ def log_impression():
 
 @app.route("/api/ads/click", methods=["POST"])
 def log_click():
-    """
-    Logs an ad click. The FIRST time a given logged-in user clicks a given
-    campaign, they earn HU Coins (on top of impression coins) and the
-    campaign's configured bid_amount is deducted from its budget, same as before.
-    """
     data = request.get_json(force=True) or {}
     campaign_id = data.get("campaign_id")
     creative_id = data.get("creative_id")
@@ -1096,8 +1363,6 @@ def log_click():
     coins_earned = 0
     new_balance  = None
     if uid:
-        # count clicks by this user on this campaign (including the one we just inserted) —
-        # reward only fires the first time.
         prior_clicks = db_one(
             "SELECT COUNT(*) AS n FROM ad_clicks WHERE campaign_id=%s AND user_id=%s",
             (campaign_id, uid)
@@ -1228,14 +1493,6 @@ def upload_message_media():
     if len(file_bytes) > MAX_FILE_BYTES:
         return jsonify({"detail": "File too large (max 50MB)"}), 400
 
-    # ext = os.path.splitext(media.filename)[1] or ".bin"
-    # fname = str(uuid.uuid4()) + ext
-    # with open(os.path.join(UPLOAD_DIR, fname), "wb") as f:
-    #     f.write(file_bytes)
-
-    # media_type = "image" if ct in ALLOWED_IMAGES else ("video" if ct in ALLOWED_VIDEOS else "audio")
-    # return jsonify({"media_url": f"/uploads/{fname}", "media_type": media_type})
-
     ext = os.path.splitext(media.filename)[1] or ".bin"
     fname = str(uuid.uuid4()) + ext
     media_url = upload_to_supabase(file_bytes, fname, ct)
@@ -1243,7 +1500,6 @@ def upload_message_media():
     media_type = "image" if ct in ALLOWED_IMAGES else ("video" if ct in ALLOWED_VIDEOS else "audio")
     return jsonify({"media_url": media_url, "media_type": media_type})
 
-     
 
 @app.route("/api/messages/<message_id>", methods=["DELETE"])
 @require_auth
@@ -1566,7 +1822,9 @@ def admin_check():
 @app.route("/api/admin/users")
 @require_admin
 def admin_list_users():
-    rows = db_all("SELECT id,name,email,specialty,is_verified,is_banned,balance,hu_coins,created_at FROM users ORDER BY created_at DESC")
+    rows = db_all("""SELECT id,name,email,specialty,role,is_verified,verification_status,
+                             verification_doc_url,is_banned,balance,hu_coins,created_at
+                      FROM users ORDER BY created_at DESC""")
     return jsonify([safe_user(r) for r in rows])
 
 
@@ -1579,6 +1837,23 @@ def admin_toggle_ban(user_id):
     new_status = not user["is_banned"]
     db_run("UPDATE users SET is_banned=%s WHERE id=%s", (new_status, user_id))
     return jsonify({"is_banned": new_status})
+
+
+@app.route("/api/admin/users/<user_id>/verify", methods=["POST"])
+@require_admin
+def admin_toggle_verify(user_id):
+    """Admin reviews the uploaded verification_doc_url and approves/rejects a
+    professional account. This is the only place is_verified gets flipped on."""
+    data = request.get_json(force=True, silent=True) or {}
+    approve = bool(data.get("approve", True))
+    user = db_one("SELECT id FROM users WHERE id=%s", (user_id,))
+    if not user:
+        return jsonify({"detail": "User not found"}), 404
+    db_run(
+        "UPDATE users SET is_verified=%s, verification_status=%s WHERE id=%s",
+        (approve, "approved" if approve else "rejected", user_id)
+    )
+    return jsonify({"is_verified": approve})
 
 
 @app.route("/api/admin/users/<user_id>", methods=["DELETE"])
@@ -1766,6 +2041,71 @@ def get_jobs():
     rows = db_all("SELECT * FROM jobs WHERE is_active=TRUE ORDER BY created_at DESC")
     return jsonify([job_to_frontend_shape(r) for r in rows])
 
+
+@app.route("/api/jobs/add", methods=["POST"])
+@require_auth
+def user_add_job():
+    """User-facing job posting. Accepts multipart/form-data so a company
+    logo can be uploaded directly ('browse' a photo) instead of pasting a URL."""
+    is_multipart = request.content_type and "multipart/form-data" in request.content_type
+    data  = request.form if is_multipart else (request.get_json(force=True, silent=True) or {})
+    logo_file = request.files.get("company_logo") if is_multipart else None
+
+    title   = (data.get("title") or "").strip()
+    company = (data.get("company") or "").strip()
+    if not title or not company:
+        return jsonify({"detail": "Title and company are required"}), 400
+
+    tags = data.get("tags") or []
+    if isinstance(tags, str):
+        try:
+            tags = _json.loads(tags)
+        except Exception:
+            tags = [t.strip() for t in tags.split(",") if t.strip()]
+
+    logo_url = data.get("company_logo") or ""
+    if logo_file and logo_file.filename:
+        ct = logo_file.content_type or ""
+        if ct not in ALLOWED_IMAGES:
+            return jsonify({"detail": "Company logo must be an image (jpg/png/gif/webp)"}), 400
+        file_bytes = logo_file.read()
+        if len(file_bytes) > MAX_FILE_BYTES:
+            return jsonify({"detail": "Logo file too large"}), 400
+        ext   = os.path.splitext(logo_file.filename)[1] or ".jpg"
+        fname = str(uuid.uuid4()) + ext
+        logo_url = upload_to_supabase(file_bytes, fname, ct)
+
+    uid = str(request.current_user["id"])
+    jid = str(uuid.uuid4())
+    db_run(
+        """INSERT INTO jobs (id, title, company, company_logo, location, job_type,
+           specialty, salary, experience, deadline, tags, description, featured, added_by)
+           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+        (jid, title, company, logo_url,
+         data.get("location") or "Remote", data.get("job_type") or "Full-Time",
+         data.get("specialty") or "General Physician", data.get("salary") or "",
+         data.get("experience") or "", data.get("deadline") or "",
+         _json.dumps(tags), data.get("description") or "", False, uid)
+    )
+    job = db_one("SELECT * FROM jobs WHERE id=%s", (jid,))
+    return jsonify(job_to_frontend_shape(job)), 201
+
+
+@app.route("/api/jobs/<job_id>", methods=["DELETE"])
+@require_auth
+def user_delete_job(job_id):
+    uid = str(request.current_user["id"])
+    job = db_one("SELECT * FROM jobs WHERE id=%s", (job_id,))
+    if not job:
+        return jsonify({"detail": "Job not found"}), 404
+    is_owner = job.get("added_by") and str(job["added_by"]) == uid
+    is_admin = request.current_user["email"].lower() in {e.lower() for e in ADMIN_EMAILS if e}
+    if not is_owner and not is_admin:
+        return jsonify({"detail": "You can only remove jobs you posted"}), 403
+    db_run("DELETE FROM jobs WHERE id=%s", (job_id,))
+    return jsonify({"message": "Job removed"})
+
+
 @app.route("/api/admin/jobs", methods=["POST"])
 @require_admin
 def admin_create_job():
@@ -1858,7 +2198,12 @@ def admin_delete_doctor(doctor_id):
 @app.route("/api/doctors/add", methods=["POST"])
 @require_auth
 def user_add_doctor():
-    data = request.get_json(force=True) or {}
+    """Accepts multipart/form-data so a doctor photo can be uploaded directly
+    ('browse' a photo) instead of pasting a URL."""
+    is_multipart = request.content_type and "multipart/form-data" in request.content_type
+    data = request.form if is_multipart else (request.get_json(force=True, silent=True) or {})
+    avatar_file = request.files.get("avatar") if is_multipart else None
+
     name = (data.get("name") or "").strip()
     specialty = (data.get("specialty") or "").strip()
     if not name or not specialty:
@@ -1866,7 +2211,22 @@ def user_add_doctor():
 
     tags = data.get("tags") or []
     if isinstance(tags, str):
-        tags = [t.strip() for t in tags.split(",") if t.strip()]
+        try:
+            tags = _json.loads(tags)
+        except Exception:
+            tags = [t.strip() for t in tags.split(",") if t.strip()]
+
+    avatar_url = data.get("avatar_url") or ""
+    if avatar_file and avatar_file.filename:
+        ct = avatar_file.content_type or ""
+        if ct not in ALLOWED_IMAGES:
+            return jsonify({"detail": "Doctor photo must be an image (jpg/png/gif/webp)"}), 400
+        file_bytes = avatar_file.read()
+        if len(file_bytes) > MAX_FILE_BYTES:
+            return jsonify({"detail": "Photo file too large"}), 400
+        ext   = os.path.splitext(avatar_file.filename)[1] or ".jpg"
+        fname = str(uuid.uuid4()) + ext
+        avatar_url = upload_to_supabase(file_bytes, fname, ct)
 
     uid = str(request.current_user["id"])
     did = str(uuid.uuid4())
@@ -1874,8 +2234,8 @@ def user_add_doctor():
         """INSERT INTO doctors (id, name, specialty, hospital, avatar_url, verified,
            rating, reviews, experience, consultations, status, price, coins, tags, next_slot, added_by)
            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-        (did, name, specialty, data.get("hospital") or "", data.get("avatar_url") or "",
-         bool(data.get("verified", True)), data.get("rating") or 4.8, data.get("reviews") or 0,
+        (did, name, specialty, data.get("hospital") or "", avatar_url,
+         True, data.get("rating") or 4.8, data.get("reviews") or 0,
          data.get("experience") or 0, data.get("consultations") or 0, data.get("status") or "online",
          data.get("price") or 0, data.get("coins") or (float(data.get("price") or 0) * 2),
          _json.dumps(tags), data.get("next_slot") or "Available Now", uid)
@@ -1904,7 +2264,7 @@ def user_delete_doctor(doctor_id):
 # ─── RUN ───────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     print("\n" + "="*50)
-    print("  🏥  Healthy Universe API  v2.0  ")
+    print("  🏥  Healthy Universe API  v2.1  ")
     print("="*50)
     print("🐘 Connecting to PostgreSQL (Supabase)...")
     try:
@@ -1919,6 +2279,3 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ Startup failed: {e}")
         print("👉 Check DATABASE_URL is correct in .env\n")
-
-
-    

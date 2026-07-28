@@ -30,66 +30,9 @@ function navigate(pageId, clickedBtn) {
   if (pageId === "consultations") renderDoctors();
   if (pageId === "jobs") renderJobs();
   if (pageId === "ads") renderAdsManager();
-  // if (pageId === "games") {
-  //   if (typeof loadNextArcadeQuestion === "function") {
-  //     loadNextArcadeQuestion();
-  //   }
-  // }
-
+  if (pageId === "notifications") loadRealNotifications();
 }
 
-// function renderFeed(posts) {
-//   const container = document.getElementById("feed-container");
-//   if (!container) return;
-//   const data = posts || POSTS;
-//   container.innerHTML = data.map((post) => `
-//     <article class="post-card" id="post-${post.id}">
-//       <div class="post-top">
-//         <img src="${post.avatar}" alt="${post.name}" loading="lazy"/>
-//         <div class="post-meta">
-//           <div class="post-name">${post.name}<span class="verified-dot"></span></div>
-//           <div class="post-role">${post.role} · ${post.time}</div>
-//         </div>
-//         <button class="post-more">···</button>
-//       </div>
-//       <div class="post-body">
-//         <div class="post-title">${post.title}</div>
-//         <div class="post-text">${post.text}</div>
-//       </div>
-//       <div class="post-image-wrap">
-//         <img src="${post.image}" alt="${post.title}" class="post-image" loading="lazy"/>
-//         ${post.trusted ? `<div class="trusted-badge"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Trusted Content</div>` : ""}
-//       </div>
-//       <div style="padding:10px 16px 0;display:flex;align-items:center;">
-//         <button class="revenue-badge" id="rev-${post.id}" onclick="claimRevenue(${post.id}, this)">
-//           💰 $${post.earnings ? post.earnings.toFixed(2) : "0.00"} earned today — Claim
-//         </button>
-//       </div>
-//       <div class="post-actions">
-//         <button class="action-btn ${post.liked ? "liked" : ""}" onclick="toggleLike(${post.id}, this)">
-//           <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>
-//           <span class="like-count">${formatNum(post.likes)}</span>
-//         </button>
-//         <button class="action-btn" onclick="this.style.color='#2563eb'">
-//           <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-//           ${post.comments}
-//         </button>
-//         <button class="action-btn" onclick="this.style.color='#7c3aed'">
-//           <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-//           ${post.shares}
-//         </button>
-//         <div class="action-spacer"></div>
-//         <button class="action-btn ${post.saved ? "saved" : ""}" onclick="toggleSave(${post.id}, this)">
-//           <svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-//         </button>
-//       </div>
-//       <div class="post-footer">
-//         <div class="post-tags">${post.tags.map((t) => `<span class="post-tag">${t}</span>`).join("")}</div>
-//         <span class="view-count">${post.views} views</span>
-//       </div>
-//     </article>
-//   `).join("");
-// }
 function renderFeed(posts) {
   const container = document.getElementById("feed-container");
   if (!container) return;
@@ -124,21 +67,17 @@ function renderFeed(posts) {
       <div class="post-image-wrap">
 
         ${
-          // 🔥 NEW POSTS (video)
           post.type === "video" && post.media
             ? `
               <video class="post-image" controls>
                 <source src="${post.media}" type="video/mp4">
               </video>
             `
-            : // 🔥 NEW POSTS (image uploaded)
-              post.media
+            : post.media
               ? `<img src="${post.media}" class="post-image" loading="lazy"/>`
-              : // ✅ OLD POSTS (existing image — DO NOT REMOVE)
-                post.image
+              : post.image
                 ? `<img src="${post.image}" class="post-image" loading="lazy"/>`
-                : // nothing
-                  ""
+                : ""
         }
 
         ${
@@ -217,11 +156,68 @@ const ICONS = {
   comment: `<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
   follow: `<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
   share: `<svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>`,
+  post: `<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>`,
 };
+
+// ── Real notifications: like/comment go ONLY to the post owner; a new post
+// broadcasts to everyone. This replaces the static demo NOTIFICATIONS list
+// with live data from the server whenever the user is logged in. ────────────
+let REAL_NOTIFICATIONS = [];
+
+async function loadRealNotifications() {
+  if (!huGetToken()) return;
+  REAL_NOTIFICATIONS = await huGetNotifications();
+  renderNotifications();
+  updateNotificationBadge();
+}
+
+function updateNotificationBadge() {
+  const unread = REAL_NOTIFICATIONS.filter((n) => n.unread).length;
+  // Works with whatever badge markup exists: a count element, or a plain dot.
+  const countEl = document.getElementById("notif-unread-count");
+  if (countEl) countEl.textContent = unread > 0 ? unread : "";
+  document.querySelectorAll(".nav-link, .nav-item").forEach((link) => {
+    if (!/notification/i.test(link.textContent || "")) return;
+    let dot = link.querySelector(".notif-dot");
+    if (unread > 0) {
+      if (!dot) {
+        dot = document.createElement("span");
+        dot.className = "notif-dot";
+        dot.style.cssText =
+          "display:inline-block;width:8px;height:8px;border-radius:50%;background:#377dff;margin-left:6px;vertical-align:middle;";
+        link.appendChild(dot);
+      }
+    } else if (dot) {
+      dot.remove();
+    }
+  });
+}
 
 function renderNotifications() {
   const list = document.getElementById("notif-list");
   if (!list) return;
+
+  // Real notifications (from the server) take priority over the static demo
+  // list. Real ones only exist for: someone liked/commented on YOUR post, or
+  // ANY user published a new post (broadcast).
+  if (REAL_NOTIFICATIONS && REAL_NOTIFICATIONS.length > 0) {
+    list.innerHTML = REAL_NOTIFICATIONS.map(
+      (n) => `
+      <div class="notif-row ${n.unread ? "unread" : ""}" id="notif-real-${n.id}" onclick="readRealNotif('${n.id}', this)">
+        <img src="${n.avatar || getLetterAvatar(n.name, 80)}" alt="${n.name}" loading="lazy"/>
+        <div class="notif-body">
+          <p>${n.action}</p>
+          <span class="notif-time">${n.time}</span>
+        </div>
+        <div class="notif-icon ni-${n.iconType}">
+          ${ICONS[n.iconType] || ICONS.post}
+        </div>
+      </div>
+    `,
+    ).join("");
+    return;
+  }
+
   list.innerHTML = NOTIFICATIONS.map(
     (n) => `
     <div class="notif-row ${n.unread ? "unread" : ""}" id="notif-${n.id}" onclick="readNotif(${n.id})">
@@ -239,6 +235,14 @@ function renderNotifications() {
   ).join("");
 }
 
+async function readRealNotif(id, el) {
+  const n = REAL_NOTIFICATIONS.find((x) => x.id === id);
+  if (n) n.unread = false;
+  if (el) el.classList.remove("unread");
+  await huMarkNotificationRead(id);
+  updateNotificationBadge();
+}
+
 function readNotif(id) {
   const notif = NOTIFICATIONS.find((n) => n.id === id);
   if (notif) notif.unread = false;
@@ -246,11 +250,14 @@ function readNotif(id) {
   if (el) el.classList.remove("unread");
 }
 
-function markAllRead() {
+async function markAllRead() {
   NOTIFICATIONS.forEach((n) => (n.unread = false));
+  REAL_NOTIFICATIONS.forEach((n) => (n.unread = false));
   document
     .querySelectorAll(".notif-row.unread")
     .forEach((el) => el.classList.remove("unread"));
+  updateNotificationBadge();
+  if (huGetToken()) await huMarkAllNotificationsRead();
   showToast("✓ All notifications marked as read");
 }
 
@@ -311,21 +318,6 @@ function selectChip(btn) {
   btn.classList.add("active");
 }
 
-// function publishPost() {
-//   const content = document.getElementById("post-content");
-//   if (!content.value.trim()) {
-//     content.style.borderColor = "#e11d48";
-//     content.focus();
-//     setTimeout(() => (content.style.borderColor = ""), 2000);
-//     return;
-//   }
-//   closeModal();
-//   content.value = "";
-//   document.querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
-//   const toggle = document.getElementById("med-edu-toggle");
-//   if (toggle) toggle.classList.remove("on");
-//   showToast("🎉 Post published successfully!");
-// }
 let selectedFile = null;
 
 function previewMedia(event) {
@@ -345,67 +337,6 @@ function previewMedia(event) {
     preview.innerHTML = `<img src="${url}" width="100%">`;
   }
 }
-// function publishPost() {
-//   const content = document.getElementById("post-content");
-
-//   if (!content.value.trim()) return;
-
-//   const newPost = {
-//     id: Date.now(),
-//     name: "Dr. Michael Chen",
-//     avatar:
-//       "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=80&h=80&fit=crop&crop=face",
-//     role: "Healthcare Professional",
-//     time: "Just now",
-//     title: "User Post",
-//     text: content.value,
-//     image: uploadedMediaType === "image" ? uploadedMediaURL : "",
-//     video: uploadedMediaType === "video" ? uploadedMediaURL : "",
-//     likes: 0,
-//     comments: 0,
-//     shares: 0,
-//     views: 0,
-//     liked: false,
-//     saved: false,
-//     earnings: 0,
-//     tags: ["User Post"],
-//     trusted: false,
-//   };
-
-//   POSTS.unshift(newPost);
-//   renderFeed();
-
-//   // reset
-//   uploadedMediaURL = "";
-//   uploadedMediaType = "";
-//   document.getElementById("media-preview").innerHTML = "";
-
-//   closeModal();
-//   content.value = "";
-
-//   showToast("🎉 Post published!");
-// }
-// let uploadedFile = null;
-// let uploadedType = null; // "image" or "video"
-// function handleFileUpload(event) {
-//   const file = event.target.files[0];
-//   if (!file) return;
-
-//   uploadedFile = URL.createObjectURL(file);
-//   uploadedType = file.type.startsWith("video") ? "video" : "image";
-
-//   const preview = document.getElementById("preview-container");
-
-//   if (uploadedType === "image") {
-//     preview.innerHTML = `<img src="${uploadedFile}" style="width:100%;border-radius:10px;">`;
-//   } else {
-//     preview.innerHTML = `
-//       <video controls style="width:100%;border-radius:10px;">
-//         <source src="${uploadedFile}" type="${file.type}">
-//       </video>
-//     `;
-//   }
-// }
 
 let uploadedMedia = "";
 let mediaType = "image";
@@ -430,47 +361,6 @@ document.getElementById("media-input").addEventListener("change", function (e) {
   reader.readAsDataURL(file);
 });
 
-// // PUBLISH POST
-// function publishPost() {
-//   const text = document.getElementById("post-content").value;
-
-//   if (!text && !uploadedMedia) {
-//     alert("Add content or media!");
-//     return;
-//   }
-
-//   const newPost = {
-//     id: Date.now(),
-//     name: "Dr. Michael Chen",
-//     avatar: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=80",
-//     role: "Healthcare Professional",
-//     time: "Just now",
-//     title: "New Medical Post",
-//     text: text,
-//     media: uploadedMedia,
-//     type: mediaType,
-//     trusted: false,
-//     likes: 0,
-//     comments: 0,
-//     shares: 0,
-//     views: 0,
-//     tags: ["New"],
-//     liked: false,
-//     saved: false,
-//   };
-
-//   // IMPORTANT: add to top
-//   POSTS.unshift(newPost);
-
-//   // RE-RENDER
-//   renderFeed();
-
-//   // RESET
-//   document.getElementById("post-content").value = "";
-//   uploadedMedia = "";
-
-//   closeModal();
-// }
 // PUBLISH POST - handled by api.js (saves to database)
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
@@ -480,13 +370,6 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-// document.addEventListener("DOMContentLoaded", () => {
-//   applyStoredTheme();
-//   renderFeed();
-//   renderNotifications();
-//   renderProfileGrid();
-//   renderSuggestedUsers();
-// });
 document.addEventListener("DOMContentLoaded", async () => {
   applyStoredTheme();
 
@@ -506,8 +389,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         container.insertAdjacentHTML("afterbegin", buildPostCard(post));
       });
     }
-  } catch (e) { }
+  } catch (e) {}
   injectSponsoredAd();
+  loadRealNotifications();
 });
 
 /* Feed Tabs */
@@ -667,6 +551,8 @@ function openAddDoctorModal() {
     return;
   }
   document.getElementById("add-doctor-form").reset();
+  const preview = document.getElementById("ud-doc-avatar-preview");
+  if (preview) preview.innerHTML = "";
   document.getElementById("add-doctor-modal").style.display = "flex";
   document.body.style.overflow = "hidden";
 }
@@ -676,42 +562,25 @@ function closeAddDoctorModal() {
   document.body.style.overflow = "";
 }
 
-// async function handleAddDoctorSubmit(event) {
-//   event.preventDefault();
-//   const name = document.getElementById("ud-doc-name").value.trim();
-//   const specialty = document.getElementById("ud-doc-specialty").value;
-//   if (!name) {
-//     showToast("⚠️ Doctor name is required");
-//     return;
-//   }
-
-//   const tags = document
-//     .getElementById("ud-doc-tags")
-//     .value.split(",")
-//     .map((t) => t.trim())
-//     .filter(Boolean);
-
-//   const payload = {
-//     name: name,
-//     specialty: specialty,
-//     hospital: document.getElementById("ud-doc-hospital").value.trim(),
-//     avatar_url: document.getElementById("ud-doc-avatar").value.trim(),
-//     experience:
-//       parseInt(document.getElementById("ud-doc-experience").value) || 0,
-//     price: parseFloat(document.getElementById("ud-doc-price").value) || 0,
-//     tags: tags,
-//     next_slot:
-//       document.getElementById("ud-doc-nextslot").value.trim() ||
-//       "Available Now",
-//   };
-function readFileAsBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = (error) => reject(error);
-    reader.readAsDataURL(file);
-  });
-}
+// Live preview when a doctor photo is picked via the file input
+// (Add `<input type="file" id="ud-doc-avatar-file" accept="image/*">` and a
+//  `<div id="ud-doc-avatar-preview"></div>` to the Add Doctor modal HTML.)
+document.addEventListener("change", function (e) {
+  if (e.target && e.target.id === "ud-doc-avatar-file") {
+    const file = e.target.files[0];
+    const preview = document.getElementById("ud-doc-avatar-preview");
+    if (file && preview) {
+      preview.innerHTML = `<img src="${URL.createObjectURL(file)}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;margin-top:8px;"/>`;
+    }
+  }
+  if (e.target && e.target.id === "job-logo-file") {
+    const file = e.target.files[0];
+    const preview = document.getElementById("job-logo-preview");
+    if (file && preview) {
+      preview.innerHTML = `<img src="${URL.createObjectURL(file)}" style="width:64px;height:64px;border-radius:10px;object-fit:cover;margin-top:8px;"/>`;
+    }
+  }
+});
 
 async function handleAddDoctorSubmit(event) {
   event.preventDefault();
@@ -728,39 +597,36 @@ async function handleAddDoctorSubmit(event) {
     .map((t) => t.trim())
     .filter(Boolean);
 
-  // Handle image upload from file input
-  const fileInput = document.getElementById("ud-doc-avatar");
-  let avatarUrl = "";
-
-  if (fileInput && fileInput.files && fileInput.files[0]) {
-    try {
-      avatarUrl = await readFileAsBase64(fileInput.files[0]);
-    } catch (err) {
-      console.error("Error reading photo file:", err);
-      showToast("⚠️ Failed to process image file");
-      return;
-    }
-  }
-
-  const payload = {
-    name: name,
-    specialty: specialty,
-    hospital: document.getElementById("ud-doc-hospital").value.trim(),
-    avatar_url: avatarUrl, // Contains the Base64 image string
-    experience:
-      parseInt(document.getElementById("ud-doc-experience").value) || 0,
-    price: parseFloat(document.getElementById("ud-doc-price").value) || 0,
-    tags: tags,
-    next_slot:
-      document.getElementById("ud-doc-nextslot").value.trim() ||
-      "Available Now",
-  };
-
   const btn = document.getElementById("ud-doc-submit-btn");
   btn.disabled = true;
   btn.textContent = "Adding…";
 
   try {
+    // "Browse a photo" — upload the picked file first (falls back to the old
+    // URL text field if a file input hasn't been added to the modal yet).
+    let avatarUrl = "";
+    const fileInput = document.getElementById("ud-doc-avatar-file");
+    const urlInput = document.getElementById("ud-doc-avatar");
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+      avatarUrl = await huUploadImage(fileInput.files[0]);
+    } else if (urlInput) {
+      avatarUrl = urlInput.value.trim();
+    }
+
+    const payload = {
+      name: name,
+      specialty: specialty,
+      hospital: document.getElementById("ud-doc-hospital").value.trim(),
+      avatar_url: avatarUrl,
+      experience:
+        parseInt(document.getElementById("ud-doc-experience").value) || 0,
+      price: parseFloat(document.getElementById("ud-doc-price").value) || 0,
+      tags: tags,
+      next_slot:
+        document.getElementById("ud-doc-nextslot").value.trim() ||
+        "Available Now",
+    };
+
     const res = await huFetch("/api/doctors/add", {
       method: "POST",
       body: JSON.stringify(payload),
@@ -777,7 +643,7 @@ async function handleAddDoctorSubmit(event) {
     closeAddDoctorModal();
     showToast("✅ Doctor added successfully!");
   } catch (e) {
-    showToast("❌ Could not connect to server");
+    showToast("❌ " + (e.message || "Could not connect to server"));
   } finally {
     btn.disabled = false;
     btn.textContent = "Add Doctor";
@@ -1287,7 +1153,6 @@ function closeApplySuccess() {
    ✨ SETTINGS PAGE LOGIC
    ============================================================ */
 
-/* Switch settings tab */
 function switchSettingsTab(tab, btn) {
   document
     .querySelectorAll(".settings-nav-item")
@@ -1300,7 +1165,6 @@ function switchSettingsTab(tab, btn) {
   if (target) target.classList.add("active");
 }
 
-/* Toggle a settings switch */
 function toggleSettingSwitch(id, labelId, onMsg, offMsg) {
   const btn = document.getElementById(id);
   if (!btn) return;
@@ -1312,9 +1176,7 @@ function toggleSettingSwitch(id, labelId, onMsg, offMsg) {
   showToast(isOn ? onMsg || "✓ Saved!" : offMsg || "✓ Saved!");
 }
 
-/* Save settings section */
 function saveSettings(section) {
-  // Update sidebar name if profile saved
   if (section === "Profile") {
     const nameVal = document.getElementById("sf-name");
     if (nameVal && nameVal.value) {
@@ -1334,7 +1196,6 @@ function saveSettings(section) {
   showToast("✓ " + section + " settings saved!");
 }
 
-/* Select theme — REAL implementation */
 function selectTheme(theme, el) {
   document
     .querySelectorAll(".settings-theme-card")
@@ -1359,7 +1220,6 @@ function selectTheme(theme, el) {
   }
 }
 
-/* Apply saved theme on load */
 function applyStoredTheme() {
   const saved = localStorage.getItem("hu-theme") || "light";
   if (saved === "dark") {
@@ -1386,115 +1246,6 @@ function applyStoredTheme() {
   }
 }
 
-/* Confirm logout */
-function confirmLogout() {
-  document.getElementById("logout-modal").classList.add("open");
-}
-
-/* ============================================================
-   ✨ SETTINGS PAGE LOGIC
-   ============================================================ */
-
-/* Switch settings tab */
-function switchSettingsTab(tab, btn) {
-  document
-    .querySelectorAll(".settings-nav-item")
-    .forEach((b) => b.classList.remove("active"));
-  if (btn) btn.classList.add("active");
-  document
-    .querySelectorAll(".settings-tab")
-    .forEach((t) => t.classList.remove("active"));
-  const target = document.getElementById("stab-" + tab);
-  if (target) target.classList.add("active");
-}
-
-/* Toggle a settings switch */
-function toggleSettingSwitch(id, labelId, onMsg, offMsg) {
-  const btn = document.getElementById(id);
-  if (!btn) return;
-  const isOn = btn.classList.toggle("on");
-  if (labelId) {
-    const label = document.getElementById(labelId);
-    if (label) label.textContent = isOn ? "On" : "Off";
-  }
-  showToast(isOn ? onMsg || "✓ Saved!" : offMsg || "✓ Saved!");
-}
-
-/* Save settings section */
-function saveSettings(section) {
-  // Update sidebar name if profile saved
-  if (section === "Profile") {
-    const nameVal = document.getElementById("sf-name");
-    if (nameVal && nameVal.value) {
-      const sidebarName = document.querySelector(".sidebar-user-name");
-      if (sidebarName)
-        sidebarName.textContent =
-          nameVal.value.length > 14
-            ? nameVal.value.slice(0, 13) + "..."
-            : nameVal.value;
-    }
-    const specialtyVal = document.getElementById("sf-specialty");
-    if (specialtyVal) {
-      const sidebarRole = document.querySelector(".sidebar-user-role");
-      if (sidebarRole) sidebarRole.textContent = specialtyVal.value;
-    }
-  }
-  showToast("✓ " + section + " settings saved!");
-}
-
-/* Select theme — REAL implementation */
-function selectTheme(theme, el) {
-  document
-    .querySelectorAll(".settings-theme-card")
-    .forEach((c) => c.classList.remove("active"));
-  el.classList.add("active");
-
-  if (theme === "dark") {
-    document.body.classList.add("dark-mode");
-    localStorage.setItem("hu-theme", "dark");
-    showToast("🌙 Dark mode enabled!");
-  } else if (theme === "system") {
-    const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)",
-    ).matches;
-    document.body.classList.toggle("dark-mode", prefersDark);
-    localStorage.setItem("hu-theme", "system");
-    showToast("💻 System theme applied!");
-  } else {
-    document.body.classList.remove("dark-mode");
-    localStorage.setItem("hu-theme", "light");
-    showToast("☀️ Light mode enabled!");
-  }
-}
-
-/* Apply saved theme on load */
-function applyStoredTheme() {
-  const saved = localStorage.getItem("hu-theme") || "light";
-  if (saved === "dark") {
-    document.body.classList.add("dark-mode");
-    const card = document.getElementById("theme-dark");
-    if (card) {
-      document
-        .querySelectorAll(".settings-theme-card")
-        .forEach((c) => c.classList.remove("active"));
-      card.classList.add("active");
-    }
-  } else if (saved === "system") {
-    const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)",
-    ).matches;
-    document.body.classList.toggle("dark-mode", prefersDark);
-    const card = document.getElementById("theme-system");
-    if (card) {
-      document
-        .querySelectorAll(".settings-theme-card")
-        .forEach((c) => c.classList.remove("active"));
-      card.classList.add("active");
-    }
-  }
-}
-
-/* Confirm logout */
 function confirmLogout() {
   document.getElementById("logout-modal").classList.add("open");
 }
@@ -1635,7 +1386,6 @@ function confirmWithdrawal() {
 
   closeWithdrawModal();
 
-  // Update balance
   const currentBal = parseFloat(
     document.getElementById("wallet-balance").textContent,
   );
@@ -1645,7 +1395,6 @@ function confirmWithdrawal() {
   const mobBal = document.getElementById("mobile-user-balance");
   if (mobBal) mobBal.textContent = newBal.toFixed(2);
 
-  // Show success
   document.getElementById("withdraw-success-details").innerHTML =
     `Your withdrawal of <strong>$${amount.toFixed(2)}</strong> has been initiated. You'll receive it ${methodLabels[method]}.`;
   document.getElementById("withdraw-success-modal").classList.add("open");
@@ -1656,7 +1405,6 @@ function closeWithdrawSuccess() {
   document.body.style.overflow = "";
 }
 
-// Update navigate function to include wallet
 const originalNavigate = navigate;
 navigate = function (pageId, clickedBtn) {
   originalNavigate(pageId, clickedBtn);
@@ -1664,7 +1412,6 @@ navigate = function (pageId, clickedBtn) {
 };
 
 function toggleSidebar() {
-
   document.querySelector(".sidebar").classList.toggle("open");
   document.getElementById("sidebar-overlay").classList.toggle("show");
 }
@@ -1673,48 +1420,41 @@ function toggleSidebar() {
    ADS MANAGER LOGIC
    ============================================ */
 async function renderAdsManager() {
-  const list = document.getElementById('ads-campaigns-list');
+  const list = document.getElementById("ads-campaigns-list");
   if (!list) return;
-  list.innerHTML = '<p style="color:var(--muted);padding:20px 0;">Loading campaigns…</p>';
+  list.innerHTML =
+    '<p style="color:var(--muted);padding:20px 0;">Loading campaigns…</p>';
 
   const campaigns = await huGetMyCampaigns();
 
   if (!campaigns || campaigns.length === 0) {
-    list.innerHTML = '<div class="no-jobs-msg"><h3>No campaigns yet</h3><p>Create your first ad campaign to reach the Healthy Universe community</p></div>';
+    list.innerHTML =
+      '<div class="no-jobs-msg"><h3>No campaigns yet</h3><p>Create your first ad campaign to reach the Healthy Universe community</p></div>';
     updateAdsStats([]);
     return;
   }
 
   updateAdsStats(campaigns);
 
-  list.innerHTML = campaigns.map(c => {
-    // const creative = c.creative || {};
-    // // const img = creative.image_url ? (HU_API + creative.image_url) : '';
-    // const img = creative.image_url
-    //   ? creative.image_url.startsWith("http")
-    //     ? creative.image_url
-    //     : HU_API + creative.image_url
-    //   : "";
-    // const pct = c.budget > 0 ? Math.min(100, Math.round((c.spent / c.budget) * 100)) : 0;
-    // return `
-    //   <div class="campaign-card">
-    //     <div class="campaign-card-top">
-    //       ${img ? `<img src="${img}" class="campaign-thumb"/>` : '<div class="campaign-thumb"></div>'}
-    const creative = c.creative || {};
-    const img = creative.image_url
-      ? creative.image_url.startsWith("http")
-        ? creative.image_url
-        : HU_API + creative.image_url
-      : "";
-    const isVideoThumb = /\.(mp4|webm|mov)$/i.test(img);
-    const thumbHtml = img
-      ? isVideoThumb
-        ? `<video src="${img}" class="campaign-thumb" muted></video>`
-        : `<img src="${img}" class="campaign-thumb"/>`
-      : '<div class="campaign-thumb"></div>';
-    const pct =
-      c.budget > 0 ? Math.min(100, Math.round((c.spent / c.budget) * 100)) : 0;
-    return `
+  list.innerHTML = campaigns
+    .map((c) => {
+      const creative = c.creative || {};
+      const img = creative.image_url
+        ? creative.image_url.startsWith("http")
+          ? creative.image_url
+          : HU_API + creative.image_url
+        : "";
+      const isVideoThumb = /\.(mp4|webm|mov)$/i.test(img);
+      const thumbHtml = img
+        ? isVideoThumb
+          ? `<video src="${img}" class="campaign-thumb" muted></video>`
+          : `<img src="${img}" class="campaign-thumb"/>`
+        : '<div class="campaign-thumb"></div>';
+      const pct =
+        c.budget > 0
+          ? Math.min(100, Math.round((c.spent / c.budget) * 100))
+          : 0;
+      return `
       <div class="campaign-card">
         <div class="campaign-card-top">
           ${thumbHtml}
@@ -1741,41 +1481,39 @@ async function renderAdsManager() {
         <div class="campaign-progress"><div class="campaign-progress-fill" style="width:${pct}%"></div></div>
       </div>
     `;
-  }).join('');
+    })
+    .join("");
 }
 
 function updateAdsStats(campaigns) {
   const totalImp = campaigns.reduce((s, c) => s + (c.impressions || 0), 0);
   const totalClk = campaigns.reduce((s, c) => s + (c.clicks || 0), 0);
-  const totalSpent = campaigns.reduce((s, c) => s + parseFloat(c.spent || 0), 0);
-  document.getElementById('ads-total-campaigns').textContent = campaigns.length;
-  document.getElementById('ads-total-impressions').textContent = formatNum(totalImp);
-  document.getElementById('ads-total-clicks').textContent = formatNum(totalClk);
-  document.getElementById('ads-total-spent').textContent = '$' + totalSpent.toFixed(2);
+  const totalSpent = campaigns.reduce(
+    (s, c) => s + parseFloat(c.spent || 0),
+    0,
+  );
+  document.getElementById("ads-total-campaigns").textContent = campaigns.length;
+  document.getElementById("ads-total-impressions").textContent =
+    formatNum(totalImp);
+  document.getElementById("ads-total-clicks").textContent = formatNum(totalClk);
+  document.getElementById("ads-total-spent").textContent =
+    "$" + totalSpent.toFixed(2);
 }
 
 async function toggleCampaignStatus(id, newStatus) {
   await huSetCampaignStatus(id, newStatus);
-  showToast(newStatus === 'active' ? '▶️ Campaign resumed' : '⏸ Campaign paused');
+  showToast(
+    newStatus === "active" ? "▶️ Campaign resumed" : "⏸ Campaign paused",
+  );
   renderAdsManager();
 }
 
 async function removeCampaign(id) {
-  if (!confirm('Delete this campaign? This cannot be undone.')) return;
+  if (!confirm("Delete this campaign? This cannot be undone.")) return;
   await huDeleteCampaign(id);
-  showToast('🗑️ Campaign deleted');
+  showToast("🗑️ Campaign deleted");
   renderAdsManager();
 }
-
-// function openNewCampaignModal() {
-//   ['camp-name','camp-headline','camp-body-text','camp-cta-link','camp-location'].forEach(id => {
-//     const el = document.getElementById(id); if (el) el.value = '';
-//   });
-//   const budget = document.getElementById('camp-budget'); if (budget) budget.value = '';
-//   const img = document.getElementById('camp-image'); if (img) img.value = '';
-//   document.getElementById('campaign-modal').classList.add('open');
-//   document.body.style.overflow = 'hidden';
-// }
 
 function openNewCampaignModal() {
   [
@@ -1802,12 +1540,7 @@ function openNewCampaignModal() {
   document.getElementById("campaign-modal").classList.add("open");
   document.body.style.overflow = "hidden";
 }
-// function closeCampaignModal() {
-//   document.getElementById('campaign-modal').classList.remove('open');
-//   document.body.style.overflow = '';
-// }
 
-// async function submitCampaign() {
 function closeCampaignModal() {
   document.getElementById("campaign-modal").classList.remove("open");
   document.body.style.overflow = "";
@@ -1879,30 +1612,27 @@ async function submitCampaign() {
    SPONSORED AD INJECTION INTO FEED
    ============================================ */
 
-   async function injectSponsoredAd() {
-     const ad = await huServeAd();
-     if (!ad || !ad.creative_id) return;
+async function injectSponsoredAd() {
+  const ad = await huServeAd();
+  if (!ad || !ad.creative_id) return;
 
-     const container = document.getElementById("feed-container");
-     if (!container) return;
+  const container = document.getElementById("feed-container");
+  if (!container) return;
 
-     // Resolve media URL (handles absolute and relative backend paths)
-     const img = ad.image_url
-       ? ad.image_url.startsWith("http")
-         ? ad.image_url
-         : HU_API + ad.image_url
-       : "";
+  const img = ad.image_url
+    ? ad.image_url.startsWith("http")
+      ? ad.image_url
+      : HU_API + ad.image_url
+    : "";
 
-     // Check if media is video or image
-     const isVideoAd = /\.(mp4|webm|mov)$/i.test(img);
-     const mediaHtml = img
-       ? isVideoAd
-         ? `<div class="post-image-wrap"><video src="${img}" class="post-image" controls></video></div>`
-         : `<div class="post-image-wrap"><img src="${img}" class="post-image"/></div>`
-       : "";
+  const isVideoAd = /\.(mp4|webm|mov)$/i.test(img);
+  const mediaHtml = img
+    ? isVideoAd
+      ? `<div class="post-image-wrap"><video src="${img}" class="post-image" controls></video></div>`
+      : `<div class="post-image-wrap"><img src="${img}" class="post-image"/></div>`
+    : "";
 
-     // Build the complete ad post HTML
-     const html = `
+  const html = `
     <article class="post-card sponsored-post" data-campaign-id="${ad.id}" data-creative-id="${ad.creative_id}">
       <div class="post-top">
         <img src="${getLetterAvatar(ad.advertiser_name, 80)}" alt="${ad.advertiser_name}"/>
@@ -1925,90 +1655,19 @@ async function submitCampaign() {
     </article>
   `;
 
-     // Inject after the 3rd post, or append if fewer posts exist
-     const posts = container.querySelectorAll(".post-card");
-     if (posts.length >= 3) {
-       posts[2].insertAdjacentHTML("afterend", html);
-     } else {
-       container.insertAdjacentHTML("beforeend", html);
-     }
+  const posts = container.querySelectorAll(".post-card");
+  if (posts.length >= 3) {
+    posts[2].insertAdjacentHTML("afterend", html);
+  } else {
+    container.insertAdjacentHTML("beforeend", html);
+  }
 
-     // Log impression for analytics
-     huLogAdImpression(ad.id, ad.creative_id);
-   }
-// async function injectSponsoredAd() {
-//   const ad = await huServeAd();
-//   if (!ad || !ad.creative_id) return;
-
-//   const container = document.getElementById('feed-container');
-//   if (!container) return;
-
-//   // // const img = ad.image_url ? (HU_API + ad.image_url) : '';
-//   // const img = ad.image_url
-//   //   ? ad.image_url.startsWith("http")
-//   //     ? ad.image_url
-//   //     : HU_API + ad.image_url
-//   //   : "";
-//   // const html = `
-//   //   <article class="post-card sponsored-post" data-campaign-id="${ad.id}" data-creative-id="${ad.creative_id}">
-//   //     <div class="post-top">
-//   //       <img src="${getLetterAvatar(ad.advertiser_name, 80)}" alt="${ad.advertiser_name}"/>
-//   //       <div class="post-meta">
-//   //         <div class="post-name">${ad.advertiser_name}</div>
-//   //         <div class="post-role">Sponsored</div>
-//   //       </div>
-//   //       <span class="sponsored-label">Sponsored</span>
-//   //     </div>
-//   //     <div class="post-body">
-//   //       <div class="post-title">${ad.headline}</div>
-//   //       <div class="post-text">${ad.body_text || ''}</div>
-//   //     </div>
-//   //     ${img ? `<div class="post-image-wrap"><img src="${img}" class="post-image"/></div>` : ''}
-//   const img = ad.image_url
-//     ? ad.image_url.startsWith("http")
-//       ? ad.image_url
-//       : HU_API + ad.image_url
-//     : "";
-//   const isVideoAd = /\.(mp4|webm|mov)$/i.test(img);
-//   const mediaHtml = img
-//     ? isVideoAd
-//       ? `<div class="post-image-wrap"><video src="${img}" class="post-image" controls></video></div>`
-//       : `<div class="post-image-wrap"><img src="${img}" class="post-image"/></div>`
-//     : "";
-//   const html = `
-//     <article class="post-card sponsored-post" data-campaign-id="${ad.id}" data-creative-id="${ad.creative_id}">
-//       <div class="post-top">
-//         <img src="${getLetterAvatar(ad.advertiser_name, 80)}" alt="${ad.advertiser_name}"/>
-//         <div class="post-meta">
-//           <div class="post-name">${ad.advertiser_name}</div>
-//           <div class="post-role">Sponsored</div>
-//         </div>
-//         <span class="sponsored-label">Sponsored</span>
-//       </div>
-//       <div class="post-body">
-//         <div class="post-title">${ad.headline}</div>
-//         <div class="post-text">${ad.body_text || ""}</div>
-//       </div>
-//       ${mediaHtml}
-//       <div style="padding:14px 16px;">
-//         <button class="sponsored-cta-btn" onclick="handleAdClick('${ad.id}','${ad.creative_id}','${ad.cta_link || ""}')">${ad.cta_text || "Learn More"}</button>
-//       </div>
-//     </article>
-//   `;
-
-//   const posts = container.querySelectorAll('.post-card');
-//   if (posts.length >= 3) {
-//     posts[2].insertAdjacentHTML('afterend', html);
-//   } else {
-//     container.insertAdjacentHTML('beforeend', html);
-//   }
-
-//   huLogAdImpression(ad.id, ad.creative_id);
-// }
+  huLogAdImpression(ad.id, ad.creative_id);
+}
 
 function handleAdClick(campaignId, creativeId, link) {
   huLogAdClick(campaignId, creativeId);
-  if (link) window.open(link, '_blank');
+  if (link) window.open(link, "_blank");
 }
 
 function calculateHealthScore() {
@@ -2059,300 +1718,86 @@ function calculateHealthScore() {
   if (el) el.addEventListener("input", calculateHealthScore);
 });
 
-
 // ── SPIN THE WHEEL DAILY POPUP LOGIC ──
-
-// Page load hote hi check karega agar aaj ka spin baki hai
 document.addEventListener("DOMContentLoaded", () => {
-    checkDailySpinPopup();
+  checkDailySpinPopup();
 });
 
 function checkDailySpinPopup() {
-    const lastSpinDate = localStorage.getItem("lastHealthSpinDate");
-    const today = new Date().toDateString(); // Format: "Sat Jul 11 2026"
+  const lastSpinDate = localStorage.getItem("lastHealthSpinDate");
+  const today = new Date().toDateString();
 
-    // Agar user ne aaj pehle spin nahi kiya hai, toh popup show karo
-    if (lastSpinDate !== today) {
-        setTimeout(() => {
-            const modal = document.getElementById("daily-spin-modal");
-            if (modal) modal.style.display = "flex";
-        }, 1500); // Page open hone ke 1.5 seconds baad smooth entry lega
-    }
+  if (lastSpinDate !== today) {
+    setTimeout(() => {
+      const modal = document.getElementById("daily-spin-modal");
+      if (modal) modal.style.display = "flex";
+    }, 1500);
+  }
 }
 
 function closeSpinModal() {
-    const modal = document.getElementById("daily-spin-modal");
-    if (modal) modal.style.display = "none";
+  const modal = document.getElementById("daily-spin-modal");
+  if (modal) modal.style.display = "none";
 }
 
 function startLuckySpin() {
-    const wheel = document.getElementById("lucky-wheel");
-    const btn = document.getElementById("spin-trigger-btn");
-    const msg = document.getElementById("spin-reward-msg");
-    
-    if (!wheel || !btn) return;
-    
-    btn.disabled = true; // Taaki bar-bar click na ho
-    btn.style.opacity = "0.6";
-    if (msg) msg.innerText = "";
+  const wheel = document.getElementById("lucky-wheel");
+  const btn = document.getElementById("spin-trigger-btn");
+  const msg = document.getElementById("spin-reward-msg");
 
-    // Random rotation degree (kam se kam 5 complete rounds lagaye + extra random angle)
-    const randomDegree = Math.floor(3000 + Math.random() * 2000); 
-    wheel.style.transform = `rotate(${randomDegree}deg)`;
+  if (!wheel || !btn) return;
 
-    // 4 seconds ka spin animation khatam hone ka wait karein
+  btn.disabled = true;
+  btn.style.opacity = "0.6";
+  if (msg) msg.innerText = "";
+
+  const randomDegree = Math.floor(3000 + Math.random() * 2000);
+  wheel.style.transform = `rotate(${randomDegree}deg)`;
+
+  setTimeout(() => {
+    const rewards = [
+      "🎁 10 HU Coins!",
+      "🍏 Free Diet Plan Chart!",
+      "🪙 50 HU Coins Super Bonus!",
+      "🩺 10% Off on next Consultation!",
+      "💡 Daily Healthy Tip Unlocked!",
+      "🎁 5 HU Coins!",
+    ];
+
+    const actualMutedDegree = randomDegree % 360;
+    const segmentIndex = Math.floor(actualMutedDegree / 60);
+    const finalReward = rewards[segmentIndex] || "🎁 5 HU Coins!";
+
+    if (msg) msg.innerText = `🎉 Congratulations! You won: ${finalReward}`;
+
+    const today = new Date().toDateString();
+    localStorage.setItem("lastHealthSpinDate", today);
+
+    if (typeof showToast === "function") {
+      showToast(`Won ${finalReward}!`);
+    }
+
     setTimeout(() => {
-        // Rewards possibilities array
-        const rewards = [
-            "🎁 10 HU Coins!", 
-            "🍏 Free Diet Plan Chart!", 
-            "🪙 50 HU Coins Super Bonus!", 
-            "🩺 10% Off on next Consultation!", 
-            "💡 Daily Healthy Tip Unlocked!", 
-            "🎁 5 HU Coins!"
-        ];
-        
-        // Exact landing segment calculation
-        const actualMutedDegree = randomDegree % 360;
-        const segmentIndex = Math.floor(actualMutedDegree / 60); // 6 categories hain total
-        const finalReward = rewards[segmentIndex] || "🎁 5 HU Coins!";
-
-        // Reward message show karein
-        if (msg) msg.innerText = `🎉 Congratulations! You won: ${finalReward}`;
-        
-        // LocalStorage mein date save karein taaki aaj dubara na khule
-        const today = new Date().toDateString();
-        localStorage.setItem("lastHealthSpinDate", today);
-
-        // Agar project mein pehle se showToast defined hai toh use call karein
-        if (typeof showToast === "function") {
-            showToast(`Won ${finalReward}!`);
-        }
-
-        setTimeout(() => {
-            closeSpinModal();
-        }, 2500);
-
-    }, 4000); // Match with CSS transition time (4s)
+      closeSpinModal();
+    }, 2500);
+  }, 4000);
 }
 
-
-// 1. 3-LEVEL DATA BANK (8 UNIQUE QUESTIONS PER LEVEL)
-// const arcadeLevels = {
-//     1: [
-//         { type: "mcq", question: "What is the recommended average daily water intake for adults?", options: ["1-2 Liters", "3-4 Liters", "2-3 Liters", "5 Liters"], answer: 2 },
-//         { type: "mcq", question: "How many hours of sleep do health experts generally recommend for adults?", options: ["5-6 hours", "7-9 hours", "10-12 hours", "4-5 hours"], answer: 1 },
-//         { type: "puzzle", question: "🧩 PUZZLE: Unscramble this essential daily habit: 'K L A W'", correctWord: "WALK", hint: "A simple form of physical activity done on foot." },
-//         { type: "mcq", question: "Which macro-nutrient gives your body quick, immediate energy?", options: ["Proteins", "Fats", "Carbohydrates", "Vitamins"], answer: 2 },
-//         { type: "mcq", question: "What is the healthiest way to cook vegetables to preserve their nutrients?", options: ["Deep Frying", "Boiling heavily", "Steaming", "Microwaving without water"], answer: 2 },
-//         { type: "puzzle", question: "🧩 PUZZLE: Unscramble this healthy sleep state: 'M A E R D'", correctWord: "DREAM", hint: "Occurs during the REM stage of sleeping." },
-//         { type: "mcq", question: "Which of these is considered a healthy baseline resting heart rate?", options: ["60-100 bpm", "120-150 bpm", "30-40 bpm", "160-180 bpm"], answer: 0 },
-//         { type: "puzzle", question: "🧩 PUZZLE: Unscramble this natural stress-reliever: 'A G O Y'", correctWord: "YOGA", hint: "An ancient practice involving physical postures and breathing." }
-//     ],
-//     2: [
-//         { type: "mcq", question: "Which vitamin is synthesized when human skin is exposed to direct sunlight?", options: ["Vitamin A", "Vitamin C", "Vitamin B12", "Vitamin D"], answer: 3 },
-//         { type: "puzzle", question: "🧩 PUZZLE: Unscramble this macronutrient group: 'N I E T O R P'", correctWord: "PROTEIN", hint: "Essential for muscle building and structural repair." },
-//         { type: "mcq", question: "Which mineral is highly crucial for building and maintaining strong bones?", options: ["Iron", "Calcium", "Zinc", "Potassium"], answer: 1 },
-//         { type: "mcq", question: "Deficiency of which vitamin causes temporary or permanent night blindness?", options: ["Vitamin B", "Vitamin K", "Vitamin A", "Vitamin C"], answer: 2 },
-//         { type: "puzzle", question: "🧩 PUZZLE: Unscramble this natural sugar alternative: 'Y E N O H'", correctWord: "HONEY", hint: "Sweet fluid made by bees from flower nectar." },
-//         { type: "mcq", question: "Which organ produces insulin to regulate blood glucose levels?", options: ["Liver", "Pancreas", "Kidney", "Stomach"], answer: 1 },
-//         { type: "mcq", question: "Citrus fruits like Oranges and Lemons are rich sources of which vitamin?", options: ["Vitamin C", "Vitamin D", "Vitamin E", "Vitamin B6"], answer: 0 },
-//         { type: "puzzle", question: "🧩 PUZZLE: Unscramble this gut-friendly food nutrient: 'R E B I F'", correctWord: "FIBER", hint: "Indigestible plant food part that helps your digestion." }
-//     ],
-//     3: [
-//         { type: "puzzle", question: "🧩 PUZZLE: Unscramble this vital filtering organ: 'Y E N D I K'", correctWord: "KIDNEY", hint: "It filters waste and excess fluids from your bloodstream." },
-//         { type: "mcq", question: "What is the normal blood pressure range for a healthy resting adult?", options: ["140/90 mmHg", "120/80 mmHg", "90/60 mmHg", "160/100 mmHg"], answer: 1 },
-//         { type: "mcq", question: "Which type of blood cells are primarily responsible for fighting infections?", options: ["Red Blood Cells", "White Blood Cells", "Platelets", "Plasma Cells"], answer: 1 },
-//         { type: "puzzle", question: "🧩 PUZZLE: Unscramble this critical master body gland: 'Y R A T I U T I P'", correctWord: "PITUITARY", hint: "The master gland at the base of the brain regulating hormones." },
-//         { type: "mcq", question: "What is the largest internal organ in the entire human body?", options: ["Brain", "Liver", "Heart", "Lungs"], answer: 1 },
-//         { type: "puzzle", question: "🧩 PUZZLE: Unscramble this compound that carries oxygen: 'N I B O L G O M E H'", correctWord: "HEMOGLOBIN", hint: "Iron-rich protein present in your red blood cells." },
-//         { type: "mcq", question: "How many bones are there in an adult human skeletal framework?", options: ["206 bones", "306 bones", "156 bones", "216 bones"], answer: 0 },
-//         { type: "mcq", question: "Which vital biological gas do red blood cells distribute to your tissues?", options: ["Nitrogen", "Carbon Dioxide", "Oxygen", "Hydrogen"], answer: 2 }
-//     ]
-// };
-
-// // State Tracking Variables
-// let arcadeScore = 0;
-// let currentLevel = 1; 
-// let currentQuestionData = null;
-// let currentLevelQueue = [];
-
-// // Fisher-Yates Shuffle Algorithm to randomize layout questions within a specific level
-// function shuffleLevelPool(level) {
-//     let tempPool = [...arcadeLevels[level]];
-//     for (let i = tempPool.length - 1; i > 0; i--) {
-//         const j = Math.floor(Math.random() * (i + 1));
-//         [tempPool[i], tempPool[j]] = [tempPool[j], tempPool[i]];
-//     }
-//     return tempPool;
-// }
-
-// 2. MAIN ENGINE: LOAD LEVEL SMART QUESTION
-// function loadNextArcadeQuestion() {
-//     const qText = document.getElementById("arcade-question");
-//     const optContainer = document.getElementById("arcade-options-container");
-//     const nextBtn = document.getElementById("arcade-next-btn");
-
-//     if (!qText || !optContainer) return;
-
-//     if (nextBtn) nextBtn.style.display = "none";
-//     optContainer.innerHTML = "";
-
-//     // Clear unique inline grid configurations
-//     optContainer.style.display = "grid";
-//     optContainer.style.gridTemplateColumns = "1fr 1fr";
-//     optContainer.style.flexDirection = "unset";
-//     optContainer.style.gap = "16px";
-
-//     // Level Check and Switch Logic
-//     if (currentLevelQueue.length === 0) {
-//         if (arcadeLevels[currentLevel]) {
-//             currentLevelQueue = shuffleLevelPool(currentLevel);
-//             showToast(`Welcome to Level ${currentLevel}! 🚀`);
-//         } else {
-//             // Infinite Fallback: Game completes all 3 levels, resets back dynamically to 1 with accumulated score
-//             qText.innerHTML = `🎉 Champion Status! You completed all 3 levels with ${arcadeScore} points!`;
-//             optContainer.innerHTML = `<button onclick="resetWholeArcadeGame()" style="grid-column: span 2; background: #3b82f6; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">Restart Arcade 🔄</button>`;
-//             return;
-//         }
-//     }
-
-//     // Extract next non-repeating question from current level
-//     currentQuestionData = currentLevelQueue.pop();
-
-//     if (currentQuestionData.type === "mcq") {
-//         qText.textContent = `[Level ${currentLevel}] ${currentQuestionData.question}`;
-        
-//         currentQuestionData.options.forEach((option, index) => {
-//             const btn = document.createElement("button");
-//             btn.textContent = option;
-//             btn.style.cssText = "background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px; border-radius: 10px; font-size: 15px; cursor: pointer; font-weight: 500; transition: 0.2s; color: #334155;";
-            
-//             btn.onmouseover = () => btn.style.background = "#f1f5f9";
-//             btn.onmouseout = () => { if(!btn.disabled) btn.style.background = "#f8fafc"; };
-//             btn.onclick = () => checkMcqAnswer(index, btn);
-            
-//             optContainer.appendChild(btn);
-//         });
-//     } else if (currentQuestionData.type === "puzzle") {
-//         qText.textContent = `[Level ${currentLevel}] ${currentQuestionData.question}`;
-        
-//         optContainer.style.display = "flex";
-//         optContainer.style.flexDirection = "column";
-//         optContainer.style.gap = "12px";
-
-//         const inputField = document.createElement("input");
-//         inputField.type = "text";
-//         inputField.placeholder = `Hint: ${currentQuestionData.hint}`;
-//         inputField.id = "puzzle-input";
-//         inputField.style.cssText = "width: 100%; padding: 14px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 16px; text-align: center; font-weight: bold; text-transform: uppercase; box-sizing: border-box;";
-//         inputField.onkeyup = (e) => { if(e.key === 'Enter') submitBtn.click(); };
-
-//         const submitBtn = document.createElement("button");
-//         submitBtn.textContent = "Verify Answer 🗝️";
-//         submitBtn.style.cssText = "background: #3b82f6; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 15px;";
-//         submitBtn.onclick = () => checkPuzzleAnswer(inputField, submitBtn);
-        
-//         optContainer.appendChild(inputField);
-//         optContainer.appendChild(submitBtn);
-        
-//         setTimeout(() => inputField.focus(), 50);
-//     }
-// }
-
-// 3. ANSWER VALIDATION (MCQ)
-// function checkMcqAnswer(selectedIndex, clickedBtn) {
-//     const optContainer = document.getElementById("arcade-options-container");
-//     const nextBtn = document.getElementById("arcade-next-btn");
-//     const scoreElement = document.getElementById("arcade-score");
-    
-//     const buttons = optContainer.querySelectorAll("button");
-//     buttons.forEach(btn => btn.disabled = true);
-
-//     if (selectedIndex === currentQuestionData.answer) {
-//         clickedBtn.style.cssText += "background: #dcfce7 !important; border-color: #22c55e !important; color: #15803d !important;";
-//         arcadeScore += 10;
-//         showToast("Correct! +10 HU Coins 🎉");
-//     } else {
-//         clickedBtn.style.cssText += "background: #fee2e2 !important; border-color: #ef4444 !important; color: #b91c1c !important;";
-//         buttons[currentQuestionData.answer].style.cssText += "background: #dcfce7 !important; border-color: #22c55e !important;";
-//         showToast("Oops! Incorrect 😢");
-//     }
-
-//     if(scoreElement) scoreElement.textContent = arcadeScore;
-//     if (nextBtn) nextBtn.style.display = "inline-block";
-// }
-
-// 4. ANSWER VALIDATION (PUZZLE)
-// function checkPuzzleAnswer(inputField, submitBtn) {
-//     const nextBtn = document.getElementById("arcade-next-btn");
-//     const scoreElement = document.getElementById("arcade-score");
-//     const userAnswer = inputField.value.trim().toUpperCase();
-
-//     if(userAnswer === "") return;
-
-//     inputField.disabled = true;
-//     submitBtn.disabled = true;
-
-//     if (userAnswer === currentQuestionData.correctWord) {
-//         inputField.style.cssText += "background: #dcfce7 !important; border-color: #22c55e !important; color: #15803d !important;";
-//         arcadeScore += 15;
-//         showToast("Puzzle Cracked! +15 HU Coins 🧩");
-//     } else {
-//         inputField.style.cssText += "background: #fee2e2 !important; border-color: #ef4444 !important; color: #b91c1c !important;";
-//         inputField.value = `Wrong! Answer: ${currentQuestionData.correctWord}`;
-//         showToast("Incorrect Puzzle! 💥");
-//     }
-
-//     if(scoreElement) scoreElement.textContent = arcadeScore;
-//     if (nextBtn) nextBtn.style.display = "inline-block";
-// }
-
-// 5. NEXT BUTTON ENGINE ADVANCE
-// function loadNextArcadeQuestionAndAdvance() {
-//     // Agar current level ke saare 8 questions khatam ho gaye, toh level badhao
-//     if (currentLevelQueue.length === 0) {
-//         currentLevel++;
-//     }
-//     loadNextArcadeQuestion();
-// }
-
-// 6. TOTAL RESET RESET MATRIX
-// function resetWholeArcadeGame() {
-//     arcadeScore = 0;
-//     currentLevel = 1;
-//     currentLevelQueue = [];
-//     const scoreElement = document.getElementById("arcade-score");
-//     if(scoreElement) scoreElement.textContent = "0";
-//     loadNextArcadeQuestion();
-// }
-
-
 function switchTab(tabName) {
-  // 1. Saare pages se 'active' class hatayein aur unhe hide karein
   document.querySelectorAll(".page").forEach((page) => {
     page.classList.remove("active");
     page.style.display = "none";
   });
 
-  // 2. Target page dhoondhein aur use active karein
   const targetPage = document.getElementById(`page-${tabName}`);
   if (targetPage) {
     targetPage.classList.add("active");
-    
-    // Games (Arcade) page ko strictly FLEX layout dena taaki card stretch ho sake
-    // if (tabName === "games") {
-    //     targetPage.style.setProperty("display", "flex", "important");
-    // } else {
-    //     targetPage.style.setProperty("display", "block", "important");
-    // }
   }
 
-  // 3. Sidebar navigation links ka active status update karein
   document.querySelectorAll(".nav-item").forEach((nav) => {
     nav.classList.remove("active");
   });
-  
+
   const activeNav = document.getElementById(`nav-${tabName}`);
   if (activeNav) {
     activeNav.classList.add("active");
@@ -2363,104 +1808,101 @@ function switchTab(tabName) {
    🩺 HEALTHY UNIVERSE - GLOBAL DEEP UNDERSTANDING PROTOCOL MODAL
    ========================================================================== */
 
-/**
- * Open the Deep Understanding Modal and load content based on topicKey
- */
-window.openDeepUnderstanding = function(topicKey) {
-  // Safe check for the global healthDataRepository
+window.openDeepUnderstanding = function (topicKey) {
   if (!window.healthDataRepository || !window.healthDataRepository[topicKey]) {
-    console.error(`Error: Topic key "${topicKey}" not found in healthDataRepository.`);
+    console.error(
+      `Error: Topic key "${topicKey}" not found in healthDataRepository.`,
+    );
     return;
   }
 
   const data = window.healthDataRepository[topicKey];
   let modal = document.getElementById("deep-health-modal");
-  
-  // Dynamic Modal Structure Injection (if it doesn't already exist in the HTML)
+
   if (!modal) {
     const modalHtml = `
       <div id="deep-health-modal" style="
-        display: none; 
-        position: fixed; 
-        top: 0; 
-        left: 0; 
-        width: 100%; 
-        height: 100%; 
-        background: rgba(15, 23, 42, 0.65); 
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.65);
         backdrop-filter: blur(4px);
-        z-index: 99999; 
-        justify-content: center; 
+        z-index: 99999;
+        justify-content: center;
         align-items: center;
         padding: 16px;
         box-sizing: border-box;
       ">
         <div class="health-deep-card" style="
-          background: #ffffff; 
+          background: #ffffff;
           width: 100%;
-          max-width: 600px; 
-          padding: 28px; 
-          border-radius: 16px; 
+          max-width: 600px;
+          padding: 28px;
+          border-radius: 16px;
           position: relative;
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
           animation: modalSlideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
           box-sizing: border-box;
         ">
           <button onclick="closeDeepModal()" style="
-            position: absolute; 
-            right: 20px; 
-            top: 20px; 
-            background: #f1f5f9; 
-            border: none; 
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            background: #f1f5f9;
+            border: none;
             width: 32px;
             height: 32px;
             border-radius: 50%;
-            font-size: 16px; 
-            cursor: pointer; 
+            font-size: 16px;
+            cursor: pointer;
             color: #64748b;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.2s;
           " onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">✕</button>
-          
+
           <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 24px;">
             <span id="deep-emoji" style="
-              font-size: 2rem; 
-              background: #eff6ff; 
-              padding: 10px; 
+              font-size: 2rem;
+              background: #eff6ff;
+              padding: 10px;
               border-radius: 12px;
               line-height: 1;
             "></span>
             <h2 id="deep-title" style="margin: 0; color: #0f172a; font-size: 1.4rem; font-weight: 700; font-family: inherit;"></h2>
           </div>
-          
+
           <div class="deep-tabs-nav" style="
-            display: flex; 
-            gap: 6px; 
-            border-bottom: 2px solid #f1f5f9; 
-            margin-bottom: 20px; 
+            display: flex;
+            gap: 6px;
+            border-bottom: 2px solid #f1f5f9;
+            margin-bottom: 20px;
             padding-bottom: 2px;
           ">
             <button class="deep-tab-btn active" onclick="switchDeepTab('overview', this)" style="
-              padding: 10px 16px; border: none; background: none; font-weight: 600; cursor: pointer; 
+              padding: 10px 16px; border: none; background: none; font-weight: 600; cursor: pointer;
               color: #2563eb; border-bottom: 2px solid #2563eb; margin-bottom: -4px; font-size: 0.9rem; transition: all 0.2s;
             ">Science & Blueprint</button>
             <button class="deep-tab-btn" onclick="switchDeepTab('clinical', this)" style="
-              padding: 10px 16px; border: none; background: none; font-weight: 600; cursor: pointer; 
+              padding: 10px 16px; border: none; background: none; font-weight: 600; cursor: pointer;
               color: #64748b; margin-bottom: -4px; font-size: 0.9rem; transition: all 0.2s;
             ">Clinical Insights</button>
             <button class="deep-tab-btn" onclick="switchDeepTab('resources', this)" style="
-              padding: 10px 16px; border: none; background: none; font-weight: 600; cursor: pointer; 
+              padding: 10px 16px; border: none; background: none; font-weight: 600; cursor: pointer;
               color: #64748b; margin-bottom: -4px; font-size: 0.9rem; transition: all 0.2s;
             ">Research Journals</button>
           </div>
-          
+
           <div id="deep-body-content" style="
-            max-height: 380px; 
-            overflow-y: auto; 
-            color: #334155; 
-            line-height: 1.6; 
-            font-size: 0.95rem; 
+            max-height: 380px;
+            overflow-y: auto;
+            color: #334155;
+            line-height: 1.6;
+            font-size: 0.95rem;
             padding-right: 6px;
           "></div>
         </div>
@@ -2469,7 +1911,7 @@ window.openDeepUnderstanding = function(topicKey) {
       <style>
         @keyframes modalSlideUp {
           from { transform: translateY(30px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
+          to   { transform: translateY(0); opacity: 1; }
         }
         #deep-body-content::-webkit-scrollbar {
           width: 6px;
@@ -2509,48 +1951,36 @@ window.openDeepUnderstanding = function(topicKey) {
     modal = document.getElementById("deep-health-modal");
   }
 
-  // Save current active topic data globally
   window.currentDeepTopic = data;
 
-  // Set initial content
   document.getElementById("deep-emoji").textContent = data.emoji;
   document.getElementById("deep-title").textContent = data.title;
-  
-  // Set default tab on open
+
   const defaultTabBtn = modal.querySelector(".deep-tab-btn");
-  window.switchDeepTab('overview', defaultTabBtn);
+  window.switchDeepTab("overview", defaultTabBtn);
 
-  // Open modal
   modal.style.display = "flex";
-  document.body.style.overflow = "hidden"; // background scroll lock
+  document.body.style.overflow = "hidden";
 
-  // Close modal when clicking outside of modal card
-  modal.onclick = function(e) {
+  modal.onclick = function (e) {
     if (e.target === modal) {
       window.closeDeepModal();
     }
   };
-}
+};
 
-/**
- * Close the Deep Understanding Modal
- */
-window.closeDeepModal = function() {
+window.closeDeepModal = function () {
   const modal = document.getElementById("deep-health-modal");
   if (modal) {
     modal.style.display = "none";
   }
-  document.body.style.overflow = ""; // restore background scroll
-}
+  document.body.style.overflow = "";
+};
 
-/**
- * Switch tabs dynamically inside the modal
- */
-window.switchDeepTab = function(tabType, clickedBtn) {
+window.switchDeepTab = function (tabType, clickedBtn) {
   const data = window.currentDeepTopic;
   if (!data) return;
 
-  // Visual active tab update
   if (clickedBtn) {
     document.querySelectorAll(".deep-tab-btn").forEach((btn) => {
       btn.style.color = "#64748b";
@@ -2560,56 +1990,13 @@ window.switchDeepTab = function(tabType, clickedBtn) {
     clickedBtn.style.borderBottom = "2px solid #2563eb";
   }
 
-  // Content loader update
   const bodyContainer = document.getElementById("deep-body-content");
   if (bodyContainer) {
-    bodyContainer.innerHTML = data[tabType] || "<p>No active protocol registered under this tab.</p>";
-  }
-}
-
-// Setup Escape key listener for fast closing
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    window.closeDeepModal();
-  }
-});
-
-/**
- * Close the Deep Understanding Modal
- */
-window.closeDeepModal = function() {
-  const modal = document.getElementById("deep-health-modal");
-  if (modal) {
-    modal.style.display = "none";
-  }
-  document.body.style.overflow = ""; // restore background scroll
-};
-
-/**
- * Switch tabs dynamically inside the modal
- */
-window.switchDeepTab = function(tabType, clickedBtn) {
-  const data = window.currentDeepTopic;
-  if (!data) return;
-
-  // Visual active tab update
-  if (clickedBtn) {
-    document.querySelectorAll(".deep-tab-btn").forEach((btn) => {
-      btn.style.color = "#64748b";
-      btn.style.borderBottom = "none";
-    });
-    clickedBtn.style.color = "#2563eb";
-    clickedBtn.style.borderBottom = "2px solid #2563eb";
-  }
-
-  // Content loader update
-  const bodyContainer = document.getElementById("deep-body-content");
-  if (bodyContainer) {
-    bodyContainer.innerHTML = data[tabType] || "<p>No active protocol registered under this tab.</p>";
+    bodyContainer.innerHTML =
+      data[tabType] || "<p>No active protocol registered under this tab.</p>";
   }
 };
 
-// Setup Escape key listener for fast closing
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     window.closeDeepModal();
@@ -2633,121 +2020,88 @@ window.openPostJobModal = function () {
     return;
   }
 
+  const preview = document.getElementById("job-logo-preview");
+  if (preview) preview.innerHTML = "";
+
   modal.style.display = "flex";
   document.body.style.overflow = "hidden";
 };
 
 window.closePostJobModal = function () {
-    const modal = document.getElementById("post-job-modal");
+  const modal = document.getElementById("post-job-modal");
 
-    if (!modal) return;
+  if (!modal) return;
 
-    modal.style.display = "none";
-    document.body.style.overflow = "";
+  modal.style.display = "none";
+  document.body.style.overflow = "";
 
-    const form = document.getElementById("post-job-form");
-    if (form) form.reset();
+  const form = document.getElementById("post-job-form");
+  if (form) form.reset();
 };
-
 
 /* ============================
    Escape HTML
 ============================ */
 
 function escapeHTML(text) {
-    const div = document.createElement("div");
-    div.innerText = text || "";
-    return div.innerHTML;
+  const div = document.createElement("div");
+  div.innerText = text || "";
+  return div.innerHTML;
 }
-
 
 /* ============================
    Build Job Card
 ============================ */
 
 function buildJobCard(job) {
+  const tags = job.tags
+    .map((tag) => `<span class="job-tag">${escapeHTML(tag)}</span>`)
+    .join("");
 
-    const tags = job.tags
-        .map(tag => `<span class="job-tag">${escapeHTML(tag)}</span>`)
-        .join("");
-
-    return `
-
+  return `
 <div class="job-card">
-
 <div class="job-card-header">
-
 <div class="job-info-main">
-
 <div class="hospital-logo">🏥</div>
-
 <div>
-
 <h3>${escapeHTML(job.title)}</h3>
-
 <p>
 <strong>${escapeHTML(job.hospital)}</strong> •
 ${escapeHTML(job.location)}
 </p>
-
 <div class="job-badges">
 <span class="badge badge-primary">${escapeHTML(job.type)}</span>
 <span class="badge">${escapeHTML(job.specialty)}</span>
-
 ${
-job.experience
-?
-`<span class="badge">${escapeHTML(job.experience)}</span>`
-:
-""
+  job.experience
+    ? `<span class="badge">${escapeHTML(job.experience)}</span>`
+    : ""
 }
-
 </div>
-
 </div>
-
 </div>
-
 </div>
-
 <p class="job-description">
 ${escapeHTML(job.description)}
 </p>
-
 <div class="job-tags-container">
 ${tags}
 </div>
-
 <div class="job-card-footer">
-
 <div>
-
 <strong>${escapeHTML(job.salary || "Negotiable")}</strong>
-
-${
-job.deadline
-?
-`<div>Deadline : ${escapeHTML(job.deadline)}</div>`
-:
-""
-}
-
+${job.deadline ? `<div>Deadline : ${escapeHTML(job.deadline)}</div>` : ""}
 </div>
-
 <button class="btn-primary">
 Apply Now
 </button>
-
 </div>
-
 </div>
-
 `;
 }
 
-
 /* ============================
-   Publish Job
+   Publish Job (now sends a "browsed" logo photo instead of a pasted URL)
 ============================ */
 
 window.handlePostJobSubmit = async function (event) {
@@ -2773,19 +2127,6 @@ window.handlePostJobSubmit = async function (event) {
     return;
   }
 
-  const payload = {
-    title: title,
-    company: company,
-    location: location || "Remote",
-    job_type: jobType,
-    specialty: specialty || "General Physician",
-    salary: salary,
-    experience: experience,
-    deadline: deadline,
-    tags: tags,
-    description: description,
-  };
-
   const submitBtn = event.target.querySelector('button[type="submit"]');
   if (submitBtn) {
     submitBtn.disabled = true;
@@ -2793,6 +2134,31 @@ window.handlePostJobSubmit = async function (event) {
   }
 
   try {
+    // "Browse a photo" for the company/hospital logo — falls back to a text
+    // URL field (job-logo-url) if the file input hasn't been added yet.
+    let logoUrl = "";
+    const fileInput = document.getElementById("job-logo-file");
+    const urlInput = document.getElementById("job-logo-url");
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+      logoUrl = await huUploadImage(fileInput.files[0]);
+    } else if (urlInput) {
+      logoUrl = urlInput.value.trim();
+    }
+
+    const payload = {
+      title: title,
+      company: company,
+      company_logo: logoUrl,
+      location: location || "Remote",
+      job_type: jobType,
+      specialty: specialty || "General Physician",
+      salary: salary,
+      experience: experience,
+      deadline: deadline,
+      tags: tags,
+      description: description,
+    };
+
     const res = await huFetch("/api/jobs/add", {
       method: "POST",
       body: JSON.stringify(payload),
@@ -2810,7 +2176,7 @@ window.handlePostJobSubmit = async function (event) {
     closePostJobModal();
     showToast("✅ Job posted successfully!");
   } catch (e) {
-    showToast("❌ Could not connect to server");
+    showToast("❌ " + (e.message || "Could not connect to server"));
   } finally {
     if (submitBtn) {
       submitBtn.disabled = false;
@@ -2819,44 +2185,43 @@ window.handlePostJobSubmit = async function (event) {
   }
 };
 
-
 // Open Specialty Modal
 function openSpecialtyModal() {
-  const modal = document.getElementById('specialtyModal');
+  const modal = document.getElementById("specialtyModal");
   if (modal) {
-    modal.classList.add('open');
+    modal.classList.add("open");
   }
 }
 
 // Close Specialty Modal
 function closeSpecialtyModal() {
-  const modal = document.getElementById('specialtyModal');
+  const modal = document.getElementById("specialtyModal");
   if (modal) {
-    modal.classList.remove('open');
+    modal.classList.remove("open");
   }
 }
 
 // Close when clicking outside modal box
-window.addEventListener('click', function(event) {
-  const modal = document.getElementById('specialtyModal');
+window.addEventListener("click", function (event) {
+  const modal = document.getElementById("specialtyModal");
   if (event.target === modal) {
-    modal.classList.remove('open');
+    modal.classList.remove("open");
   }
 });
 
 // Select specialty from modal
 function selectModalSpecialty(specialtyValue) {
-  document.querySelectorAll('.specialty-pill').forEach(pill => {
-    pill.classList.remove('active');
+  document.querySelectorAll(".specialty-pill").forEach((pill) => {
+    pill.classList.remove("active");
   });
 
-  const moreBtn = document.getElementById('morePillBtn');
+  const moreBtn = document.getElementById("morePillBtn");
   if (moreBtn) {
     moreBtn.innerText = `✓ ${specialtyValue}`;
-    moreBtn.classList.add('active');
+    moreBtn.classList.add("active");
   }
 
-  if (typeof filterBySpecialty === 'function') {
+  if (typeof filterBySpecialty === "function") {
     filterBySpecialty(specialtyValue, moreBtn);
   }
 
@@ -2865,12 +2230,13 @@ function selectModalSpecialty(specialtyValue) {
 
 // Search functionality
 function searchSpecialties() {
-  const input = document.getElementById('specialtySearch').value.toLowerCase();
-  const buttons = document.getElementById('modalSpecialtyList').getElementsByTagName('button');
+  const input = document.getElementById("specialtySearch").value.toLowerCase();
+  const buttons = document
+    .getElementById("modalSpecialtyList")
+    .getElementsByTagName("button");
 
   for (let btn of buttons) {
     const text = btn.innerText.toLowerCase();
-    btn.style.display = text.includes(input) ? 'block' : 'none';
+    btn.style.display = text.includes(input) ? "block" : "none";
   }
 }
-

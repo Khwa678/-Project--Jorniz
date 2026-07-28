@@ -160,6 +160,34 @@ async function huAddComment(postId, content) {
   return data;
 }
 
+// ── Notifications (real: like/comment → post owner only, post → everyone) ─────
+async function huGetNotifications() {
+  var res = await huFetch("/api/notifications");
+  if (!res || !res.ok) return [];
+  return await res.json();
+}
+
+async function huGetUnreadNotificationCount() {
+  var res = await huFetch("/api/notifications/unread-count");
+  if (!res || !res.ok) return 0;
+  var data = await res.json();
+  return data.unread || 0;
+}
+
+async function huMarkNotificationRead(id) {
+  var res = await huFetch("/api/notifications/" + id + "/read", {
+    method: "POST",
+  });
+  if (!res) return null;
+  return await res.json();
+}
+
+async function huMarkAllNotificationsRead() {
+  var res = await huFetch("/api/notifications/read-all", { method: "POST" });
+  if (!res) return null;
+  return await res.json();
+}
+
 // ── Generic "browse a photo" upload helper (doctor avatar, job/company logo…) ──
 async function huUploadImage(file) {
   var fd = new FormData();
