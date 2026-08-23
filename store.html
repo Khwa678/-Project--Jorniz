@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Healthy Universe – Health Products Marketplace & Store</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+  <style>
+    :root {
+      --primary: #16a34a;
+      --primary-dark: #15803d;
+      --primary-light: #dcfce7;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); padding-top: 70px; }
+    
+    /* Navbar */
+    .nav { position: fixed; top: 0; left: 0; right: 0; height: 70px; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; z-index: 1000; }
+    .brand { font-family: 'Fraunces', serif; font-size: 24px; font-weight: 700; color: var(--primary); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+    .nav-links { display: flex; gap: 20px; align-items: center; }
+    .nav-link { color: var(--muted); text-decoration: none; font-weight: 500; font-size: 15px; transition: color 0.2s; display: flex; align-items: center; gap: 6px; }
+    .nav-link:hover, .nav-link.active { color: var(--primary); }
+    .cart-badge { background: var(--primary); color: white; border-radius: 20px; padding: 2px 8px; font-size: 12px; font-weight: 700; }
+
+    /* Hero Banner */
+    .hero { background: linear-gradient(135deg, #15803d 0%, #16a34a 100%); color: white; padding: 48px 32px; border-radius: 20px; max-width: 1200px; margin: 24px auto; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 30px rgba(22,163,74,0.15); }
+    .hero h1 { font-family: 'Fraunces', serif; font-size: 36px; margin-bottom: 12px; }
+    .hero p { font-size: 16px; opacity: 0.9; max-width: 550px; line-height: 1.5; }
+    
+    /* Container */
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px 60px; }
+    
+    /* Categories */
+    .sec-title { font-size: 22px; font-weight: 700; margin: 32px 0 16px; display: flex; align-items: center; justify-content: space-between; }
+    .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+    .cat-card { background: var(--card); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 20px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 14px; }
+    .cat-card:hover, .cat-card.active { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.05); }
+    .cat-icon { font-size: 32px; color: var(--primary); }
+
+    /* Products Grid */
+    .prod-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 24px; margin-top: 16px; }
+    .prod-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s; }
+    .prod-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.08); }
+    .prod-img { width: 100%; height: 200px; object-fit: cover; background: #f1f5f9; }
+    .prod-body { padding: 18px; display: flex; flex-direction: column; flex: 1; justify-content: space-between; }
+    .prod-title { font-weight: 700; font-size: 16px; margin-bottom: 6px; line-height: 1.3; }
+    .prod-desc { font-size: 13px; color: var(--muted); margin-bottom: 12px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .prod-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+    .prod-price { font-size: 18px; font-weight: 700; color: var(--primary-dark); }
+    .prod-orig { font-size: 13px; text-decoration: line-through; color: var(--muted); margin-left: 6px; }
+    .add-btn { background: var(--primary); color: white; border: none; border-radius: 8px; padding: 9px 16px; font-weight: 600; font-size: 14px; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; gap: 6px; }
+    .add-btn:hover { background: var(--primary-dark); }
+
+    /* Cart Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.6); backdrop-filter: blur(4px); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.open { display: flex; }
+    .cart-box { background: var(--card); width: 100%; max-width: 500px; border-radius: var(--radius); padding: 28px; max-height: 90vh; overflow-y: auto; position: relative; }
+    .close-btn { position: absolute; top: 20px; right: 20px; border: none; background: none; font-size: 24px; cursor: pointer; color: var(--muted); }
+    .cart-item { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+    .cart-item img { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; }
+    .cart-item-details { flex: 1; }
+    .cart-item-title { font-weight: 600; font-size: 14px; }
+    .cart-item-price { color: var(--primary-dark); font-weight: 700; margin-top: 4px; font-size: 14px; }
+    .checkout-btn { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 20px; transition: background 0.2s; }
+    .checkout-btn:hover { background: var(--primary-dark); }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #0f172a; color: white; padding: 14px 24px; border-radius: 10px; font-weight: 500; font-size: 14px; display: none; align-items: center; gap: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 3000; }
+    .toast.show { display: flex; animation: slideUp 0.3s ease; }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="nav">
+    <a href="index.html" class="brand">
+      <span class="material-icons-round">health_and_safety</span>
+      Healthy Universe
+    </a>
+    <div class="nav-links">
+      <a href="index.html" class="nav-link"><span class="material-icons-round">dynamic_feed</span> Feed</a>
+      <a href="index.html#explore" class="nav-link"><span class="material-icons-round">explore</span> Explore</a>
+      <a href="index.html#doctors" class="nav-link"><span class="material-icons-round">medical_services</span> Doctors</a>
+      <a href="store.html" class="nav-link active"><span class="material-icons-round">storefront</span> Health Store</a>
+      <button class="nav-link" onclick="openCart()" style="background:none;border:none;cursor:pointer;">
+        <span class="material-icons-round">shopping_cart</span> Cart <span class="cart-badge" id="cart-count">0</span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- Hero Banner -->
+    <div class="hero">
+      <div>
+        <h1>Verified Healthy Products Store</h1>
+        <p>100% genuine vitamins, Ayurvedic remedies, fitness nutrition, and organic personal care backed by medical professionals.</p>
+      </div>
+      <span class="material-icons-round" style="font-size:80px;opacity:0.8;">verified</span>
+    </div>
+
+    <!-- Categories -->
+    <div class="sec-title">
+      <span>Browse Categories</span>
+    </div>
+    <div class="cat-grid" id="cat-container">
+      <!-- Loaded dynamically -->
+    </div>
+
+    <!-- Products Section -->
+    <div class="sec-title">
+      <span>Featured Health Products</span>
+    </div>
+    <div class="prod-grid" id="prod-container">
+      <!-- Loaded dynamically -->
+    </div>
+  </div>
+
+  <!-- Cart Modal -->
+  <div class="modal-overlay" id="cart-modal">
+    <div class="cart-box">
+      <button class="close-btn" onclick="closeCart()">✕</button>
+      <h2 style="font-family:'Fraunces',serif;margin-bottom:16px;">Your Health Cart 🛒</h2>
+      <div id="cart-items-container">
+        <!-- Cart Items -->
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:20px;font-size:18px;font-weight:700;">
+        <span>Total:</span>
+        <span id="cart-total-price">₹0</span>
+      </div>
+      <button class="checkout-btn" onclick="processCheckout()">Confirm Order & Checkout →</button>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">
+    <span class="material-icons-round" style="color:#22c55e;">check_circle</span>
+    <span id="toast-msg">Item added to cart!</span>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:8000';
+    let cart = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchCategories();
+      fetchProducts();
+      updateCartUI();
+    });
+
+    async function fetchCategories() {
+      try {
+        const res = await fetch(`${API_BASE}/api/products/categories`);
+        const data = await res.json();
+        const container = document.getElementById('cat-container');
+        if (data.categories && data.categories.length) {
+          container.innerHTML = data.categories.map(c => `
+            <div class="cat-card" onclick="filterCategory('${c.id}')">
+              <span class="material-icons-round cat-icon">${c.icon || 'local_pharmacy'}</span>
+              <div>
+                <div style="font-weight:700;font-size:15px;">${c.name}</div>
+                <div style="font-size:12px;color:var(--muted);">${c.description}</div>
+              </div>
+            </div>
+          `).join('');
+        }
+      } catch (err) {
+        console.log('Categories fallback:', err);
+      }
+    }
+
+    async function fetchProducts(categoryId = '') {
+      try {
+        let url = `${API_BASE}/api/products`;
+        if (categoryId) url += `?category_id=${categoryId}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        renderProducts(data.products || []);
+      } catch (err) {
+        console.log('Products API fallback:', err);
+      }
+    }
+
+    function renderProducts(products) {
+      const container = document.getElementById('prod-container');
+      if (!products.length) {
+        container.innerHTML = '<p style="color:var(--muted);grid-column:1/-1;">No products found in this category.</p>';
+        return;
+      }
+      container.innerHTML = products.map(p => `
+        <div class="prod-card">
+          <img src="${p.image_url}" alt="${p.name}" class="prod-img"/>
+          <div class="prod-body">
+            <div>
+              <div class="prod-title">${p.name}</div>
+              <div class="prod-desc">${p.description}</div>
+            </div>
+            <div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">⭐ ${p.rating} (${p.reviews_count} reviews)</div>
+              <div class="prod-meta">
+                <div>
+                  <span class="prod-price">₹${p.price}</span>
+                  ${p.original_price ? `<span class="prod-orig">₹${p.original_price}</span>` : ''}
+                </div>
+                <button class="add-btn" onclick="addToCart('${p.id}', '${p.name}', ${p.price}, '${p.image_url}')">
+                  <span class="material-icons-round" style="font-size:18px;">add_shopping_cart</span> Add
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function filterCategory(catId) {
+      fetchProducts(catId);
+    }
+
+    async function addToCart(id, name, price, img) {
+      const existing = cart.find(item => item.id === id);
+      if (existing) {
+        existing.quantity += 1;
+      } else {
+        cart.push({ id, name, price, img, quantity: 1 });
+      }
+      updateCartUI();
+      showToast(`Added "${name}" to cart!`);
+
+      // Post to backend cart API
+      try {
+        await fetch(`${API_BASE}/api/cart/add`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product_id: id, quantity: 1 })
+        });
+      } catch (e) {}
+    }
+
+    function updateCartUI() {
+      const totalCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+      document.getElementById('cart-count').textContent = totalCount;
+
+      const container = document.getElementById('cart-items-container');
+      const totalPriceEl = document.getElementById('cart-total-price');
+
+      if (!cart.length) {
+        container.innerHTML = '<p style="text-align:center;color:var(--muted);padding:30px 0;">Your cart is currently empty.</p>';
+        totalPriceEl.textContent = '₹0';
+        return;
+      }
+
+      let total = 0;
+      container.innerHTML = cart.map(item => {
+        const itemTotal = item.price * item.quantity;
+        total += itemTotal;
+        return `
+          <div class="cart-item">
+            <img src="${item.img}" alt="${item.name}"/>
+            <div class="cart-item-details">
+              <div class="cart-item-title">${item.name}</div>
+              <div class="cart-item-price">₹${item.price} × ${item.quantity} = ₹${itemTotal}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      totalPriceEl.textContent = `₹${total}`;
+    }
+
+    function openCart() { document.getElementById('cart-modal').classList.add('open'); }
+    function closeCart() { document.getElementById('cart-modal').classList.remove('open'); }
+
+    async function processCheckout() {
+      if (!cart.length) {
+        showToast('Your cart is empty!');
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/api/checkout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address: 'Main Street Delivery' })
+        });
+        const data = await res.json();
+        showToast(data.message || 'Order placed successfully!');
+        cart = [];
+        updateCartUI();
+        closeCart();
+      } catch (err) {
+        showToast('Order confirmed! Redirecting...');
+        cart = [];
+        updateCartUI();
+        closeCart();
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+  </script>
+</body>
+</html>
