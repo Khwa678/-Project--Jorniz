@@ -90,6 +90,9 @@
       <a href="index.html#explore" class="nav-link"><span class="material-icons-round">explore</span> Explore</a>
       <a href="index.html#doctors" class="nav-link"><span class="material-icons-round">medical_services</span> Doctors</a>
       <a href="store.html" class="nav-link active"><span class="material-icons-round">storefront</span> Health Store</a>
+      <button class="nav-link" onclick="openOrdersModal()" style="background:none;border:none;cursor:pointer;">
+        <span class="material-icons-round">receipt_long</span> Orders
+      </button>
       <button class="nav-link" onclick="openCart()" style="background:none;border:none;cursor:pointer;">
         <span class="material-icons-round">shopping_cart</span> Cart <span class="cart-badge" id="cart-count">0</span>
       </button>
@@ -101,7 +104,11 @@
     <div class="hero">
       <div>
         <h1>Verified Healthy Products Store</h1>
-        <p>100% genuine vitamins, Ayurvedic remedies, fitness nutrition, and organic personal care backed by medical professionals.</p>
+        <p>100% genuine vitamins, Ayurvedic remedies, fitness nutrition, and organic personal care. <strong>Use your earned HU Coins to save up to 50%!</strong></p>
+        <div style="margin-top:12px;display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.2);padding:6px 14px;border-radius:20px;font-size:14px;font-weight:600;">
+          <span class="material-icons-round" style="color:#fbbf24;font-size:20px;">monetization_on</span>
+          <span>Your Rewards: <span id="store-user-coins">0</span> HU Coins</span>
+        </div>
       </div>
       <span class="material-icons-round" style="font-size:80px;opacity:0.8;">verified</span>
     </div>
@@ -131,11 +138,49 @@
       <div id="cart-items-container">
         <!-- Cart Items -->
       </div>
-      <div style="display:flex;justify-content:space-between;margin-top:20px;font-size:18px;font-weight:700;">
-        <span>Total:</span>
-        <span id="cart-total-price">₹0</span>
+      
+      <!-- HU Coins Rewards Section -->
+      <div id="rewards-redemption-box" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px;margin-top:16px;display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-weight:700;color:#166534;display:flex;align-items:center;gap:6px;font-size:14px;">
+            <span class="material-icons-round" style="color:#f59e0b;font-size:18px;">monetization_on</span>
+            Redeem HU Coins
+          </span>
+          <span style="font-size:13px;color:#15803d;" id="coins-avail-text">0 coins available</span>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;color:#166534;cursor:pointer;">
+          <input type="checkbox" id="use-coins-toggle" checked onchange="updateCartTotals()"/>
+          <span>Use HU Coins to save up to 50% off</span>
+        </label>
+        <div style="font-size:12px;color:#15803d;margin-top:6px;" id="coins-discount-preview"></div>
       </div>
-      <button class="checkout-btn" onclick="processCheckout()">Confirm Order & Checkout →</button>
+
+      <div style="margin-top:20px;border-top:1px dashed var(--border);padding-top:14px;">
+        <div style="display:flex;justify-content:space-between;font-size:14px;color:var(--muted);margin-bottom:6px;">
+          <span>Subtotal:</span>
+          <span id="cart-subtotal-price">₹0</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:14px;color:#16a34a;margin-bottom:6px;display:none;" id="discount-row">
+          <span>HU Coins Discount:</span>
+          <span id="cart-discount-price">-₹0</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:700;">
+          <span>Net Payable:</span>
+          <span id="cart-final-price">₹0</span>
+        </div>
+      </div>
+      <button class="checkout-btn" id="btn-checkout" onclick="processCheckout()">Confirm Order & Checkout →</button>
+    </div>
+  </div>
+
+  <!-- Orders Modal -->
+  <div class="modal-overlay" id="orders-modal">
+    <div class="cart-box" style="max-width:650px;">
+      <button class="close-btn" onclick="closeOrdersModal()">✕</button>
+      <h2 style="font-family:'Fraunces',serif;margin-bottom:16px;">Your Order History 📦</h2>
+      <div id="orders-container">
+        <!-- Loaded dynamically -->
+      </div>
     </div>
   </div>
 
@@ -145,19 +190,41 @@
     <span id="toast-msg">Item added to cart!</span>
   </div>
 
+  <script src="js/api.js"></script>
   <script>
-    const API_BASE = 'http://localhost:8000';
-    let cart = [];
+    let cartData = { items: [], total: 0, hu_coins_balance: 0, max_coins_redeemable: 0, max_coin_discount: 0 };
 
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+      var user = huGetUser();
+      if (!user) {
+        window.location.href = 'auth.html';
+        return;
+      }
       fetchCategories();
       fetchProducts();
-      updateCartUI();
+      await refreshCartData();
+      updateUserCoinsDisplay();
     });
+
+    function updateUserCoinsDisplay() {
+      var user = huGetUser();
+      var el = document.getElementById('store-user-coins');
+      if (el && user) el.textContent = (user.hu_coins || 0).toLocaleString();
+    }
+
+    async function refreshCartData() {
+      try {
+        cartData = await huGetCart();
+        updateCartUI();
+        updateUserCoinsDisplay();
+      } catch (err) {
+        console.log('Cart fetch error:', err);
+      }
+    }
 
     async function fetchCategories() {
       try {
-        const res = await fetch(`${API_BASE}/api/products/categories`);
+        const res = await fetch(`${HU_API}/api/products/categories`);
         const data = await res.json();
         const container = document.getElementById('cat-container');
         if (data.categories && data.categories.length) {
@@ -178,7 +245,7 @@
 
     async function fetchProducts(categoryId = '') {
       try {
-        let url = `${API_BASE}/api/products`;
+        let url = `${HU_API}/api/products`;
         if (categoryId) url += `?category_id=${categoryId}`;
         const res = await fetch(url);
         const data = await res.json();
@@ -203,13 +270,16 @@
               <div class="prod-desc">${p.description}</div>
             </div>
             <div>
-              <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">⭐ ${p.rating} (${p.reviews_count} reviews)</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:12px;color:var(--muted);">
+                <span>⭐ ${p.rating} (${p.reviews_count} reviews)</span>
+                <span style="color:#16a34a;font-weight:600;">Earn ${p.reward_coins_earn || 10} Coins</span>
+              </div>
               <div class="prod-meta">
                 <div>
                   <span class="prod-price">₹${p.price}</span>
                   ${p.original_price ? `<span class="prod-orig">₹${p.original_price}</span>` : ''}
                 </div>
-                <button class="add-btn" onclick="addToCart('${p.id}', '${p.name}', ${p.price}, '${p.image_url}')">
+                <button class="add-btn" onclick="addToCart('${p.id}', '${p.name}')">
                   <span class="material-icons-round" style="font-size:18px;">add_shopping_cart</span> Add
                 </button>
               </div>
@@ -223,89 +293,175 @@
       fetchProducts(catId);
     }
 
-    async function addToCart(id, name, price, img) {
-      const existing = cart.find(item => item.id === id);
-      if (existing) {
-        existing.quantity += 1;
-      } else {
-        cart.push({ id, name, price, img, quantity: 1 });
-      }
-      updateCartUI();
-      showToast(`Added "${name}" to cart!`);
-
-      // Post to backend cart API
+    async function addToCart(id, name) {
       try {
-        await fetch(`${API_BASE}/api/cart/add`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ product_id: id, quantity: 1 })
-        });
-      } catch (e) {}
+        await huAddToCart(id, 1);
+        showToast(`Added "${name}" to cart!`);
+        await refreshCartData();
+      } catch (err) {
+        showToast('❌ ' + (err.message || 'Failed to add item'));
+      }
     }
 
     function updateCartUI() {
-      const totalCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+      const totalCount = (cartData.items || []).reduce((sum, item) => sum + item.quantity, 0);
       document.getElementById('cart-count').textContent = totalCount;
 
       const container = document.getElementById('cart-items-container');
-      const totalPriceEl = document.getElementById('cart-total-price');
+      const items = cartData.items || [];
 
-      if (!cart.length) {
+      if (!items.length) {
         container.innerHTML = '<p style="text-align:center;color:var(--muted);padding:30px 0;">Your cart is currently empty.</p>';
-        totalPriceEl.textContent = '₹0';
+        document.getElementById('rewards-redemption-box').style.display = 'none';
+        document.getElementById('cart-subtotal-price').textContent = '₹0';
+        document.getElementById('cart-final-price').textContent = '₹0';
+        document.getElementById('discount-row').style.display = 'none';
         return;
       }
 
-      let total = 0;
-      container.innerHTML = cart.map(item => {
+      container.innerHTML = items.map(item => {
         const itemTotal = item.price * item.quantity;
-        total += itemTotal;
         return `
           <div class="cart-item">
-            <img src="${item.img}" alt="${item.name}"/>
+            <img src="${item.image_url}" alt="${item.name}"/>
             <div class="cart-item-details">
               <div class="cart-item-title">${item.name}</div>
               <div class="cart-item-price">₹${item.price} × ${item.quantity} = ₹${itemTotal}</div>
             </div>
+            <button onclick="removeItem('${item.product_id}')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:18px;">🗑️</button>
           </div>
         `;
       }).join('');
 
-      totalPriceEl.textContent = `₹${total}`;
+      // Rewards Section
+      const rewardsBox = document.getElementById('rewards-redemption-box');
+      if (cartData.max_coins_redeemable > 0) {
+        rewardsBox.style.display = 'block';
+        document.getElementById('coins-avail-text').textContent = `${(cartData.hu_coins_balance || 0).toLocaleString()} coins available`;
+        document.getElementById('coins-discount-preview').textContent = `Redeem ${cartData.max_coins_redeemable.toLocaleString()} coins for ₹${cartData.max_coin_discount} discount!`;
+      } else {
+        rewardsBox.style.display = 'none';
+      }
+
+      updateCartTotals();
+    }
+
+    function updateCartTotals() {
+      const total = cartData.total || 0;
+      const useCoins = document.getElementById('use-coins-toggle').checked;
+      let discount = 0;
+      if (useCoins && cartData.max_coin_discount) {
+        discount = cartData.max_coin_discount;
+      }
+
+      document.getElementById('cart-subtotal-price').textContent = `₹${total}`;
+      const discRow = document.getElementById('discount-row');
+      if (discount > 0) {
+        discRow.style.display = 'flex';
+        document.getElementById('cart-discount-price').textContent = `-₹${discount}`;
+      } else {
+        discRow.style.display = 'none';
+      }
+      const finalPrice = Math.max(0, total - discount);
+      document.getElementById('cart-final-price').textContent = `₹${finalPrice.toFixed(2)}`;
+    }
+
+    async function removeItem(productId) {
+      try {
+        await huRemoveFromCart(productId);
+        await refreshCartData();
+        showToast('Item removed');
+      } catch (err) {
+        showToast('Error removing item');
+      }
     }
 
     function openCart() { document.getElementById('cart-modal').classList.add('open'); }
     function closeCart() { document.getElementById('cart-modal').classList.remove('open'); }
 
     async function processCheckout() {
-      if (!cart.length) {
+      if (!cartData.items || !cartData.items.length) {
         showToast('Your cart is empty!');
         return;
       }
+
+      const btn = document.getElementById('btn-checkout');
+      btn.disabled = true;
+      btn.textContent = 'Processing Checkout...';
+
+      const useCoins = document.getElementById('use-coins-toggle').checked;
+
       try {
-        const res = await fetch(`${API_BASE}/api/checkout`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ address: 'Main Street Delivery' })
-        });
-        const data = await res.json();
-        showToast(data.message || 'Order placed successfully!');
-        cart = [];
-        updateCartUI();
+        const result = await huCheckout({ address: 'Primary Address', use_coins: useCoins });
+        showToast(`🎉 Order ${result.order_id} confirmed!`);
         closeCart();
+        await refreshCartData();
+        openOrdersModal();
       } catch (err) {
-        showToast('Order confirmed! Redirecting...');
-        cart = [];
-        updateCartUI();
-        closeCart();
+        showToast('❌ ' + (err.message || 'Checkout failed'));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Confirm Order & Checkout →';
       }
     }
+
+    async function openOrdersModal() {
+      document.getElementById('orders-modal').classList.add('open');
+      const container = document.getElementById('orders-container');
+      container.innerHTML = '<p style="color:var(--muted);text-align:center;">Loading order history...</p>';
+
+      try {
+        const orders = await huGetMyOrders();
+        if (!orders.length) {
+          container.innerHTML = '<p style="color:var(--muted);text-align:center;padding:30px 0;">No orders placed yet.</p>';
+          return;
+        }
+
+        container.innerHTML = orders.map(o => `
+          <div style="border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;background:#fff;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <div>
+                <strong>Order #${o.id}</strong>
+                <div style="font-size:12px;color:var(--muted);">${new Date(o.created_at).toLocaleString('en-IN')}</div>
+              </div>
+              <span style="background:${o.status === 'Cancelled' ? '#fee2e2' : '#dcfce7'};color:${o.status === 'Cancelled' ? '#ef4444' : '#166534'};padding:4px 10px;border-radius:12px;font-weight:700;font-size:12px;">${o.status}</span>
+            </div>
+            <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">
+              Items: ${(o.items || []).map(i => `${i.name} (x${i.quantity})`).join(', ')}
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:14px;border-top:1px solid var(--border);padding-top:8px;">
+              <div>
+                <span>Paid: <strong>₹${o.gateway_spent}</strong></span>
+                ${o.coins_spent ? `<span style="color:#16a34a;margin-left:8px;">(${o.coins_spent} Coins used)</span>` : ''}
+              </div>
+              ${o.status !== 'Cancelled' ? `<button onclick="cancelMyOrder('${o.id}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:6px 12px;font-weight:600;font-size:12px;cursor:pointer;">Cancel Order</button>` : ''}
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        container.innerHTML = '<p style="color:#ef4444;text-align:center;">Failed to load orders.</p>';
+      }
+    }
+
+    async function cancelMyOrder(orderId) {
+      if (!confirm(`Cancel order ${orderId} and refund rewards?`)) return;
+      try {
+        const res = await huCancelOrder(orderId);
+        showToast('✅ Order cancelled. Rewards refunded!');
+        await openOrdersModal();
+        await refreshCartData();
+      } catch (err) {
+        showToast('❌ ' + (err.message || 'Could not cancel order'));
+      }
+    }
+
+    function closeOrdersModal() { document.getElementById('orders-modal').classList.remove('open'); }
 
     function showToast(msg) {
       const toast = document.getElementById('toast');
       document.getElementById('toast-msg').textContent = msg;
       toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 3000);
+      setTimeout(() => toast.classList.remove('show'), 3500);
     }
   </script>
 </body>

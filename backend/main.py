@@ -678,12 +678,25 @@ def create_post():
     )
     post = db_one("SELECT * FROM posts WHERE id=%s", (post_id,))
 
+    # Award 10 HU Coins for social media contribution
+    user_row = db_one("SELECT hu_coins FROM users WHERE id=%s", (uid,))
+    current_coins = user_row["hu_coins"] if user_row and user_row.get("hu_coins") is not None else 500
+    new_coins = current_coins + 10
+    db_run("UPDATE users SET hu_coins = %s, coins = %s WHERE id = %s", (new_coins, new_coins, uid))
+    db_run("""INSERT INTO wallet_ledger 
+              (id, user_id, credit_debit, value_type, amount, source_type, source_id, idempotency_key, balance_before, balance_after, status)
+              VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+           ("led_" + str(uuid.uuid4())[:8], uid, "CREDIT", "HU Coins", 10, "SOCIAL_POST_REWARD", post_id, f"post_rew_{post_id}", current_coins, new_coins, "Settled"))
+
     # Broadcast: everyone on the platform gets notified about a new post.
     actor_name = request.current_user.get("name", "Someone")
     snippet = (content[:80] + "…") if len(content) > 80 else content
     broadcast_new_post_notification(uid, post_id, f"{actor_name} shared a new post: \"{snippet}\"" if snippet else f"{actor_name} shared a new post")
 
-    return jsonify(post_with_author(post, uid)), 201
+    ret_data = post_with_author(post, uid)
+    ret_data["reward_earned"] = 10
+    ret_data["new_hu_coins"] = new_coins
+    return jsonify(ret_data), 201
 
 
 @app.route("/api/posts")
@@ -2065,30 +2078,56 @@ def get_categories():
     return jsonify({"categories": categories})
 
 @app.route("/api/cart", methods=["GET"])
+@require_auth
 def get_cart():
-    uid = optional_uid_from_request() or "guest"
+    uid = str(request.current_user["id"])
+    user = db_one("SELECT id, hu_coins, wallet_balance FROM users WHERE id = %s", (uid,))
     cart_items = db_all(
-        """SELECT c.id, c.product_id, c.quantity, c.price, p.name, p.image_url, p.description 
+        """SELECT c.id, c.product_id, c.quantity, c.price, p.name, p.image_url, p.description, p.stock, p.reward_coins_earn 
            FROM cart c JOIN products p ON c.product_id = p.id WHERE c.user_id = %s""",
         (uid,)
     )
     total = sum(item["price"] * item["quantity"] for item in cart_items)
-    return jsonify({"items": cart_items, "total": total})
+    hu_coins = user["hu_coins"] if user and user.get("hu_coins") is not None else 500
+    wallet_balance = user["wallet_balance"] if user and user.get("wallet_balance") is not None else 0.0
+    
+    max_coin_discount = round(total * 0.50, 2)
+    max_coins_use = min(hu_coins, int(max_coin_discount * 10))
+    est_discount = round(max_coins_use / 10.0, 2)
+    
+    return jsonify({
+        "items": cart_items,
+        "total": total,
+        "hu_coins_balance": hu_coins,
+        "wallet_balance": wallet_balance,
+        "max_coins_redeemable": max_coins_use,
+        "max_coin_discount": est_discount
+    })
 
 @app.route("/api/cart/add", methods=["POST"])
+@require_auth
 def add_to_cart():
-    uid = optional_uid_from_request() or "guest"
-    data = request.get_json() or {}
+    uid = str(request.current_user["id"])
+    data = request.get_json(force=True) or {}
     product_id = data.get("product_id")
     quantity = int(data.get("quantity", 1))
+
+    if not product_id:
+        return jsonify({"detail": "Product ID is required"}), 400
 
     product = db_one("SELECT * FROM products WHERE id = %s", (product_id,))
     if not product:
         return jsonify({"detail": "Product not found"}), 404
 
+    if product["stock"] < quantity:
+        return jsonify({"detail": f"Only {product['stock']} units available in stock"}), 400
+
     existing = db_one("SELECT * FROM cart WHERE user_id = %s AND product_id = %s", (uid, product_id))
     if existing:
-        db_run("UPDATE cart SET quantity = quantity + %s WHERE id = %s", (quantity, existing["id"]))
+        new_qty = existing["quantity"] + quantity
+        if product["stock"] < new_qty:
+            return jsonify({"detail": f"Cannot add more. Max available stock is {product['stock']}"}), 400
+        db_run("UPDATE cart SET quantity = %s WHERE id = %s", (new_qty, existing["id"]))
     else:
         cid = str(uuid.uuid4())
         db_run("INSERT INTO cart (id, user_id, product_id, quantity, price) VALUES (%s, %s, %s, %s, %s)",
@@ -2096,22 +2135,89 @@ def add_to_cart():
 
     return jsonify({"message": "Product added to cart successfully"})
 
-@app.route("/api/checkout", methods=["POST"])
-def process_checkout():
-    uid = optional_uid_from_request() or "guest"
-    data = request.get_json() or {}
-    address = data.get("address", "Standard Delivery Address")
+@app.route("/api/cart/remove", methods=["DELETE"])
+@require_auth
+def remove_from_cart():
+    uid = str(request.current_user["id"])
+    data = request.get_json(force=True) or {}
+    product_id = data.get("product_id")
+    if product_id:
+        db_run("DELETE FROM cart WHERE user_id = %s AND product_id = %s", (uid, product_id))
+    return jsonify({"message": "Item removed from cart"})
 
-    cart_items = db_all("SELECT * FROM cart WHERE user_id = %s", (uid,))
+@app.route("/api/checkout", methods=["POST"])
+@require_auth
+def process_checkout():
+    uid = str(request.current_user["id"])
+    data = request.get_json(force=True) or {}
+    address = data.get("address", "Standard Delivery Address")
+    use_coins = bool(data.get("use_coins", True))
+
+    user = db_one("SELECT * FROM users WHERE id = %s", (uid,))
+    if not user:
+        return jsonify({"detail": "User account not found"}), 404
+
+    cart_items = db_all(
+        """SELECT c.id, c.product_id, c.quantity, c.price, p.name, p.stock, p.reward_coins_earn 
+           FROM cart c JOIN products p ON c.product_id = p.id WHERE c.user_id = %s""",
+        (uid,)
+    )
     if not cart_items:
         return jsonify({"detail": "Cart is empty"}), 400
 
+    # Stock Validation
+    for item in cart_items:
+        if item["stock"] < item["quantity"]:
+            return jsonify({"detail": f"Insufficient stock for '{item['name']}'. Only {item['stock']} available."}), 400
+
     total_amount = sum(item["price"] * item["quantity"] for item in cart_items)
+    
+    # Calculate Reward Coins redemption (10 HU Coins = ₹1 INR, max 50% discount)
+    user_coins = user.get("hu_coins") or 0
+    coins_spent = 0
+    coins_discount = 0.0
+    if use_coins and user_coins > 0:
+        max_discount_allowed = round(total_amount * 0.50, 2)
+        max_coins_allowed = int(max_discount_allowed * 10)
+        coins_spent = min(user_coins, max_coins_allowed)
+        coins_discount = round(coins_spent / 10.0, 2)
+
+    gateway_spent = max(0.0, round(total_amount - coins_discount, 2))
+    
+    # Calculate Coins Earned on this order
+    coins_earned = sum(item["quantity"] * (item.get("reward_coins_earn") or 10) for item in cart_items)
+
     order_id = "ord_" + str(uuid.uuid4())[:8]
 
+    # Perform Atomic Balance & Stock Updates
+    new_hu_coins = user_coins - coins_spent + coins_earned
+    db_run("UPDATE users SET hu_coins = %s, coins = %s WHERE id = %s", (new_hu_coins, new_hu_coins, uid))
+
+    # Decrement Stock
+    for item in cart_items:
+        db_run("UPDATE products SET stock = MAX(0, stock - %s) WHERE id = %s", (item["quantity"], item["product_id"]))
+
+    # Ledger Record for Coins Redemption
+    if coins_spent > 0:
+        ledger_debit_id = "led_" + str(uuid.uuid4())[:8]
+        db_run("""INSERT INTO wallet_ledger 
+                  (id, user_id, credit_debit, value_type, amount, source_type, source_id, idempotency_key, balance_before, balance_after, status)
+                  VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+               (ledger_debit_id, uid, "DEBIT", "HU Coins", coins_spent, "ECOMMERCE_CHECKOUT_REDEMPTION", order_id, f"chk_red_{order_id}", user_coins, user_coins - coins_spent, "Settled"))
+
+    # Ledger Record for Coins Earned
+    if coins_earned > 0:
+        ledger_credit_id = "led_" + str(uuid.uuid4())[:8]
+        db_run("""INSERT INTO wallet_ledger 
+                  (id, user_id, credit_debit, value_type, amount, source_type, source_id, idempotency_key, balance_before, balance_after, status)
+                  VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+               (ledger_credit_id, uid, "CREDIT", "HU Coins", coins_earned, "ECOMMERCE_ORDER_REWARD", order_id, f"chk_rew_{order_id}", user_coins - coins_spent, new_hu_coins, "Settled"))
+
+    # Save Order Record
     db_run(
-        "INSERT INTO orders (id, user_id, total_amount, status, shipping_address) VALUES (%s, %s, %s, %s, %s)",
-        (order_id, uid, total_amount, "Confirmed", address)
+        """INSERT INTO orders (id, user_id, total_amount, wallet_spent, gateway_spent, coins_spent, coins_discount, coins_earned, status, shipping_address, payment_method) 
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+        (order_id, uid, total_amount, 0.0, gateway_spent, coins_spent, coins_discount, coins_earned, "Confirmed", address, "HU_Coins+Gateway")
     )
 
     for item in cart_items:
@@ -2120,14 +2226,85 @@ def process_checkout():
             (str(uuid.uuid4()), order_id, item["product_id"], item["quantity"], item["price"])
         )
 
-    # Clear cart
+    # Clear User Cart
     db_run("DELETE FROM cart WHERE user_id = %s", (uid,))
 
     return jsonify({
         "message": "Order placed successfully!",
         "order_id": order_id,
         "total_amount": total_amount,
-        "status": "Confirmed"
+        "coins_spent": coins_spent,
+        "coins_discount": coins_discount,
+        "coins_earned": coins_earned,
+        "gateway_spent": gateway_spent,
+        "status": "Confirmed",
+        "new_hu_coins": new_hu_coins
+    })
+
+@app.route("/api/orders/mine", methods=["GET"])
+@require_auth
+def get_my_orders():
+    uid = str(request.current_user["id"])
+    orders = db_all("SELECT * FROM orders WHERE user_id = %s ORDER BY created_at DESC", (uid,))
+    for ord_row in orders:
+        items = db_all(
+            """SELECT oi.*, p.name, p.image_url 
+               FROM order_items oi JOIN products p ON oi.product_id = p.id 
+               WHERE oi.order_id = %s""",
+            (ord_row["id"],)
+        )
+        ord_row["items"] = items
+    return jsonify({"orders": orders})
+
+@app.route("/api/orders/<order_id>/cancel", methods=["POST"])
+@require_auth
+def cancel_order(order_id):
+    uid = str(request.current_user["id"])
+    order = db_one("SELECT * FROM orders WHERE id = %s AND user_id = %s", (order_id, uid))
+    if not order:
+        return jsonify({"detail": "Order not found"}), 404
+    if order["status"] == "Cancelled":
+        return jsonify({"detail": "Order is already cancelled"}), 400
+
+    user = db_one("SELECT hu_coins FROM users WHERE id = %s", (uid,))
+    current_coins = user["hu_coins"] if user else 0
+
+    # Restore Stock
+    items = db_all("SELECT product_id, quantity FROM order_items WHERE order_id = %s", (order_id,))
+    for item in items:
+        db_run("UPDATE products SET stock = stock + %s WHERE id = %s", (item["quantity"], item["product_id"]))
+
+    # Reverse Rewards & Refund Coins
+    coins_spent = order.get("coins_spent", 0) or 0
+    coins_earned = order.get("coins_earned", 0) or 0
+    
+    net_coin_refund = coins_spent - coins_earned
+    new_coins = max(0, current_coins + net_coin_refund)
+    
+    db_run("UPDATE users SET hu_coins = %s, coins = %s WHERE id = %s", (new_coins, new_coins, uid))
+
+    # Ledger Entry for Refund
+    if coins_spent > 0:
+        db_run("""INSERT INTO wallet_ledger 
+                  (id, user_id, credit_debit, value_type, amount, source_type, source_id, idempotency_key, balance_before, balance_after, status)
+                  VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+               ("led_" + str(uuid.uuid4())[:8], uid, "CREDIT", "HU Coins", coins_spent, "ORDER_CANCEL_COIN_REFUND", order_id, f"cnl_ref_{order_id}", current_coins, current_coins + coins_spent, "Settled"))
+
+    # Ledger Entry for Earned Coin Reversal
+    if coins_earned > 0:
+        db_run("""INSERT INTO wallet_ledger 
+                  (id, user_id, credit_debit, value_type, amount, source_type, source_id, idempotency_key, balance_before, balance_after, status)
+                  VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+               ("led_" + str(uuid.uuid4())[:8], uid, "DEBIT", "HU Coins", coins_earned, "ORDER_CANCEL_COIN_REVERSAL", order_id, f"cnl_rev_{order_id}", current_coins + coins_spent, new_coins, "Settled"))
+
+    db_run("UPDATE orders SET status = 'Cancelled', refund_status = 'Full' WHERE id = %s", (order_id,))
+
+    return jsonify({
+        "message": "Order cancelled successfully and rewards adjusted",
+        "order_id": order_id,
+        "refunded_coins": coins_spent,
+        "reversed_coins": coins_earned,
+        "new_hu_coins": new_coins
     })
 
 # ─── DIAGNOSTICS APIS ─────────────────────────────────────────────────────────
@@ -2258,13 +2435,25 @@ def save_candidate_profile():
     data = request.get_json(force=True) or {}
     c_id = "cand_" + str(uuid.uuid4())[:8]
     existing = db_one("SELECT id FROM candidate_profiles WHERE user_id=%s", (uid,))
+    coins_earned = 0
     if existing:
         db_run("UPDATE candidate_profiles SET title=%s, experience_summary=%s, skills=%s, certs=%s, portfolio_url=%s WHERE user_id=%s",
                (data.get("title"), data.get("experience_summary"), data.get("skills"), data.get("certs"), data.get("portfolio_url"), uid))
     else:
         db_run("INSERT INTO candidate_profiles (id, user_id, title, experience_summary, skills, certifications, portfolio_url) VALUES (%s,%s,%s,%s,%s,%s,%s)",
                (c_id, uid, data.get("title"), data.get("experience_summary"), data.get("skills"), data.get("certs"), data.get("portfolio_url")))
-    return jsonify({"message": "Candidate profile saved successfully!"})
+        # Award 50 HU Coins for candidate profile setup
+        user_row = db_one("SELECT hu_coins FROM users WHERE id=%s", (uid,))
+        current_coins = user_row["hu_coins"] if user_row and user_row.get("hu_coins") is not None else 500
+        new_coins = current_coins + 50
+        coins_earned = 50
+        db_run("UPDATE users SET hu_coins = %s, coins = %s WHERE id = %s", (new_coins, new_coins, uid))
+        db_run("""INSERT INTO wallet_ledger 
+                  (id, user_id, credit_debit, value_type, amount, source_type, source_id, idempotency_key, balance_before, balance_after, status)
+                  VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+               ("led_" + str(uuid.uuid4())[:8], uid, "CREDIT", "HU Coins", 50, "CANDIDATE_PROFILE_REWARD", c_id, f"cand_rew_{c_id}", current_coins, new_coins, "Settled"))
+
+    return jsonify({"message": "Candidate profile saved successfully!", "coins_earned": coins_earned})
 
 @app.route("/api/jobs/candidate/cv", methods=["POST"])
 @require_auth
@@ -2291,7 +2480,18 @@ def apply_for_job(job_id):
     app_id = "app_" + str(uuid.uuid4())[:8]
     db_run("INSERT INTO job_applications (id, job_id, candidate_id, selected_cv_id, cover_letter, status) VALUES (%s,%s,%s,%s,%s,%s)",
            (app_id, job_id, uid, data.get("cv_id"), data.get("cover_letter", "Interested in this position."), "Submitted"))
-    return jsonify({"message": "Job application submitted!", "application_id": app_id, "status": "Submitted"})
+    
+    # Award 20 HU Coins for applying for a job
+    user_row = db_one("SELECT hu_coins FROM users WHERE id=%s", (uid,))
+    current_coins = user_row["hu_coins"] if user_row and user_row.get("hu_coins") is not None else 500
+    new_coins = current_coins + 20
+    db_run("UPDATE users SET hu_coins = %s, coins = %s WHERE id = %s", (new_coins, new_coins, uid))
+    db_run("""INSERT INTO wallet_ledger 
+              (id, user_id, credit_debit, value_type, amount, source_type, source_id, idempotency_key, balance_before, balance_after, status)
+              VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+           ("led_" + str(uuid.uuid4())[:8], uid, "CREDIT", "HU Coins", 20, "JOB_APPLICATION_REWARD", app_id, f"job_app_rew_{app_id}", current_coins, new_coins, "Settled"))
+
+    return jsonify({"message": "Job application submitted!", "application_id": app_id, "status": "Submitted", "coins_earned": 20, "new_hu_coins": new_coins})
 
 @app.route("/api/jobs/applications/mine", methods=["GET"])
 @require_auth

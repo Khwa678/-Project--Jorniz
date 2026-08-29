@@ -30,10 +30,13 @@ def init_db(db_path="healthy_universe.db"):
         specialty TEXT,
         hospital TEXT,
         verification_doc TEXT,
+        verification_doc_url TEXT,
+        verification_status TEXT DEFAULT 'not_required',
         is_verified INTEGER DEFAULT 0,
         avatar_url TEXT,
         wallet_balance REAL DEFAULT 0.0,
         coins INTEGER DEFAULT 0,
+        hu_coins INTEGER DEFAULT 500,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """)
@@ -44,10 +47,13 @@ def init_db(db_path="healthy_universe.db"):
         ("specialty", "TEXT"),
         ("hospital", "TEXT"),
         ("verification_doc", "TEXT"),
+        ("verification_doc_url", "TEXT"),
+        ("verification_status", "TEXT DEFAULT 'not_required'"),
         ("is_verified", "INTEGER DEFAULT 0"),
         ("avatar_url", "TEXT"),
         ("wallet_balance", "REAL DEFAULT 0.0"),
-        ("coins", "INTEGER DEFAULT 0")
+        ("coins", "INTEGER DEFAULT 0"),
+        ("hu_coins", "INTEGER DEFAULT 500")
     ]:
         try:
             cur.execute(f"ALTER TABLE users ADD COLUMN {col} {col_type}")
@@ -122,6 +128,7 @@ def init_db(db_path="healthy_universe.db"):
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         category_id TEXT,
+        seller_id TEXT,
         price REAL NOT NULL,
         original_price REAL,
         image_url TEXT,
@@ -131,9 +138,21 @@ def init_db(db_path="healthy_universe.db"):
         rating REAL DEFAULT 4.8,
         reviews_count INTEGER DEFAULT 45,
         is_featured INTEGER DEFAULT 0,
+        reward_coins_earn INTEGER DEFAULT 10,
+        max_coin_redemption_percent INTEGER DEFAULT 50,
         FOREIGN KEY (category_id) REFERENCES categories(id)
     );
     """)
+
+    for col, col_type in [
+        ("seller_id", "TEXT"),
+        ("reward_coins_earn", "INTEGER DEFAULT 10"),
+        ("max_coin_redemption_percent", "INTEGER DEFAULT 50")
+    ]:
+        try:
+            cur.execute(f"ALTER TABLE products ADD COLUMN {col} {col_type}")
+        except sqlite3.OperationalError:
+            pass
 
     # 7. Shopping Cart Table
     cur.execute("""
@@ -156,6 +175,10 @@ def init_db(db_path="healthy_universe.db"):
         total_amount REAL NOT NULL,
         wallet_spent REAL DEFAULT 0.0,
         gateway_spent REAL DEFAULT 0.0,
+        coins_spent INTEGER DEFAULT 0,
+        coins_discount REAL DEFAULT 0.0,
+        coins_earned INTEGER DEFAULT 0,
+        refund_status TEXT DEFAULT 'None',
         status TEXT DEFAULT 'Confirmed',
         shipping_address TEXT,
         payment_method TEXT DEFAULT 'Wallet+UPI',
@@ -163,6 +186,17 @@ def init_db(db_path="healthy_universe.db"):
         FOREIGN KEY (user_id) REFERENCES users(id)
     );
     """)
+
+    for col, col_type in [
+        ("coins_spent", "INTEGER DEFAULT 0"),
+        ("coins_discount", "REAL DEFAULT 0.0"),
+        ("coins_earned", "INTEGER DEFAULT 0"),
+        ("refund_status", "TEXT DEFAULT 'None'")
+    ]:
+        try:
+            cur.execute(f"ALTER TABLE orders ADD COLUMN {col} {col_type}")
+        except sqlite3.OperationalError:
+            pass
 
     # 9. Order Items Table
     cur.execute("""
@@ -174,6 +208,26 @@ def init_db(db_path="healthy_universe.db"):
         price REAL NOT NULL,
         FOREIGN KEY (order_id) REFERENCES orders(id),
         FOREIGN KEY (product_id) REFERENCES products(id)
+    );
+    """)
+
+    # 9b. Ad Impressions and Clicks Tables
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS ad_impressions (
+        id TEXT PRIMARY KEY,
+        campaign_id TEXT NOT NULL,
+        creative_id TEXT NOT NULL,
+        user_id TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS ad_clicks (
+        id TEXT PRIMARY KEY,
+        campaign_id TEXT NOT NULL,
+        creative_id TEXT NOT NULL,
+        user_id TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """)
 

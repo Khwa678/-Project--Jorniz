@@ -668,15 +668,95 @@ async function huLogAdImpression(campaignId, creativeId) {
 
 async function huLogAdClick(campaignId, creativeId) {
   try {
-    await huFetch("/api/ads/click", {
+    var res = await huFetch("/api/ads/click", {
       method: "POST",
       body: JSON.stringify({
         campaign_id: campaignId,
         creative_id: creativeId,
       }),
     });
+    if (res && res.ok) {
+      var data = await res.json();
+      if (data.hu_coins !== undefined) huUpdateUserCoins(data.hu_coins);
+    }
   } catch (e) {}
 }
+
+// ── User Coin Sync Helper ──────────────────────────────────────────────────────
+function huUpdateUserCoins(newCoins) {
+  var u = huGetUser();
+  if (u) {
+    u.hu_coins = newCoins;
+    u.coins = newCoins;
+    localStorage.setItem("hu_user", JSON.stringify(u));
+    applyUserToUI();
+  }
+}
+
+// ── E-Commerce & Store APIs ───────────────────────────────────────────────────
+async function huGetCart() {
+  var res = await huFetch("/api/cart");
+  if (!res || !res.ok) return { items: [], total: 0 };
+  var data = await res.json();
+  if (data.hu_coins_balance !== undefined) huUpdateUserCoins(data.hu_coins_balance);
+  return data;
+}
+
+async function huAddToCart(productId, quantity) {
+  quantity = quantity || 1;
+  var res = await huFetch("/api/cart/add", {
+    method: "POST",
+    body: JSON.stringify({ product_id: productId, quantity: quantity }),
+  });
+  if (!res) return null;
+  var data = await res.json();
+  if (!res.ok) throw new Error(data.detail || "Failed to add to cart");
+  return data;
+}
+
+async function huRemoveFromCart(productId) {
+  var res = await huFetch("/api/cart/remove", {
+    method: "DELETE",
+    body: JSON.stringify({ product_id: productId }),
+  });
+  if (!res) return null;
+  return await res.json();
+}
+
+async function huCheckout(opts) {
+  opts = opts || {};
+  var res = await huFetch("/api/checkout", {
+    method: "POST",
+    body: JSON.stringify({
+      address: opts.address || "Standard Address",
+      use_coins: opts.use_coins !== false,
+    }),
+  });
+  if (!res) return null;
+  var data = await res.json();
+  if (!res.ok) throw new Error(data.detail || "Checkout failed");
+  if (data.new_hu_coins !== undefined) huUpdateUserCoins(data.new_hu_coins);
+  return data;
+}
+
+async function huGetMyOrders() {
+  var res = await huFetch("/api/orders/mine");
+  if (!res || !res.ok) return [];
+  var data = await res.json();
+  return data.orders || [];
+}
+
+async function huCancelOrder(orderId) {
+  var res = await huFetch("/api/orders/" + orderId + "/cancel", {
+    method: "POST",
+  });
+  if (!res) return null;
+  var data = await res.json();
+  if (!res.ok) throw new Error(data.detail || "Cancellation failed");
+  if (data.new_hu_coins !== undefined) huUpdateUserCoins(data.new_hu_coins);
+  return data;
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", function () {
   applyUserToUI();
