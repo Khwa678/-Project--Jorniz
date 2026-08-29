@@ -85,7 +85,7 @@ async function huFetch(path, options) {
     Object.assign({}, options, { headers: headers }),
   );
   if (res.status === 401) {
-    huLogout();
+    // Return null without redirecting to auth.html so guest users can stay on the page
     return null;
   }
   return res;
