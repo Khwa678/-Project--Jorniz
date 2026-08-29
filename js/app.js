@@ -448,8 +448,8 @@ function renderCreators() {
   ).join("");
 }
 
-/* Explore Live Search Handler */
-async function handleExploreSearch(query) {
+/* Explore Multi-Tab Live Search Handler */
+async function handleExploreSearch(query, activeTab) {
   const container = document.getElementById("explore-search-results");
   if (!container) return;
   
@@ -460,47 +460,67 @@ async function handleExploreSearch(query) {
     return;
   }
 
+  activeTab = activeTab || "all";
   container.style.display = "block";
-  container.innerHTML = `<div style="font-size:13px;color:#64748b;">🔍 Searching for "<b>${query}</b>" across doctors, research papers, and case studies...</div>`;
+  container.innerHTML = `<div style="font-size:13px;color:#64748b;">🔍 Searching for "<b>${query}</b>" (${activeTab.toUpperCase()})...</div>`;
 
   try {
-    const res = await fetch(HU_API + "/api/search?q=" + encodeURIComponent(query));
-    if (!res.ok) throw new Error("Search failed");
-    const data = await res.json();
+    const data = await huSearchAdvanced(query, activeTab);
+    const res = data.results || {};
+    const people = res.people || [];
+    const posts = res.posts || [];
+    const jobs = res.jobs || [];
+    const products = res.products || [];
 
-    const doctors = data.doctors || [];
-    const posts = data.posts || [];
-    const jobs = data.jobs || [];
-
-    if (!doctors.length && !posts.length && !jobs.length) {
-      container.innerHTML = `<div style="font-size:13.5px;color:#64748b;padding:8px 0;">No matching results found for "<b>${query}</b>".</div>`;
+    const totalMatches = people.length + posts.length + jobs.length + products.length;
+    if (!totalMatches) {
+      container.innerHTML = `<div style="font-size:13.5px;color:#64748b;padding:8px 0;">No matching results found for "<b>${query}</b>". Try searching for <i>Cardiology</i>, <i>Apollo</i>, or <i>Surgery</i>.</div>`;
       return;
     }
 
     container.innerHTML = `
-      <div style="font-weight:700;font-size:14px;margin-bottom:10px;color:#0f172a;">Search Results (${doctors.length + posts.length + jobs.length} matches):</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        ${doctors.length ? `
-          <div>
-            <strong style="font-size:12.5px;color:#0284c7;text-transform:uppercase;">👨‍⚕️ Doctors (${doctors.length})</strong>
-            ${doctors.map(d => `
-              <div style="padding:6px 0;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-weight:700;font-size:14px;color:#0f172a;">Search Results (${totalMatches} matches):</div>
+        <button onclick="document.getElementById('explore-search-results').style.display='none'" style="background:none;border:none;color:#64748b;font-size:12px;cursor:pointer;">Close ✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));gap:14px;">
+        ${(activeTab === 'all' || activeTab === 'people') && people.length ? `
+          <div style="background:#f8fafc;padding:12px;border-radius:10px;border:1px solid #e2e8f0;">
+            <strong style="font-size:12.5px;color:#0284c7;text-transform:uppercase;">👨‍⚕️ People (${people.length})</strong>
+            ${people.map(p => `
+              <div style="padding:6px 0;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
                 <div>
-                  <div style="font-size:13px;font-weight:600;">${d.name}</div>
-                  <small style="color:#64748b;">${d.specialty || 'Specialist'}</small>
+                  <div style="font-size:13px;font-weight:600;">${p.name}</div>
+                  <small style="color:#64748b;">${p.specialty || p.role}</small>
                 </div>
-                <button onclick="handleSendConnection('${d.id}', this)" style="background:#0284c7;color:white;border:none;border-radius:6px;padding:4px 8px;font-size:11px;">Connect 🤝</button>
+                <button onclick="handleSendConnection('${p.id}', this)" style="background:#0284c7;color:white;border:none;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:600;">Connect 🤝</button>
               </div>
             `).join('')}
           </div>
         ` : ''}
-        ${posts.length ? `
-          <div>
-            <strong style="font-size:12.5px;color:#16a34a;text-transform:uppercase;">📄 Publications &amp; Posts (${posts.length})</strong>
-            ${posts.map(p => `
-              <div style="padding:6px 0;border-bottom:1px solid #f1f5f9;">
-                <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.content || p.title}</div>
-                <small style="color:#64748b;">By ${p.user_name || 'Verified Author'}</small>
+
+        ${(activeTab === 'all' || activeTab === 'posts') && posts.length ? `
+          <div style="background:#f8fafc;padding:12px;border-radius:10px;border:1px solid #e2e8f0;">
+            <strong style="font-size:12.5px;color:#16a34a;text-transform:uppercase;">📄 Publications &amp; Research (${posts.length})</strong>
+            ${posts.map(po => `
+              <div style="padding:6px 0;border-bottom:1px solid #e2e8f0;">
+                <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${po.content}</div>
+                <small style="color:#64748b;">By ${po.author_name}</small>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+
+        ${(activeTab === 'all' || activeTab === 'jobs') && jobs.length ? `
+          <div style="background:#f8fafc;padding:12px;border-radius:10px;border:1px solid #e2e8f0;">
+            <strong style="font-size:12.5px;color:#b45309;text-transform:uppercase;">💼 Career Opportunities (${jobs.length})</strong>
+            ${jobs.map(j => `
+              <div style="padding:6px 0;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                  <div style="font-size:13px;font-weight:600;">${j.title}</div>
+                  <small style="color:#64748b;">${j.company || 'Hospital'}</small>
+                </div>
+                <button onclick="navigate('jobs')" style="background:#0284c7;color:white;border:none;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:600;">Apply ⚡</button>
               </div>
             `).join('')}
           </div>
@@ -508,7 +528,7 @@ async function handleExploreSearch(query) {
       </div>
     `;
   } catch (err) {
-    container.innerHTML = `<div style="font-size:13px;color:#ef4444;">Search unavailable offline.</div>`;
+    container.innerHTML = `<div style="font-size:13px;color:#ef4444;">Search error.</div>`;
   }
 }
 
@@ -2855,10 +2875,38 @@ async function handleAttendEvent(eventId, btn) {
 function setExploreSearchTab(tabKey, btn) {
   document.querySelectorAll("#explore-search-tabs .filter-tab").forEach(t => t.classList.remove("active"));
   if (btn) btn.classList.add("active");
+
   const input = document.getElementById("explore-search-input");
-  if (input && input.value.trim()) {
-    handleExploreSearch(input.value.trim());
-  } else {
-    showToast(`Filter tab switched to: ${tabKey.toUpperCase()}`);
+  const query = input ? input.value.trim() : "";
+
+  if (query.length >= 2) {
+    handleExploreSearch(query, tabKey);
+    return;
   }
+
+  // Filter sections on Explore page based on selected tab
+  const sections = document.querySelectorAll("#page-explore [data-section-type]");
+  let matchCount = 0;
+  sections.forEach(sec => {
+    const type = sec.getAttribute("data-section-type");
+    if (tabKey === "all" || type === tabKey || (tabKey === "posts" && type === "case-studies") || type === "rewards") {
+      sec.style.display = type === "rewards" && tabKey !== "all" ? "flex" : (sec.id === "sec-explore-companies" || sec.id === "sec-explore-communities" || sec.id === "sec-explore-pymk" ? "block" : "block");
+      if (type !== "rewards") matchCount++;
+    } else {
+      sec.style.display = "none";
+    }
+  });
+
+  const tabLabels = {
+    all: "All Sections",
+    people: "People & Medical Specialists",
+    posts: "Clinical Research & Case Studies",
+    jobs: "Career Opportunities",
+    companies: "Top Hospitals & Healthcare Orgs",
+    communities: "Healthcare Communities",
+    events: "CME Webinars & Conferences",
+    skills: "Clinical & Tech Skills"
+  };
+
+  showToast(`🔍 Filtered view: ${tabLabels[tabKey] || tabKey.toUpperCase()}`);
 }
