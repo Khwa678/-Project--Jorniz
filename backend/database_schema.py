@@ -277,6 +277,29 @@ def init_db(db_path="healthy_universe.db"):
     );
     """)
 
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS post_comments (
+        id TEXT PRIMARY KEY,
+        post_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        content TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (post_id) REFERENCES posts(id),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS post_likes (
+        id TEXT PRIMARY KEY,
+        post_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (post_id) REFERENCES posts(id),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+    """)
+
     # 13. Notifications Table
     cur.execute("""
     CREATE TABLE IF NOT EXISTS notifications (
@@ -586,6 +609,19 @@ def init_db(db_path="healthy_universe.db"):
         FOREIGN KEY (advertiser_id) REFERENCES advertisers(id)
     );
     """)
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS ad_creatives (
+        id TEXT PRIMARY KEY,
+        campaign_id TEXT,
+        title TEXT,
+        headline TEXT,
+        body_text TEXT,
+        cta_text TEXT,
+        cta_link TEXT,
+        image_url TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
 
     # 29. Ad Analytics & Invalid Traffic Filtering (Module D - 7.1, 7.4)
     cur.execute("""
@@ -669,6 +705,75 @@ def init_db(db_path="healthy_universe.db"):
         ifsc_code TEXT,
         rating REAL DEFAULT 4.9,
         status TEXT DEFAULT 'Approved',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+    """)
+
+    # 34. Professional Network Connections Graph (LinkedIn Style)
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS connections (
+        id TEXT PRIMARY KEY,
+        requester_id TEXT NOT NULL,
+        receiver_id TEXT NOT NULL,
+        status TEXT DEFAULT 'Pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (requester_id) REFERENCES users(id),
+        FOREIGN KEY (receiver_id) REFERENCES users(id)
+    );
+    """)
+
+    # 35. Skill Endorsements Table
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS skill_endorsements (
+        id TEXT PRIMARY KEY,
+        endorser_id TEXT NOT NULL,
+        recipient_id TEXT NOT NULL,
+        skill_name TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (endorser_id) REFERENCES users(id),
+        FOREIGN KEY (recipient_id) REFERENCES users(id)
+    );
+    """)
+
+    # 36. 5-Type Post Reactions (Like, Celebrate, Support, Insightful, Mindblowing)
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS post_reactions (
+        id TEXT PRIMARY KEY,
+        post_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        reaction_type TEXT DEFAULT 'like',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (post_id) REFERENCES posts(id),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+    """)
+
+    # 37. User Professional Experience Timeline
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS user_experiences (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        company TEXT NOT NULL,
+        location TEXT,
+        start_date TEXT,
+        end_date TEXT,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+    """)
+
+    # 38. User Education & Qualifications
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS user_education (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        degree TEXT NOT NULL,
+        institution TEXT NOT NULL,
+        field_of_study TEXT,
+        year TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id)
     );

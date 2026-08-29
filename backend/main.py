@@ -2698,6 +2698,224 @@ def register_seller():
         return jsonify({"message": "Seller profile registered successfully", "seller_id": sid})
 
 
+# ─── LINKEDIN-STYLE PROFESSIONAL NETWORK APIS ─────────────────────────────
+
+@app.route("/api/connections/request", methods=["POST"])
+@require_auth
+def send_connection_request():
+    uid = str(request.current_user["id"])
+    data = request.get_json(force=True) or {}
+    receiver_id = data.get("receiver_id")
+
+    if not receiver_id or receiver_id == uid:
+        return jsonify({"detail": "Invalid target user for connection"}), 400
+
+    existing = db_one(
+        "SELECT * FROM connections WHERE (requester_id=%s AND receiver_id=%s) OR (requester_id=%s AND receiver_id=%s)",
+        (uid, receiver_id, receiver_id, uid)
+    )
+    if existing:
+        return jsonify({"message": "Connection request already exists", "status": existing["status"]})
+
+    conn_id = "conn_" + str(uuid.uuid4())[:8]
+    db_run("INSERT INTO connections (id, requester_id, receiver_id, status) VALUES (%s,%s,%s,%s)",
+           (conn_id, uid, receiver_id, "Pending"))
+    
+    actor_name = request.current_user.get("name", "Someone")
+    create_notification(receiver_id, uid, "connection_request", message=f"{actor_name} sent you a connection request.")
+
+    return jsonify({"message": "Connection request sent!", "connection_id": conn_id, "status": "Pending"})
+
+
+@app.route("/api/connections/<conn_id>/accept", methods=["POST"])
+@require_auth
+def accept_connection_request(conn_id):
+    uid = str(request.current_user["id"])
+    conn = db_one("SELECT * FROM connections WHERE id=%s AND receiver_id=%s", (conn_id, uid))
+    if not conn:
+        return jsonify({"detail": "Connection request not found"}), 404
+
+    db_run("UPDATE connections SET status='Accepted' WHERE id=%s", (conn_id,))
+    
+    # Award 10 HU Coins for establishing a 1st degree connection
+    user_row = db_one("SELECT hu_coins FROM users WHERE id=%s", (uid,))
+    current_coins = user_row["hu_coins"] if user_row and user_row.get("hu_coins") is not None else 500
+    new_coins = current_coins + 10
+    db_run("UPDATE users SET hu_coins=%s, coins=%s WHERE id=%s", (new_coins, new_coins, uid))
+    
+    actor_name = request.current_user.get("name", "Someone")
+    create_notification(conn["requester_id"], uid, "connection_accept", message=f"{actor_name} accepted your connection request.")
+
+    return jsonify({"message": "Connection request accepted!", "status": "Accepted", "new_hu_coins": new_coins})
+
+
+@app.route("/api/connections/mine", methods=["GET"])
+@require_auth
+def get_my_connections():
+    uid = str(request.current_user["id"])
+    active_rows = db_all(
+        """SELECT c.id, c.status, c.created_at, u.id as user_id, u.name, u.specialty, u.avatar_url, u.hospital 
+           FROM connections c JOIN users u ON (c.requester_id = u.id OR c.receiver_id = u.id) 
+           WHERE (c.requester_id = %s OR c.receiver_id = %s) AND u.id != %s AND c.status = 'Accepted'""",
+        (uid, uid, uid)
+    )
+    pending_requests = db_all(
+        """SELECT c.id, c.status, c.created_at, u.id as user_id, u.name, u.specialty, u.avatar_url, u.hospital 
+           FROM connections c JOIN users u ON c.requester_id = u.id 
+           WHERE c.receiver_id = %s AND c.status = 'Pending'""",
+        (uid,)
+    )
+    return jsonify({"connections": active_rows, "pending_requests": pending_requests})
+
+
+@app.route("/api/connections/suggestions", methods=["GET"])
+@require_auth
+def get_connection_suggestions():
+    uid = str(request.current_user["id"])
+    suggestions = db_all(
+        """SELECT id, name, specialty, hospital, avatar_url, role 
+           FROM users 
+           WHERE id != %s AND id NOT IN (
+               SELECT receiver_id FROM connections WHERE requester_id = %s
+               UNION
+               SELECT requester_id FROM connections WHERE receiver_id = %s
+           ) LIMIT 6""",
+        (uid, uid, uid)
+    )
+    return jsonify({"suggestions": suggestions})
+
+
+@app.route("/api/skills/endorse", methods=["POST"])
+@require_auth
+def endorse_skill():
+    uid = str(request.current_user["id"])
+    data = request.get_json(force=True) or {}
+    recipient_id = data.get("recipient_id")
+    skill_name = (data.get("skill_name") or "").strip()
+
+    if not recipient_id or not skill_name or recipient_id == uid:
+        return jsonify({"detail": "Recipient ID and skill name are required"}), 400
+
+    existing = db_one(
+        "SELECT id FROM skill_endorsements WHERE endorser_id=%s AND recipient_id=%s AND skill_name=%s",
+        (uid, recipient_id, skill_name)
+    )
+    if existing:
+        return jsonify({"detail": "You have already endorsed this skill"}), 400
+
+    eid = "end_" + str(uuid.uuid4())[:8]
+    db_run("INSERT INTO skill_endorsements (id, endorser_id, recipient_id, skill_name) VALUES (%s,%s,%s,%s)",
+           (eid, uid, recipient_id, skill_name))
+
+    # Award +5 HU Coins to both endorser and recipient
+    for user_id, role in [(uid, "ENDORSING_COLLEAGUE"), (recipient_id, "SKILL_RECIPIENT")]:
+        row = db_one("SELECT hu_coins FROM users WHERE id=%s", (user_id,))
+        cur_coins = row["hu_coins"] if row and row.get("hu_coins") is not None else 500
+        new_c = cur_coins + 5
+        db_run("UPDATE users SET hu_coins=%s, coins=%s WHERE id=%s", (new_c, new_c, user_id))
+        db_run("""INSERT INTO wallet_ledger 
+                  (id, user_id, credit_debit, value_type, amount, source_type, source_id, idempotency_key, balance_before, balance_after, status)
+                  VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+               ("led_" + str(uuid.uuid4())[:8], user_id, "CREDIT", "HU Coins", 5, "SKILL_ENDORSEMENT_REWARD", eid, f"end_{eid}_{user_id}", cur_coins, new_c, "Settled"))
+
+    actor_name = request.current_user.get("name", "Someone")
+    create_notification(recipient_id, uid, "endorsement", message=f"{actor_name} endorsed your skill in '{skill_name}'.")
+
+    return jsonify({"message": f"Endorsed {skill_name}! Earned +5 HU Coins", "endorsement_id": eid})
+
+
+@app.route("/api/skills/<user_id>", methods=["GET"])
+def get_user_skills_endorsements(user_id):
+    endorsements = db_all(
+        """SELECT skill_name, COUNT(*) as endorsement_count 
+           FROM skill_endorsements WHERE recipient_id=%s GROUP BY skill_name ORDER BY endorsement_count DESC""",
+        (user_id,)
+    )
+    return jsonify({"skills": endorsements})
+
+
+@app.route("/api/posts/<post_id>/react", methods=["POST"])
+@require_auth
+def react_to_post(post_id):
+    uid = str(request.current_user["id"])
+    data = request.get_json(force=True) or {}
+    reaction_type = data.get("reaction_type", "like").lower()
+
+    valid_reactions = {"like", "celebrate", "support", "insightful", "mindblowing"}
+    if reaction_type not in valid_reactions:
+        reaction_type = "like"
+
+    post = db_one("SELECT * FROM posts WHERE id=%s", (post_id,))
+    if not post:
+        return jsonify({"detail": "Post not found"}), 404
+
+    existing = db_one("SELECT * FROM post_reactions WHERE post_id=%s AND user_id=%s", (post_id, uid))
+    
+    if existing and existing["reaction_type"] == reaction_type:
+        # Toggle off
+        db_run("DELETE FROM post_reactions WHERE id=%s", (existing["id"],))
+        user_reaction = None
+    elif existing:
+        # Change reaction type
+        db_run("UPDATE post_reactions SET reaction_type=%s WHERE id=%s", (reaction_type, existing["id"]))
+        user_reaction = reaction_type
+    else:
+        # Insert new reaction
+        rid = "rx_" + str(uuid.uuid4())[:8]
+        db_run("INSERT INTO post_reactions (id, post_id, user_id, reaction_type) VALUES (%s,%s,%s,%s)",
+               (rid, post_id, uid, reaction_type))
+        user_reaction = reaction_type
+
+        # Reward author +5 HU Coins for insightful / celebrate / support reactions
+        if reaction_type in {"insightful", "celebrate", "support"} and post["user_id"] != uid:
+            author_row = db_one("SELECT hu_coins FROM users WHERE id=%s", (post["user_id"],))
+            cur_coins = author_row["hu_coins"] if author_row and author_row.get("hu_coins") is not None else 500
+            new_c = cur_coins + 5
+            db_run("UPDATE users SET hu_coins=%s, coins=%s WHERE id=%s", (new_c, new_c, post["user_id"]))
+            actor_name = request.current_user.get("name", "Someone")
+            create_notification(post["user_id"], uid, "reaction", post_id, message=f"{actor_name} reacted '{reaction_type}' to your post!")
+
+    # Calculate reaction breakdown counts
+    counts = db_all(
+        "SELECT reaction_type, COUNT(*) as cnt FROM post_reactions WHERE post_id=%s GROUP BY reaction_type",
+        (post_id,)
+    )
+    breakdown = {r: 0 for r in valid_reactions}
+    total_cnt = 0
+    for r in counts:
+        breakdown[r["reaction_type"]] = r["cnt"]
+        total_cnt += r["cnt"]
+
+    # Also update posts.likes count for backwards compatibility
+    db_run("UPDATE posts SET likes=%s WHERE id=%s", (total_cnt, post_id))
+
+    return jsonify({"total_reactions": total_cnt, "reactions_breakdown": breakdown, "my_reaction": user_reaction})
+
+
+@app.route("/api/profile/experience", methods=["POST"])
+@require_auth
+def add_user_experience():
+    uid = str(request.current_user["id"])
+    data = request.get_json(force=True) or {}
+    title = (data.get("title") or "").strip()
+    company = (data.get("company") or "").strip()
+    if not title or not company:
+        return jsonify({"detail": "Job title and company name are required"}), 400
+
+    exp_id = "exp_" + str(uuid.uuid4())[:8]
+    db_run("""INSERT INTO user_experiences (id, user_id, title, company, location, start_date, end_date, description)
+              VALUES (%s,%s,%s,%s,%s,%s,%s,%s)""",
+           (exp_id, uid, title, company, data.get("location", ""), data.get("start_date", ""), data.get("end_date", "Present"), data.get("description", "")))
+
+    return jsonify({"message": "Experience added to profile", "experience_id": exp_id})
+
+
+@app.route("/api/profile/experience/<user_id>", methods=["GET"])
+def get_user_experiences(user_id):
+    experiences = db_all("SELECT * FROM user_experiences WHERE user_id=%s ORDER BY created_at DESC", (user_id,))
+    return jsonify({"experiences": experiences})
+
+
 
 
 

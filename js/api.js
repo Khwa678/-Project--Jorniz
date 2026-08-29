@@ -757,6 +757,70 @@ async function huCancelOrder(orderId) {
   return data;
 }
 
+// ── LinkedIn-Style Professional Network APIs ──────────────────────────────────
+async function huSendConnectionRequest(receiverId) {
+  var res = await huFetch("/api/connections/request", {
+    method: "POST",
+    body: JSON.stringify({ receiver_id: receiverId }),
+  });
+  if (!res) return null;
+  var data = await res.json();
+  if (!res.ok) throw new Error(data.detail || "Failed to send request");
+  return data;
+}
+
+async function huAcceptConnection(connId) {
+  var res = await huFetch("/api/connections/" + connId + "/accept", {
+    method: "POST",
+  });
+  if (!res) return null;
+  var data = await res.json();
+  if (!res.ok) throw new Error(data.detail || "Failed to accept connection");
+  if (data.new_hu_coins !== undefined) huUpdateUserCoins(data.new_hu_coins);
+  return data;
+}
+
+async function huGetMyConnections() {
+  var res = await huFetch("/api/connections/mine");
+  if (!res || !res.ok) return { connections: [], pending_requests: [] };
+  return await res.json();
+}
+
+async function huGetConnectionSuggestions() {
+  var res = await huFetch("/api/connections/suggestions");
+  if (!res || !res.ok) return [];
+  var data = await res.json();
+  return data.suggestions || [];
+}
+
+async function huEndorseSkill(recipientId, skillName) {
+  var res = await huFetch("/api/skills/endorse", {
+    method: "POST",
+    body: JSON.stringify({ recipient_id: recipientId, skill_name: skillName }),
+  });
+  if (!res) return null;
+  var data = await res.json();
+  if (!res.ok) throw new Error(data.detail || "Endorsement failed");
+  return data;
+}
+
+async function huGetUserSkills(userId) {
+  var res = await fetch(HU_API + "/api/skills/" + userId);
+  if (!res || !res.ok) return [];
+  var data = await res.json();
+  return data.skills || [];
+}
+
+async function huReactToPost(postId, reactionType) {
+  reactionType = reactionType || "like";
+  var res = await huFetch("/api/posts/" + postId + "/react", {
+    method: "POST",
+    body: JSON.stringify({ reaction_type: reactionType }),
+  });
+  if (!res || !res.ok) return null;
+  return await res.json();
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", function () {
   applyUserToUI();

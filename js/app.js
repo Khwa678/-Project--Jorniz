@@ -29,6 +29,7 @@ function navigate(pageId, clickedBtn) {
   if (pageId === "explore") renderCreators();
   if (pageId === "consultations") renderDoctors();
   if (pageId === "jobs") renderJobs();
+  if (pageId === "network") loadNetworkPage();
   if (pageId === "ads") renderAdsManager();
   if (pageId === "notifications") loadRealNotifications();
 }
@@ -2238,5 +2239,131 @@ function searchSpecialties() {
   for (let btn of buttons) {
     const text = btn.innerText.toLowerCase();
     btn.style.display = text.includes(input) ? "block" : "none";
+  }
+}
+
+// ── LINKEDIN-STYLE NETWORK & REACTION LOGIC ───────────────────────────────────
+async function loadNetworkPage() {
+  const pendingContainer = document.getElementById("pending-requests-container");
+  const activeContainer = document.getElementById("active-connections-container");
+  const suggestionsGrid = document.getElementById("suggestions-grid");
+  const badge = document.getElementById("pending-count-badge");
+
+  if (!pendingContainer || !activeContainer) return;
+
+  try {
+    const data = await huGetMyConnections();
+    const suggestions = await huGetConnectionSuggestions();
+
+    // 1. Pending Invitations
+    const pending = data.pending_requests || [];
+    if (badge) {
+      if (pending.length > 0) {
+        badge.textContent = pending.length;
+        badge.style.display = "inline-block";
+      } else {
+        badge.style.display = "none";
+      }
+    }
+
+    if (!pending.length) {
+      pendingContainer.innerHTML = `<p style="color:#64748b;font-size:13.5px;">No pending connection requests.</p>`;
+    } else {
+      pendingContainer.innerHTML = pending.map(req => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f1f5f9;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <img src="${getLetterAvatar(req.name, 48)}" style="width:40px;height:40px;border-radius:50%;"/>
+            <div>
+              <strong style="font-size:14px;color:#0f172a;">${req.name}</strong>
+              <div style="font-size:12px;color:#64748b;">${req.specialty || 'Healthcare Professional'} ${req.hospital ? '· ' + req.hospital : ''}</div>
+            </div>
+          </div>
+          <button onclick="handleAcceptConnection('${req.id}', this)" style="background:#16a34a;color:white;border:none;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;">
+            Accept (+10 Coins)
+          </button>
+        </div>
+      `).join('');
+    }
+
+    // 2. Active 1st Degree Connections
+    const active = data.connections || [];
+    if (!active.length) {
+      activeContainer.innerHTML = `<p style="color:#64748b;font-size:13.5px;grid-column:1/-1;">You have 0 connections. Connect with healthcare professionals below!</p>`;
+    } else {
+      activeContainer.innerHTML = active.map(c => `
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px;">
+          <img src="${getLetterAvatar(c.name, 56)}" style="width:48px;height:48px;border-radius:50%;"/>
+          <div style="flex:1;overflow:hidden;">
+            <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.name}</div>
+            <div style="font-size:12px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.specialty || 'Professional'}</div>
+            <div style="display:flex;gap:6px;margin-top:6px;">
+              <button onclick="promptEndorseSkill('${c.user_id}', '${c.name}', '${c.specialty || 'Clinical Expertise'}')" style="background:#dcfce7;color:#15803d;border:none;border-radius:6px;padding:4px 8px;font-size:11.5px;font-weight:600;cursor:pointer;">
+                👏 Endorse (+5 Coins)
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 3. People You May Know
+    if (suggestionsGrid) {
+      if (!suggestions.length) {
+        suggestionsGrid.innerHTML = `<p style="color:#64748b;font-size:13.5px;grid-column:1/-1;">No new suggestions right now.</p>`;
+      } else {
+        suggestionsGrid.innerHTML = suggestions.map(s => `
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;text-align:center;">
+            <img src="${getLetterAvatar(s.name, 64)}" style="width:56px;height:56px;border-radius:50%;margin:0 auto 8px;"/>
+            <div style="font-weight:700;font-size:14px;">${s.name}</div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:12px;">${s.specialty || s.role}</div>
+            <button onclick="handleSendConnection('${s.id}', this)" style="background:#0284c7;color:white;border:none;border-radius:8px;padding:7px 16px;font-weight:600;font-size:13px;cursor:pointer;width:100%;">
+              Connect 🤝
+            </button>
+          </div>
+        `).join('');
+      }
+    }
+  } catch (err) {
+    console.log("Error loading network page:", err);
+  }
+}
+
+async function handleSendConnection(receiverId, btn) {
+  btn.disabled = true;
+  btn.textContent = "Sending…";
+  try {
+    await huSendConnectionRequest(receiverId);
+    btn.textContent = "Pending ⏳";
+    btn.style.background = "#94a3b8";
+    showToast("🤝 Connection request sent!");
+  } catch (err) {
+    showToast("❌ " + (err.message || "Could not send request"));
+    btn.disabled = false;
+    btn.textContent = "Connect 🤝";
+  }
+}
+
+async function handleAcceptConnection(connId, btn) {
+  btn.disabled = true;
+  try {
+    const res = await huAcceptConnection(connId);
+    showToast(`🎉 Connection accepted! Earned +10 HU Coins.`);
+    loadNetworkPage();
+  } catch (err) {
+    showToast("❌ " + (err.message || "Failed to accept"));
+    btn.disabled = false;
+  }
+}
+
+async function promptEndorseSkill(recipientId, name, defaultSkill) {
+  const skill = prompt(`Endorse ${name} for a skill:`, defaultSkill);
+  if (!skill || !skill.trim()) return;
+
+  try {
+    const res = await huEndorseSkill(recipientId, skill.trim());
+    showToast(`👏 Endorsed ${name} for ${skill}! Both earned +5 HU Coins.`);
+    loadNetworkPage();
+  } catch (err) {
+    showToast("❌ " + (err.message || "Endorsement failed"));
   }
 }
