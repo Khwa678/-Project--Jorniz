@@ -2889,16 +2889,20 @@ function setExploreSearchTab(tabKey, btn) {
 
   // Filter sections on Explore page based on selected tab
   const sections = document.querySelectorAll("#page-explore [data-section-type]");
-  let matchCount = 0;
+  let targetSec = null;
   sections.forEach(sec => {
     const type = sec.getAttribute("data-section-type");
     if (tabKey === "all" || type === tabKey || (tabKey === "posts" && type === "case-studies") || type === "rewards") {
-      sec.style.display = type === "rewards" && tabKey !== "all" ? "flex" : (sec.id === "sec-explore-companies" || sec.id === "sec-explore-communities" || sec.id === "sec-explore-pymk" ? "block" : "block");
-      if (type !== "rewards") matchCount++;
+      sec.style.display = type === "rewards" && tabKey !== "all" ? "flex" : "block";
+      if (!targetSec && type === tabKey) targetSec = sec;
     } else {
       sec.style.display = "none";
     }
   });
+
+  if (targetSec) {
+    targetSec.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
 
   const tabLabels = {
     all: "All Sections",
