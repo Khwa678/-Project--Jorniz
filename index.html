@@ -184,59 +184,117 @@
     </div> -->
   </section>
 
-  <!-- EXPLORE PAGE -->
+  <!-- EXPLORE PAGE (LinkedIn Professional Healthcare Hub) -->
   <section id="page-explore" class="page">
-    <div class="page-header"><h1>Explore</h1></div>
-    <div class="search-bar">
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <h1>Explore Healthcare &amp; Research</h1>
+        <p style="font-size:13.5px;color:#64748b;margin-top:2px;">Discover medical research papers, verified case studies, CME events, and top specialists</p>
+      </div>
+    </div>
+
+    <!-- Live Search Bar -->
+    <div class="search-bar" style="position:relative;">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" placeholder="Search for doctors, medical papers, or topics..."/>
+      <input type="text" id="explore-search-input" oninput="handleExploreSearch(this.value)" placeholder="Search for doctors, medical research papers, case studies, or clinical topics..."/>
     </div>
+    
+    <!-- Live Search Results Overlay Container -->
+    <div id="explore-search-results" style="display:none;background:white;border:1px solid #cbd5e1;border-radius:12px;padding:16px;margin-bottom:20px;box-shadow:0 10px 25px -5px rgba(0,0,0,0.1);"></div>
+
+    <!-- Professional Filter Tabs -->
     <div class="filter-tabs">
-      <button class="filter-tab active" onclick="setFilter(this)">All</button>
-      <button class="filter-tab" onclick="setFilter(this)">Med-Education</button>
-      <button class="filter-tab" onclick="setFilter(this)">Doctors</button>
-      <button class="filter-tab" onclick="setFilter(this)">Case Studies</button>
-      <button class="filter-tab" onclick="setFilter(this)">General Health</button>
+      <button class="filter-tab active" onclick="setExploreFilter('all', this)">All</button>
+      <button class="filter-tab" onclick="setExploreFilter('med-education', this)">Med-Education</button>
+      <button class="filter-tab" onclick="setExploreFilter('doctors', this)">Doctors &amp; Specialists</button>
+      <button class="filter-tab" onclick="setExploreFilter('case-studies', this)">Case Studies</button>
+      <button class="filter-tab" onclick="setExploreFilter('research-papers', this)">Research Papers</button>
+      <button class="filter-tab" onclick="setExploreFilter('webinars', this)">CME Webinars &amp; Events</button>
+      <button class="filter-tab" onclick="setExploreFilter('general-health', this)">General Health</button>
     </div>
-    <div class="section-header"><h2>Trending Topics</h2></div>
-    <div class="topics-grid">
+
+    <!-- Section 1: Trending Healthcare Topics -->
+    <div class="section-header"><h2>Trending Healthcare Topics</h2></div>
+    <div class="topics-grid" id="explore-topics-grid">
       <div class="topic-card" onclick="openDeepUnderstanding('heart_health')"><span class="topic-emoji">❤️</span><span class="topic-arrow">↗</span><h3>Heart Health</h3><small>12.5K posts</small></div>
       <div class="topic-card" onclick="openDeepUnderstanding('mental_wellness')"><span class="topic-emoji">🧠</span><span class="topic-arrow">↗</span><h3>Mental Wellness</h3><small>24.3K posts</small></div>
       <div class="topic-card" onclick="openDeepUnderstanding('nutrition_tips')"><span class="topic-emoji">🥗</span><span class="topic-arrow">↗</span><h3>Nutrition Tips</h3><small>18.7K posts</small></div>
       <div class="topic-card" onclick="openDeepUnderstanding('fitness_goals')"><span class="topic-emoji">💪</span><span class="topic-arrow">↗</span><h3>Fitness Goals</h3><small>31.2K posts</small></div>
-      <div class="topic-card" onclick="openDeepUnderstanding('gut_health')">
-  <span class="topic-emoji">🦠</span><span class="topic-arrow">↗</span>
-  <h3>Gut & Stomach Health</h3>
-  <small>42.1K posts</small>
-</div>
-
-<div class="topic-card" onclick="openDeepUnderstanding('neuro_brain')">
-  <span class="topic-emoji">🧠</span><span class="topic-arrow">↗</span>
-  <h3>Neuro & Brain Performance</h3>
-  <small>38.5K posts</small>
-</div>
-
-<div class="topic-card" onclick="openDeepUnderstanding('sexual_wellness')">
-  <span class="topic-emoji">🧬</span><span class="topic-arrow">↗</span>
-  <h3>Sexual Health & Wellness</h3>
-  <small>19.8K posts</small>
-</div>
-<!-- 4. Sleep & Circadian Recovery (NEW) -->
-<div class="topic-card" onclick="openDeepUnderstanding('sleep_recovery')">
-  <span class="topic-emoji">💤</span><span class="topic-arrow">↗</span>
-  <h3>Sleep & Circadian Recovery</h3>
-  <small>28.4K posts</small>
-</div>
-
-<!-- 5. Skin & Epidermal Barrier (NEW) -->
-<div class="topic-card" onclick="openDeepUnderstanding('skin_barrier')">
-  <span class="topic-emoji">✨</span><span class="topic-arrow">↗</span>
-  <h3>Skin & Epidermal Barrier</h3>
-  <small>16.7K posts</small>
-</div>
+      <div class="topic-card" onclick="openDeepUnderstanding('gut_health')"><span class="topic-emoji">🦠</span><span class="topic-arrow">↗</span><h3>Gut &amp; Stomach Health</h3><small>42.1K posts</small></div>
+      <div class="topic-card" onclick="openDeepUnderstanding('neuro_brain')"><span class="topic-emoji">🧠</span><span class="topic-arrow">↗</span><h3>Neuro &amp; Brain Performance</h3><small>38.5K posts</small></div>
+      <div class="topic-card" onclick="openDeepUnderstanding('sexual_wellness')"><span class="topic-emoji">🧬</span><span class="topic-arrow">↗</span><h3>Sexual Health &amp; Wellness</h3><small>19.8K posts</small></div>
+      <div class="topic-card" onclick="openDeepUnderstanding('sleep_recovery')"><span class="topic-emoji">💤</span><span class="topic-arrow">↗</span><h3>Sleep &amp; Circadian Recovery</h3><small>28.4K posts</small></div>
+      <div class="topic-card" onclick="openDeepUnderstanding('skin_barrier')"><span class="topic-emoji">✨</span><span class="topic-arrow">↗</span><h3>Skin &amp; Epidermal Barrier</h3><small>16.7K posts</small></div>
     </div>
+
+    <!-- Section 2: Medical Case Studies & Peer-Reviewed Research Papers -->
+    <div class="section-header" style="margin-top:32px;display:flex;justify-content:space-between;align-items:center;">
+      <h2>📄 Clinical Case Studies &amp; Research Papers</h2>
+      <button onclick="showToast('📄 Opening full medical library...')" style="background:none;border:none;color:#0284c7;font-weight:600;cursor:pointer;font-size:13.5px;">View Medical Library →</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:16px;margin-bottom:28px;" id="case-studies-grid">
+      <div style="background:white;border:1px solid #e2e8f0;border-radius:14px;padding:18px;display:flex;flex-direction:column;justify:space-between;">
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="background:#e0f2fe;color:#0369a1;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:6px;">PEER-REVIEWED</span>
+            <small style="color:#64748b;">Aug 2026</small>
+          </div>
+          <h4 style="font-size:15px;color:#0f172a;margin-bottom:6px;line-height:1.4;">Long-Term Efficacy of mRNA Interventions in Cardiac Recovery</h4>
+          <p style="font-size:13px;color:#475569;margin-bottom:12px;">Journal of Cardiovascular Medicine · Dr. Sarah Mitchell et al.</p>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid #f1f5f9;padding-top:10px;">
+          <span style="font-size:12px;color:#16a34a;font-weight:600;">⭐ 4.9 (142 Citations)</span>
+          <button onclick="showToast('📥 Downloading research paper PDF (+10 HU Coins earned)...')" style="background:#0284c7;color:white;border:none;border-radius:8px;padding:6px 12px;font-weight:600;font-size:12px;cursor:pointer;">Read Abstract 📄</button>
+        </div>
+      </div>
+
+      <div style="background:white;border:1px solid #e2e8f0;border-radius:14px;padding:18px;display:flex;flex-direction:column;justify:space-between;">
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="background:#fef3c7;color:#b45309;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:6px;">CLINICAL CASE STUDY</span>
+            <small style="color:#64748b;">Jul 2026</small>
+          </div>
+          <h4 style="font-size:15px;color:#0f172a;margin-bottom:6px;line-height:1.4;">Gut Microbiome Modulation in Refractory IBS Patients</h4>
+          <p style="font-size:13px;color:#475569;margin-bottom:12px;">Gastroenterology Today · Maria Santos, MSc</p>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid #f1f5f9;padding-top:10px;">
+          <span style="font-size:12px;color:#16a34a;font-weight:600;">⭐ 4.8 (89 Citations)</span>
+          <button onclick="showToast('📥 Opening case study analysis...')" style="background:#0284c7;color:white;border:none;border-radius:8px;padding:6px 12px;font-weight:600;font-size:12px;cursor:pointer;">Read Case Study 🔬</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Upcoming Medical Conferences & CME Webinars (LinkedIn Events) -->
     <div class="section-header" style="margin-top:28px;">
-      <h2>Top Creators to Follow</h2>
+      <h2>📅 Upcoming CME Webinars &amp; Medical Conferences</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:16px;margin-bottom:28px;" id="webinars-grid">
+      <div style="background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%);color:white;border-radius:14px;padding:18px;display:flex;flex-direction:column;justify:space-between;">
+        <div>
+          <span style="background:#22c55e;color:white;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;">LIVE CME WEBINAR</span>
+          <h4 style="font-size:16px;color:white;margin:8px 0 4px 0;">AI Diagnostics Summit 2026</h4>
+          <p style="font-size:12.5px;color:#cbd5e1;margin-bottom:12px;">Sept 15, 2026 · 4:00 PM UTC · Earn 3.5 CME Credits</p>
+        </div>
+        <button onclick="showToast('🎉 Registered for AI Diagnostics Summit! Earned +25 HU Coins.');huUpdateUserCoins(userCoins+25);" style="background:#22c55e;color:white;border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;width:100%;">
+          Register &amp; Earn CME (+25 HU Coins) 🎟️
+        </button>
+      </div>
+
+      <div style="background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%);color:white;border-radius:14px;padding:18px;display:flex;flex-direction:column;justify:space-between;">
+        <div>
+          <span style="background:#f59e0b;color:white;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;">GLOBAL CONVENTION</span>
+          <h4 style="font-size:16px;color:white;margin:8px 0 4px 0;">World Preventive Cardiology Expo</h4>
+          <p style="font-size:12.5px;color:#e0f2fe;margin-bottom:12px;">Oct 02, 2026 · Virtual &amp; Hybrid · 5.0 CME Credits</p>
+        </div>
+        <button onclick="showToast('🎉 Registered for Cardiology Expo! Earned +25 HU Coins.');huUpdateUserCoins(userCoins+25);" style="background:#ffffff;color:#0284c7;border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;width:100%;">
+          Register &amp; Earn CME (+25 HU Coins) 🎟️
+        </button>
+      </div>
+    </div>
+
+    <!-- Section 4: Top Creators & Medical Professionals -->
+    <div class="section-header" style="margin-top:28px;">
+      <h2>Top Healthcare Creators &amp; Specialists</h2>
       <a href="#" class="view-all">View all</a>
     </div>
     <div class="creators-grid" id="creators-grid"></div>

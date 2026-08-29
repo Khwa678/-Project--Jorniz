@@ -425,21 +425,98 @@ function claimRevenue(postId, btn) {
   showToast(`💰 $${post.earnings.toFixed(2)} added to your Health Balance!`);
 }
 
-/* Creators Grid */
+/* Creators Grid with LinkedIn Professional Networking Actions */
 function renderCreators() {
   const grid = document.getElementById("creators-grid");
   if (!grid || typeof CREATORS === "undefined") return;
   grid.innerHTML = CREATORS.map(
-    (c) => `
-    <div class="creator-card">
-      <img src="${c.avatar}" alt="${c.name}" loading="lazy"/>
-      <h3>${c.name}${c.verified ? '<span class="verified-dot"></span>' : ""}</h3>
-      <div class="creator-role">${c.role}</div>
-      <div class="creator-followers">${c.followers}</div>
-      <button class="follow-btn" onclick="toggleFollow(this)">Follow</button>
+    (c, idx) => `
+    <div class="creator-card" style="padding:18px;display:flex;flex-direction:column;align-items:center;text-align:center;background:white;border:1px solid #e2e8f0;border-radius:14px;">
+      <img src="${c.avatar}" alt="${c.name}" loading="lazy" style="width:72px;height:72px;border-radius:50%;object-fit:cover;margin-bottom:10px;"/>
+      <h3 style="font-size:15px;margin-bottom:2px;">${c.name}${c.verified ? '<span class="verified-dot"></span>' : ""}</h3>
+      <div class="creator-role" style="font-size:12.5px;color:#64748b;margin-bottom:4px;">${c.role}</div>
+      <div class="creator-followers" style="font-size:12px;color:#94a3b8;margin-bottom:12px;">${c.followers} followers</div>
+      <div style="display:flex;flex-direction:column;gap:6px;width:100%;">
+        <div style="display:flex;gap:6px;">
+          <button class="follow-btn" onclick="toggleFollow(this)" style="flex:1;">Follow</button>
+          <button onclick="handleSendConnection('user_${idx+100}', this)" style="background:#0284c7;color:white;border:none;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;flex:1;">Connect 🤝</button>
+        </div>
+        <button onclick="promptEndorseSkill('user_${idx+100}', '${c.name}', '${c.role}')" style="background:#dcfce7;color:#15803d;border:none;border-radius:8px;padding:6px;font-size:12px;font-weight:600;cursor:pointer;width:100%;">👏 Endorse Skill (+5 Coins)</button>
+      </div>
     </div>
   `,
   ).join("");
+}
+
+/* Explore Live Search Handler */
+async function handleExploreSearch(query) {
+  const container = document.getElementById("explore-search-results");
+  if (!container) return;
+  
+  query = (query || "").trim();
+  if (!query || query.length < 2) {
+    container.style.display = "none";
+    container.innerHTML = "";
+    return;
+  }
+
+  container.style.display = "block";
+  container.innerHTML = `<div style="font-size:13px;color:#64748b;">🔍 Searching for "<b>${query}</b>" across doctors, research papers, and case studies...</div>`;
+
+  try {
+    const res = await fetch(HU_API + "/api/search?q=" + encodeURIComponent(query));
+    if (!res.ok) throw new Error("Search failed");
+    const data = await res.json();
+
+    const doctors = data.doctors || [];
+    const posts = data.posts || [];
+    const jobs = data.jobs || [];
+
+    if (!doctors.length && !posts.length && !jobs.length) {
+      container.innerHTML = `<div style="font-size:13.5px;color:#64748b;padding:8px 0;">No matching results found for "<b>${query}</b>".</div>`;
+      return;
+    }
+
+    container.innerHTML = `
+      <div style="font-weight:700;font-size:14px;margin-bottom:10px;color:#0f172a;">Search Results (${doctors.length + posts.length + jobs.length} matches):</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        ${doctors.length ? `
+          <div>
+            <strong style="font-size:12.5px;color:#0284c7;text-transform:uppercase;">👨‍⚕️ Doctors (${doctors.length})</strong>
+            ${doctors.map(d => `
+              <div style="padding:6px 0;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                  <div style="font-size:13px;font-weight:600;">${d.name}</div>
+                  <small style="color:#64748b;">${d.specialty || 'Specialist'}</small>
+                </div>
+                <button onclick="handleSendConnection('${d.id}', this)" style="background:#0284c7;color:white;border:none;border-radius:6px;padding:4px 8px;font-size:11px;">Connect 🤝</button>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+        ${posts.length ? `
+          <div>
+            <strong style="font-size:12.5px;color:#16a34a;text-transform:uppercase;">📄 Publications &amp; Posts (${posts.length})</strong>
+            ${posts.map(p => `
+              <div style="padding:6px 0;border-bottom:1px solid #f1f5f9;">
+                <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.content || p.title}</div>
+                <small style="color:#64748b;">By ${p.user_name || 'Verified Author'}</small>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  } catch (err) {
+    container.innerHTML = `<div style="font-size:13px;color:#ef4444;">Search unavailable offline.</div>`;
+  }
+}
+
+/* Explore Filter Selector */
+function setExploreFilter(cat, btn) {
+  document.querySelectorAll("#page-explore .filter-tab").forEach(t => t.classList.remove("active"));
+  if (btn) btn.classList.add("active");
+  showToast(`🔍 Filtering Explore view by: ${cat.toUpperCase()}`);
 }
 
 /* Profile Grid */
