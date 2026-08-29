@@ -2443,13 +2443,18 @@ def get_rewards_summary():
     
     # Ledger History
     transactions = db_all(
-        "SELECT * FROM wallet_ledger WHERE user_id = %s ORDER BY timestamp DESC LIMIT 20",
+        "SELECT * FROM wallet_ledger WHERE user_id = %s ORDER BY created_at DESC LIMIT 20",
         (uid,)
     )
     
     # Calculate Total Saved via Rewards
     saved_row = db_one("SELECT SUM(coins_discount) as total_saved FROM orders WHERE user_id = %s AND status != 'Cancelled'", (uid,))
-    total_saved = saved_row["total_saved"] if saved_row and saved_row.get("total_saved") is not None else 0.0
+    total_saved = 0.0
+    if saved_row:
+        if isinstance(saved_row, dict) and saved_row.get("total_saved") is not None:
+            total_saved = float(saved_row["total_saved"])
+        elif isinstance(saved_row, (tuple, list)) and len(saved_row) > 0 and saved_row[0] is not None:
+            total_saved = float(saved_row[0])
 
     return jsonify({
         "hu_coins_balance": hu_coins,
