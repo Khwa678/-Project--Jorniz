@@ -2306,6 +2306,157 @@ def cancel_order(order_id):
         "new_hu_coins": new_coins
     })
 
+
+@app.route("/api/products/<product_id>", methods=["GET"])
+def get_product_details(product_id):
+    product = db_one("SELECT * FROM products WHERE id = %s", (product_id,))
+    if not product:
+        return jsonify({"detail": "Product not found"}), 404
+    product = dict(product)
+
+    # Attach default rich specs if missing
+    product["brand"] = product.get("brand") or "Healthy Universe Organics"
+    product["ingredients"] = product.get("ingredients") or "100% Pure Organic Extracts, Zero Artificial Preservatives, Gluten-Free, Non-GMO"
+    product["specifications"] = product.get("specifications") or "Form: Capsules/Powder · Serving Size: 1-2 daily · Shelf Life: 24 Months · Origin: Certified Organic Farms"
+    product["usage_instructions"] = product.get("usage_instructions") or "Take 1-2 capsules daily after meals with water or warm milk, or as directed by a healthcare professional."
+    product["safety_info"] = product.get("safety_info") or "Consult your physician before use if pregnant, nursing, taking medication, or under 18 years of age. Store in a cool, dry place."
+    product["delivery_info"] = product.get("delivery_info") or "Free Express Delivery on orders above ₹499. Ships within 24 hours."
+
+    # Sample Reviews
+    reviews = [
+        {"id": "rev_1", "user_name": "Dr. Ananya Sharma", "rating": 5, "comment": "Outstanding purity and therapeutic efficacy. Highly recommend for patients.", "date": "Aug 2026"},
+        {"id": "rev_2", "user_name": "Vikram Malhotra", "rating": 5, "comment": "Great product! Saved 50% using my earned HU Coins from CME webinars.", "date": "Jul 2026"},
+        {"id": "rev_3", "user_name": "Priya Patel", "rating": 4, "comment": "Authentic quality and very fast 2-day delivery.", "date": "Jun 2026"}
+    ]
+    product["reviews_list"] = reviews
+
+    # Related Products & Frequently Bought Together
+    category_id = product.get("category_id")
+    related = db_all("SELECT * FROM products WHERE category_id = %s AND id != %s LIMIT 4", (category_id, product_id))
+    frequently_bought = db_all("SELECT * FROM products WHERE id != %s LIMIT 2", (product_id,))
+
+    return jsonify({
+        "product": product,
+        "related_products": related,
+        "frequently_bought_together": frequently_bought
+    })
+
+
+@app.route("/api/cart/update", methods=["PUT"])
+@require_auth
+def update_cart_quantity():
+    uid = str(request.current_user["id"])
+    data = request.get_json(force=True) or {}
+    product_id = data.get("product_id")
+    quantity = int(data.get("quantity", 1))
+
+    if not product_id:
+        return jsonify({"detail": "Product ID is required"}), 400
+
+    if quantity <= 0:
+        db_run("DELETE FROM cart WHERE user_id = %s AND product_id = %s", (uid, product_id))
+        return jsonify({"message": "Item removed from cart"})
+
+    product = db_one("SELECT stock FROM products WHERE id = %s", (product_id,))
+    if not product:
+        return jsonify({"detail": "Product not found"}), 404
+
+    if product["stock"] < quantity:
+        return jsonify({"detail": f"Only {product['stock']} units available in stock"}), 400
+
+    db_run("UPDATE cart SET quantity = %s WHERE user_id = %s AND product_id = %s", (quantity, uid, product_id))
+    return jsonify({"message": "Cart quantity updated"})
+
+
+@app.route("/api/wishlist", methods=["GET"])
+@require_auth
+def get_wishlist():
+    uid = str(request.current_user["id"])
+    items = db_all(
+        """SELECT w.id as wishlist_id, p.* 
+           FROM wishlist w JOIN products p ON w.product_id = p.id 
+           WHERE w.user_id = %s ORDER BY w.created_at DESC""",
+        (uid,)
+    )
+    return jsonify({"wishlist": items})
+
+
+@app.route("/api/wishlist/toggle", methods=["POST"])
+@require_auth
+def toggle_wishlist():
+    uid = str(request.current_user["id"])
+    data = request.get_json(force=True) or {}
+    product_id = data.get("product_id")
+
+    if not product_id:
+        return jsonify({"detail": "Product ID is required"}), 400
+
+    existing = db_one("SELECT * FROM wishlist WHERE user_id = %s AND product_id = %s", (uid, product_id))
+    if existing:
+        db_run("DELETE FROM wishlist WHERE id = %s", (existing["id"],))
+        return jsonify({"message": "Item removed from wishlist", "in_wishlist": False})
+
+    wid = "wsh_" + str(uuid.uuid4())[:8]
+    db_run("INSERT INTO wishlist (id, user_id, product_id) VALUES (%s, %s, %s)", (wid, uid, product_id))
+    return jsonify({"message": "Item saved to wishlist", "in_wishlist": True})
+
+
+@app.route("/api/orders/<order_id>", methods=["GET"])
+@require_auth
+def get_order_tracking(order_id):
+    uid = str(request.current_user["id"])
+    order = db_one("SELECT * FROM orders WHERE id = %s AND user_id = %s", (order_id, uid))
+    if not order:
+        return jsonify({"detail": "Order not found"}), 404
+    order = dict(order)
+
+    items = db_all(
+        """SELECT oi.*, p.name, p.image_url, p.description 
+           FROM order_items oi JOIN products p ON oi.product_id = p.id 
+           WHERE oi.order_id = %s""",
+        (order_id,)
+    )
+    order["items"] = items
+
+    # Tracking Timeline Statuses
+    st = order.get("status", "Confirmed")
+    timeline = [
+        {"step": "Order Placed", "status": "completed", "date": order.get("created_at", "Just now")},
+        {"step": "Payment Confirmed", "status": "completed" if st != "Cancelled" else "failed", "date": order.get("created_at", "Just now")},
+        {"step": "Processing", "status": "completed" if st in ["Processing", "Packed", "Shipped", "Delivered"] else "current" if st == "Confirmed" else "pending"},
+        {"step": "Packed", "status": "completed" if st in ["Packed", "Shipped", "Delivered"] else "pending"},
+        {"step": "Shipped", "status": "completed" if st in ["Shipped", "Delivered"] else "pending"},
+        {"step": "Out for Delivery", "status": "completed" if st == "Delivered" else "pending"},
+        {"step": "Delivered", "status": "completed" if st == "Delivered" else "pending"}
+    ]
+    order["tracking_timeline"] = timeline
+
+    return jsonify({"order": order})
+
+
+@app.route("/api/rewards/summary", methods=["GET"])
+@require_auth
+def get_rewards_summary():
+    uid = str(request.current_user["id"])
+    user = db_one("SELECT hu_coins, wallet_balance FROM users WHERE id = %s", (uid,))
+    hu_coins = user["hu_coins"] if user and user.get("hu_coins") is not None else 500
+    
+    # Ledger History
+    transactions = db_all(
+        "SELECT * FROM wallet_ledger WHERE user_id = %s ORDER BY timestamp DESC LIMIT 20",
+        (uid,)
+    )
+    
+    # Calculate Total Saved via Rewards
+    saved_row = db_one("SELECT SUM(coins_discount) as total_saved FROM orders WHERE user_id = %s AND status != 'Cancelled'", (uid,))
+    total_saved = saved_row["total_saved"] if saved_row and saved_row.get("total_saved") is not None else 0.0
+
+    return jsonify({
+        "hu_coins_balance": hu_coins,
+        "total_discount_saved_inr": total_saved,
+        "transactions": transactions
+    })
+
 # ─── DIAGNOSTICS APIS ─────────────────────────────────────────────────────────
 @app.route("/api/diagnostics", methods=["GET"])
 def get_diagnostics():

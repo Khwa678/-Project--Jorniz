@@ -860,6 +860,18 @@ def init_db(db_path="healthy_universe.db"):
     );
     """)
 
+    # 46. User Wishlist Directory
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS wishlist (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        product_id TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (product_id) REFERENCES products(id)
+    );
+    """)
+
     conn.commit()
     seed_initial_data(conn)
     conn.close()

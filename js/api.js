@@ -855,6 +855,50 @@ async function huAttendEvent(eventId) {
   return data;
 }
 
+async function huGetProductDetails(productId) {
+  var res = await fetch(HU_API + "/api/products/" + productId);
+  if (!res || !res.ok) return null;
+  return await res.json();
+}
+
+async function huUpdateCartQty(productId, quantity) {
+  var res = await huFetch("/api/cart/update", {
+    method: "PUT",
+    body: JSON.stringify({ product_id: productId, quantity: quantity })
+  });
+  if (!res || !res.ok) return null;
+  return await res.json();
+}
+
+async function huGetWishlist() {
+  var res = await huFetch("/api/wishlist");
+  if (!res || !res.ok) return [];
+  var data = await res.json();
+  return data.wishlist || [];
+}
+
+async function huToggleWishlist(productId) {
+  var res = await huFetch("/api/wishlist/toggle", {
+    method: "POST",
+    body: JSON.stringify({ product_id: productId })
+  });
+  if (!res || !res.ok) return null;
+  return await res.json();
+}
+
+async function huGetOrderDetails(orderId) {
+  var res = await huFetch("/api/orders/" + orderId);
+  if (!res || !res.ok) return null;
+  var data = await res.json();
+  return data.order || null;
+}
+
+async function huGetRewardsSummary() {
+  var res = await huFetch("/api/rewards/summary");
+  if (!res || !res.ok) return null;
+  return await res.json();
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", function () {
   applyUserToUI();

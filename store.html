@@ -24,166 +24,103 @@
     body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); padding-top: 70px; }
     
     /* Navbar */
-    .nav { position: fixed; top: 0; left: 0; right: 0; height: 70px; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; z-index: 1000; }
+    .nav { position: fixed; top: 0; left: 0; right: 0; height: 70px; background: rgba(255,255,255,0.98); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; z-index: 1000; }
     .brand { font-family: 'Fraunces', serif; font-size: 24px; font-weight: 700; color: var(--primary); text-decoration: none; display: flex; align-items: center; gap: 8px; }
-    .nav-links { display: flex; gap: 20px; align-items: center; }
-    .nav-link { color: var(--muted); text-decoration: none; font-weight: 500; font-size: 15px; transition: color 0.2s; display: flex; align-items: center; gap: 6px; }
-    .nav-link:hover, .nav-link.active { color: var(--primary); }
-    .cart-badge { background: var(--primary); color: white; border-radius: 20px; padding: 2px 8px; font-size: 12px; font-weight: 700; }
+    .nav-links { display: flex; gap: 16px; align-items: center; }
+    .nav-link { color: var(--muted); text-decoration: none; font-weight: 600; font-size: 14px; transition: all 0.2s; display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+    .nav-link:hover, .nav-link.active { color: var(--primary); background: var(--primary-light); }
+    .cart-badge { background: var(--primary); color: white; border-radius: 20px; padding: 2px 8px; font-size: 11px; font-weight: 700; }
+    
+    /* Search Bar in Header */
+    .header-search { display: flex; align-items: center; background: #f1f5f9; border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; width: 280px; position: relative; }
+    .header-search input { border: none; background: transparent; outline: none; width: 100%; font-size: 13.5px; margin-left: 6px; font-family: inherit; }
 
     /* Hero Banner */
-    .hero { background: linear-gradient(135deg, #15803d 0%, #16a34a 100%); color: white; padding: 48px 32px; border-radius: 20px; max-width: 1200px; margin: 24px auto; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 30px rgba(22,163,74,0.15); }
-    .hero h1 { font-family: 'Fraunces', serif; font-size: 36px; margin-bottom: 12px; }
-    .hero p { font-size: 16px; opacity: 0.9; max-width: 550px; line-height: 1.5; }
+    .hero { background: linear-gradient(135deg, #15803d 0%, #16a34a 100%); color: white; padding: 40px 32px; border-radius: 20px; max-width: 1200px; margin: 20px auto; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 30px rgba(22,163,74,0.15); }
+    .hero h1 { font-family: 'Fraunces', serif; font-size: 32px; margin-bottom: 8px; }
+    .hero p { font-size: 15px; opacity: 0.95; max-width: 580px; line-height: 1.5; }
+    .coins-pill { background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 8px 16px; font-size: 13.5px; font-weight: 700; color: white; display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; text-decoration: none; }
     
-    /* Container */
+    /* Container & Views */
     .container { max-width: 1200px; margin: 0 auto; padding: 0 24px 60px; }
+    .view-page { display: none; }
+    .view-page.active { display: block; }
     
-    /* Categories */
-    .sec-title { font-size: 22px; font-weight: 700; margin: 32px 0 16px; display: flex; align-items: center; justify-content: space-between; }
-    .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
-    .cat-card { background: var(--card); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 20px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 14px; }
+    /* Categories Grid */
+    .sec-title { font-size: 22px; font-weight: 700; margin: 28px 0 16px; display: flex; align-items: center; justify-content: space-between; }
+    .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+    .cat-card { background: var(--card); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 18px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 14px; text-decoration: none; color: inherit; }
     .cat-card:hover, .cat-card.active { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.05); }
-    .cat-icon { font-size: 32px; color: var(--primary); }
+    .cat-icon { font-size: 30px; color: var(--primary); }
 
     /* Products Grid */
-    .prod-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 24px; margin-top: 16px; }
-    .prod-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s; }
+    .prod-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; margin-top: 16px; }
+    .prod-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s; position: relative; }
     .prod-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.08); }
-    .prod-img { width: 100%; height: 200px; object-fit: cover; background: #f1f5f9; }
-    .prod-body { padding: 18px; display: flex; flex-direction: column; flex: 1; justify-content: space-between; }
-    .prod-title { font-weight: 700; font-size: 16px; margin-bottom: 6px; line-height: 1.3; }
-    .prod-desc { font-size: 13px; color: var(--muted); margin-bottom: 12px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .prod-img { width: 100%; height: 190px; object-fit: cover; background: #f1f5f9; cursor: pointer; }
+    .wish-heart-btn { position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.9); border: none; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #64748b; font-size: 18px; transition: all 0.2s; }
+    .wish-heart-btn.saved { color: #ef4444; }
+    .prod-body { padding: 16px; display: flex; flex-direction: column; flex: 1; justify-content: space-between; }
+    .prod-title { font-weight: 700; font-size: 15px; margin-bottom: 4px; line-height: 1.3; cursor: pointer; color: var(--text); }
+    .prod-title:hover { color: var(--primary); }
+    .prod-desc { font-size: 12.5px; color: var(--muted); margin-bottom: 10px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .coins-tag { background: #dcfce7; color: #15803d; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-bottom: 8px; }
     .prod-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
-    .prod-price { font-size: 18px; font-weight: 700; color: var(--primary-dark); }
-    .prod-orig { font-size: 13px; text-decoration: line-through; color: var(--muted); margin-left: 6px; }
-    .add-btn { background: var(--primary); color: white; border: none; border-radius: 8px; padding: 9px 16px; font-weight: 600; font-size: 14px; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; gap: 6px; }
+    .prod-price { font-size: 17px; font-weight: 700; color: var(--primary-dark); }
+    .prod-orig { font-size: 12.5px; text-decoration: line-through; color: var(--muted); margin-left: 4px; }
+    .add-btn { background: var(--primary); color: white; border: none; border-radius: 8px; padding: 8px 14px; font-weight: 600; font-size: 13px; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; gap: 4px; }
     .add-btn:hover { background: var(--primary-dark); }
 
-    /* Cart Modal */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.6); backdrop-filter: blur(4px); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; }
-    .modal-overlay.open { display: flex; }
-    .cart-box { background: var(--card); width: 100%; max-width: 500px; border-radius: var(--radius); padding: 28px; max-height: 90vh; overflow-y: auto; position: relative; }
-    .close-btn { position: absolute; top: 20px; right: 20px; border: none; background: none; font-size: 24px; cursor: pointer; color: var(--muted); }
-    .cart-item { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
-    .cart-item img { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; }
-    .cart-item-details { flex: 1; }
-    .cart-item-title { font-weight: 600; font-size: 14px; }
-    .cart-item-price { color: var(--primary-dark); font-weight: 700; margin-top: 4px; font-size: 14px; }
-    .checkout-btn { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 20px; transition: background 0.2s; }
-    .checkout-btn:hover { background: var(--primary-dark); }
+    /* Product Detail Styling */
+    .pd-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 24px; background: white; border: 1px solid var(--border); border-radius: 20px; padding: 32px; }
+    .pd-gallery-img { width: 100%; height: 380px; object-fit: cover; border-radius: 16px; background: #f8fafc; border: 1px solid var(--border); }
+    .pd-brand { font-size: 13px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .pd-title { font-family: 'Fraunces', serif; font-size: 28px; color: var(--text); margin-bottom: 10px; line-height: 1.25; }
+    .pd-price-row { display: flex; align-items: baseline; gap: 12px; margin: 16px 0; }
+    .pd-price { font-size: 32px; font-weight: 800; color: var(--primary-dark); }
+    .pd-orig { font-size: 18px; text-decoration: line-through; color: var(--muted); }
+    .pd-discount { background: #fee2e2; color: #dc2626; font-size: 13px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
+    .qty-selector { display: flex; align-items: center; border: 1px solid var(--border); border-radius: 8px; width: fit-content; overflow: hidden; margin-right: 14px; }
+    .qty-btn { border: none; background: #f1f5f9; width: 36px; height: 36px; font-size: 18px; font-weight: 700; cursor: pointer; }
+    .qty-val { width: 44px; text-align: center; font-weight: 700; font-size: 15px; }
+
+    /* Tabs in Product Detail */
+    .pd-tabs { display: flex; gap: 16px; border-bottom: 2px solid var(--border); margin-top: 32px; margin-bottom: 20px; }
+    .pd-tab { padding: 10px 16px; font-weight: 700; font-size: 14.5px; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+    .pd-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .pd-tab-content { display: none; font-size: 14.5px; line-height: 1.6; color: #334155; }
+    .pd-tab-content.active { display: block; }
+
+    /* Cart & Checkout Page Styling */
+    .cart-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 28px; margin-top: 24px; }
+    .cart-box-card { background: white; border: 1px solid var(--border); border-radius: 16px; padding: 24px; }
+    .cart-line-item { display: flex; align-items: center; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+    .cart-line-item img { width: 80px; height: 80px; border-radius: 10px; object-fit: cover; }
+    
+    /* Order Tracking Visual Steps */
+    .tracking-stepper { display: flex; justify-content: space-between; margin: 28px 0; position: relative; }
+    .tracking-stepper::before { content:''; position: absolute; top: 18px; left: 0; right: 0; height: 3px; background: #e2e8f0; z-index: 1; }
+    .step-item { position: relative; z-index: 2; text-align: center; width: 14%; }
+    .step-icon { width: 38px; height: 38px; border-radius: 50%; background: #e2e8f0; color: #64748b; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; font-weight: 700; font-size: 14px; border: 3px solid white; }
+    .step-item.completed .step-icon { background: var(--primary); color: white; }
+    .step-item.current .step-icon { background: #0284c7; color: white; box-shadow: 0 0 0 4px #e0f2fe; }
+    .step-label { font-size: 11.5px; font-weight: 700; color: #475569; }
 
     /* Toast */
     .toast { position: fixed; bottom: 24px; right: 24px; background: #0f172a; color: white; padding: 14px 24px; border-radius: 10px; font-weight: 500; font-size: 14px; display: none; align-items: center; gap: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 3000; }
     .toast.show { display: flex; animation: slideUp 0.3s ease; }
     @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-    /* Responsive Mobile & Tablet Adjustments */
+    /* Responsive Adjustments */
     @media (max-width: 768px) {
       body { padding-top: 60px; }
-
-      .nav {
-        height: 60px;
-        padding: 0 12px;
-        gap: 8px;
-      }
-      .brand {
-        font-size: 16px;
-        gap: 4px;
-        white-space: nowrap;
-      }
-      .brand .material-icons-round {
-        font-size: 20px;
-      }
-      .nav-links {
-        gap: 6px;
-        overflow-x: auto;
-        white-space: nowrap;
-        padding-bottom: 2px;
-        -webkit-overflow-scrolling: touch;
-      }
-      .nav-link {
-        font-size: 12px;
-        gap: 4px;
-        padding: 4px 8px;
-        background: #f1f5f9;
-        border-radius: 8px;
-      }
-
-      .hero {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 20px 16px;
-        margin: 12px;
-        border-radius: 14px;
-        gap: 14px;
-      }
-      .hero h1 {
-        font-size: 22px;
-        line-height: 1.25;
-        margin-bottom: 6px;
-      }
-      .hero p {
-        font-size: 13px;
-        line-height: 1.4;
-      }
-      .hero button, .hero div[style*="background"] {
-        width: 100%;
-      }
-
-      .container {
-        padding: 0 12px 40px;
-      }
-
-      .sec-title {
-        font-size: 18px;
-        margin: 20px 0 12px;
-      }
-
-      .cat-grid {
-        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-        gap: 10px;
-      }
-      .cat-card {
-        padding: 12px;
-        gap: 8px;
-        border-radius: 10px;
-      }
-      .cat-card h3 {
-        font-size: 13px !important;
-      }
-      .cat-icon {
-        font-size: 24px;
-      }
-
-      .prod-grid {
-        grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
-        gap: 12px;
-      }
-      .prod-card {
-        border-radius: 10px;
-      }
-      .prod-img {
-        height: 130px;
-      }
-      .prod-body {
-        padding: 10px;
-      }
-      .prod-title {
-        font-size: 13px;
-        line-height: 1.25;
-      }
-      .prod-desc {
-        font-size: 11px;
-        margin-bottom: 6px;
-      }
-      .prod-price {
-        font-size: 14.5px;
-      }
-      .add-btn {
-        padding: 5px 8px;
-        font-size: 11.5px;
-      }
+      .nav { height: 60px; padding: 0 12px; }
+      .brand { font-size: 16px; }
+      .header-search { display: none; }
+      .hero { padding: 24px 16px; flex-direction: column; text-align: center; }
+      .pd-layout, .cart-layout { grid-template-columns: 1fr; gap: 20px; padding: 16px; }
+      .tracking-stepper { flex-wrap: wrap; gap: 12px; }
+      .step-item { width: 30%; }
     }
   </style>
 </head>
@@ -191,391 +128,850 @@
 
   <!-- Navbar -->
   <nav class="nav">
-    <a href="index.html" class="brand">
-      <span class="material-icons-round">health_and_safety</span>
-      Healthy Universe
+    <a href="store.html#store" class="brand">
+      <span class="material-icons-round">local_pharmacy</span> Jorniz Health Store
     </a>
+
+    <div class="header-search">
+      <span class="material-icons-round" style="color:var(--muted);font-size:18px;">search</span>
+      <input type="text" id="store-search-input" placeholder="Search vitamins, protein, remedies..." oninput="handleHeaderSearch(this.value)"/>
+    </div>
+
     <div class="nav-links">
-      <a href="index.html" class="nav-link"><span class="material-icons-round">dynamic_feed</span> Feed</a>
-      <a href="index.html#explore" class="nav-link"><span class="material-icons-round">explore</span> Explore</a>
-      <a href="index.html#doctors" class="nav-link"><span class="material-icons-round">medical_services</span> Doctors</a>
-      <a href="store.html" class="nav-link active"><span class="material-icons-round">storefront</span> Health Store</a>
-      <button class="nav-link" onclick="openOrdersModal()" style="background:none;border:none;cursor:pointer;">
-        <span class="material-icons-round">receipt_long</span> Orders
-      </button>
-      <button class="nav-link" onclick="openCart()" style="background:none;border:none;cursor:pointer;">
-        <span class="material-icons-round">shopping_cart</span> Cart <span class="cart-badge" id="cart-count">0</span>
-      </button>
+      <a href="index.html" class="nav-link"><span class="material-icons-round">home</span> Platform</a>
+      <a href="store.html#store" class="nav-link active" id="nl-store"><span class="material-icons-round">storefront</span> Store</a>
+      <a href="store.html#wishlist" class="nav-link" id="nl-wishlist"><span class="material-icons-round">favorite_border</span> Wishlist</a>
+      <a href="store.html#cart" class="nav-link" id="nl-cart"><span class="material-icons-round">shopping_cart</span> Cart <span class="cart-badge" id="cart-count">0</span></a>
+      <a href="store.html#orders" class="nav-link" id="nl-orders"><span class="material-icons-round">receipt_long</span> Orders</a>
+      <a href="store.html#rewards" class="nav-link" id="nl-rewards"><span class="material-icons-round">monetization_on</span> Rewards</a>
     </div>
   </nav>
 
   <div class="container">
-    <!-- Hero Banner -->
-    <div class="hero">
-      <div>
-        <h1>Verified Healthy Products Store</h1>
-        <p>100% genuine vitamins, Ayurvedic remedies, fitness nutrition, and organic personal care. <strong>Use your earned HU Coins to save up to 50%!</strong></p>
-        <div style="margin-top:12px;display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.2);padding:6px 14px;border-radius:20px;font-size:14px;font-weight:600;">
-          <span class="material-icons-round" style="color:#fbbf24;font-size:20px;">monetization_on</span>
-          <span>Your Rewards: <span id="store-user-coins">0</span> HU Coins</span>
+
+    <!-- VIEW 1: MAIN STORE HUB (#store) -->
+    <div id="view-store" class="view-page active">
+      <div class="hero">
+        <div>
+          <h1>Verified Healthy Products Store</h1>
+          <p>100% genuine vitamins, Ayurvedic remedies, fitness nutrition, and organic personal care. Use your earned HU Coins to save up to 50%!</p>
+          <a href="store.html#rewards" class="coins-pill">
+            <span class="material-icons-round" style="font-size:18px;color:#fde047;">stars</span>
+            <span id="user-coins-display">Your Rewards: 500 HU Coins</span>
+          </a>
         </div>
       </div>
-      <span class="material-icons-round" style="font-size:80px;opacity:0.8;">verified</span>
-    </div>
 
-    <!-- Categories -->
-    <div class="sec-title">
-      <span>Browse Categories</span>
-    </div>
-    <div class="cat-grid" id="cat-container">
-      <!-- Loaded dynamically -->
-    </div>
-
-    <!-- Products Section -->
-    <div class="sec-title">
-      <span>Featured Health Products</span>
-    </div>
-    <div class="prod-grid" id="prod-container">
-      <!-- Loaded dynamically -->
-    </div>
-  </div>
-
-  <!-- Cart Modal -->
-  <div class="modal-overlay" id="cart-modal">
-    <div class="cart-box">
-      <button class="close-btn" onclick="closeCart()">✕</button>
-      <h2 style="font-family:'Fraunces',serif;margin-bottom:16px;">Your Health Cart 🛒</h2>
-      <div id="cart-items-container">
-        <!-- Cart Items -->
+      <div class="sec-title">
+        <span>Browse Categories</span>
       </div>
-      
-      <!-- HU Coins Rewards Section -->
-      <div id="rewards-redemption-box" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px;margin-top:16px;display:none;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-          <span style="font-weight:700;color:#166534;display:flex;align-items:center;gap:6px;font-size:14px;">
-            <span class="material-icons-round" style="color:#f59e0b;font-size:18px;">monetization_on</span>
-            Redeem HU Coins
-          </span>
-          <span style="font-size:13px;color:#15803d;" id="coins-avail-text">0 coins available</span>
-        </div>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;color:#166534;cursor:pointer;">
-          <input type="checkbox" id="use-coins-toggle" checked onchange="updateCartTotals()"/>
-          <span>Use HU Coins to save up to 50% off</span>
-        </label>
-        <div style="font-size:12px;color:#15803d;margin-top:6px;" id="coins-discount-preview"></div>
+      <div class="cat-grid" id="main-cat-grid">
+        <!-- Rendered via JS -->
       </div>
 
-      <div style="margin-top:20px;border-top:1px dashed var(--border);padding-top:14px;">
-        <div style="display:flex;justify-content:space-between;font-size:14px;color:var(--muted);margin-bottom:6px;">
-          <span>Subtotal:</span>
-          <span id="cart-subtotal-price">₹0</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:14px;color:#16a34a;margin-bottom:6px;display:none;" id="discount-row">
-          <span>HU Coins Discount:</span>
-          <span id="cart-discount-price">-₹0</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:700;">
-          <span>Net Payable:</span>
-          <span id="cart-final-price">₹0</span>
-        </div>
+      <div class="sec-title">
+        <span>Featured Health Products</span>
+        <select id="store-sort-select" onchange="fetchProducts()" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);font-family:inherit;font-size:13px;outline:none;">
+          <option value="popular">Sort: Popularity</option>
+          <option value="price_low">Sort: Price Low to High</option>
+          <option value="price_high">Sort: Price High to Low</option>
+          <option value="rating">Sort: Highest Rating</option>
+        </select>
       </div>
-      <button class="checkout-btn" id="btn-checkout" onclick="processCheckout()">Confirm Order & Checkout →</button>
-    </div>
-  </div>
 
-  <!-- Orders Modal -->
-  <div class="modal-overlay" id="orders-modal">
-    <div class="cart-box" style="max-width:650px;">
-      <button class="close-btn" onclick="closeOrdersModal()">✕</button>
-      <h2 style="font-family:'Fraunces',serif;margin-bottom:16px;">Your Order History 📦</h2>
-      <div id="orders-container">
-        <!-- Loaded dynamically -->
+      <div class="prod-grid" id="main-prod-grid">
+        <p style="color:var(--muted);grid-column:1/-1;text-align:center;padding:40px 0;">Loading verified health products...</p>
       </div>
     </div>
+
+    <!-- VIEW 2: CATEGORY DEDICATED PAGE (#category/:catId) -->
+    <div id="view-category" class="view-page">
+      <div style="margin-top:20px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);">
+        <a href="store.html#store" style="color:var(--primary);text-decoration:none;font-weight:600;">Store</a> &gt; <span id="cat-breadcrumb-name">Category</span>
+      </div>
+
+      <div style="background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%);color:white;padding:32px;border-radius:16px;margin:16px 0 24px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <h1 id="cat-page-title" style="font-family:'Fraunces',serif;font-size:28px;margin-bottom:6px;">Category Name</h1>
+          <p id="cat-page-desc" style="font-size:14px;color:#94a3b8;">Explore certified health remedies and supplements.</p>
+        </div>
+        <div id="cat-page-count" style="background:#0284c7;color:white;padding:8px 16px;border-radius:20px;font-weight:700;font-size:13px;">
+          0 Products Available
+        </div>
+      </div>
+
+      <div class="prod-grid" id="category-prod-grid">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
+    <!-- VIEW 3: PRODUCT DETAIL PAGE (#product/:prodId) -->
+    <div id="view-product" class="view-page">
+      <div style="margin-top:20px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);">
+        <a href="store.html#store" style="color:var(--primary);text-decoration:none;font-weight:600;">Store</a> &gt; <span id="pd-breadcrumb-title">Product Details</span>
+      </div>
+
+      <div id="pd-content-container">
+        <!-- Product Details Rendered via JS -->
+      </div>
+    </div>
+
+    <!-- VIEW 4: SHOPPING CART PAGE (#cart) -->
+    <div id="view-cart" class="view-page">
+      <h2 style="font-size:26px;font-weight:700;margin:24px 0 16px;">🛒 Your Shopping Cart</h2>
+
+      <div class="cart-layout">
+        <div class="cart-box-card">
+          <div id="cart-page-items-list">
+            <!-- Items rendered via JS -->
+          </div>
+        </div>
+
+        <div>
+          <div class="cart-box-card" style="position:sticky;top:90px;">
+            <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;">Order Summary</h3>
+            
+            <div style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:14.5px;">
+              <span style="color:var(--muted);">Items Subtotal</span>
+              <strong id="cart-page-subtotal">₹0</strong>
+            </div>
+
+            <div id="cart-page-coins-box" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px;margin:12px 0;display:none;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <label style="font-size:13px;font-weight:700;color:#15803d;display:flex;align-items:center;gap:6px;">
+                  <input type="checkbox" id="cart-use-coins-toggle" checked onchange="updateCartTotals()"/> Redeem HU Coins (50% Off)
+                </label>
+              </div>
+              <p id="cart-coins-info-text" style="font-size:12px;color:#166534;margin-top:2px;">You have 500 coins available.</p>
+            </div>
+
+            <div id="cart-page-discount-row" style="display:none;justify-content:space-between;margin-bottom:10px;font-size:14.5px;color:#16a34a;font-weight:700;">
+              <span>HU Coins Discount</span>
+              <span id="cart-page-discount-amount">-₹0</span>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;margin-bottom:14px;font-size:14.5px;">
+              <span style="color:var(--muted);">Delivery Charges</span>
+              <strong style="color:#16a34a;">FREE Express</strong>
+            </div>
+
+            <div style="border-top:1.5px solid var(--border);padding-top:14px;display:flex;justify-content:space-between;align-items:baseline;margin-bottom:20px;">
+              <span style="font-size:16px;font-weight:700;">Final Amount</span>
+              <strong id="cart-page-final-amount" style="font-size:22px;color:var(--primary-dark);">₹0</strong>
+            </div>
+
+            <a href="store.html#checkout" class="add-btn" style="width:100%;padding:14px;justify-content:center;font-size:15px;border-radius:10px;text-decoration:none;">
+              Proceed to Checkout →
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 5: CHECKOUT WIZARD PAGE (#checkout) -->
+    <div id="view-checkout" class="view-page">
+      <h2 style="font-size:26px;font-weight:700;margin:24px 0 16px;">💳 Secure Checkout</h2>
+
+      <div class="cart-layout">
+        <div>
+          <!-- Step 1: Address -->
+          <div class="cart-box-card" style="margin-bottom:20px;">
+            <h3 style="font-size:16px;font-weight:700;color:var(--primary);margin-bottom:12px;">Step 1: Delivery Address</h3>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <input type="text" id="co-address-input" value="Flat 402, Jorniz Medical Heights, Healthcare Enclave, New Delhi - 110001" style="padding:12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;outline:none;"/>
+              <small style="color:var(--muted);">Saved shipping address will be updated for order dispatch.</small>
+            </div>
+          </div>
+
+          <!-- Step 2: Payment Method -->
+          <div class="cart-box-card" style="margin-bottom:20px;">
+            <h3 style="font-size:16px;font-weight:700;color:var(--primary);margin-bottom:12px;">Step 2: Select Payment Method</h3>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;">
+                <input type="radio" name="pay-method" value="UPI" checked/> Instant UPI / Google Pay / PhonePe
+              </label>
+              <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;">
+                <input type="radio" name="pay-method" value="Card"/> Credit / Debit Card
+              </label>
+              <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;">
+                <input type="radio" name="pay-method" value="NetBanking"/> Net Banking
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="cart-box-card">
+            <h3 style="font-size:18px;font-weight:700;margin-bottom:14px;">Order Final Review</h3>
+            <div id="co-items-summary" style="margin-bottom:16px;max-height:200px;overflow-y:auto;">
+              <!-- Items summary -->
+            </div>
+            
+            <button onclick="executeFinalCheckout()" id="btn-final-checkout" class="add-btn" style="width:100%;padding:14px;justify-content:center;font-size:16px;border-radius:10px;">
+              Confirm &amp; Pay Order ⚡
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 6 & 7: ORDERS & ORDER TRACKING PAGE (#orders & #orders/:orderId) -->
+    <div id="view-orders" class="view-page">
+      <h2 style="font-size:26px;font-weight:700;margin:24px 0 16px;">📦 My Orders &amp; Order Tracking</h2>
+      <div id="orders-page-container">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
+    <!-- VIEW 8: WISHLIST PAGE (#wishlist) -->
+    <div id="view-wishlist" class="view-page">
+      <h2 style="font-size:26px;font-weight:700;margin:24px 0 16px;">❤️ My Saved Wishlist</h2>
+      <div class="prod-grid" id="wishlist-prod-grid">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
+    <!-- VIEW 9: REWARDS ECOSYSTEM PAGE (#rewards) -->
+    <div id="view-rewards" class="view-page">
+      <h2 style="font-size:26px;font-weight:700;margin:24px 0 16px;">🌟 HU Coins Rewards Ecosystem</h2>
+      <div id="rewards-page-container">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
   </div>
 
   <!-- Toast Notification -->
   <div class="toast" id="toast">
     <span class="material-icons-round" style="color:#22c55e;">check_circle</span>
-    <span id="toast-msg">Item added to cart!</span>
+    <span id="toast-msg">Item updated successfully!</span>
   </div>
 
   <script src="js/api.js"></script>
   <script>
-    let cartData = { items: [], total: 0, hu_coins_balance: 0, max_coins_redeemable: 0, max_coin_discount: 0 };
+    let currentProducts = [];
+    let cartData = { items: [], total: 0, hu_coins_balance: 500, max_coins_redeemable: 0, max_coin_discount: 0 };
+    let wishlistItems = [];
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      var user = huGetUser();
-      if (!user) {
-        window.location.href = 'auth.html';
-        return;
-      }
-      fetchCategories();
-      fetchProducts();
-      await refreshCartData();
-      updateUserCoinsDisplay();
+    const CATEGORIES_DATA = [
+      { id: 'cat_ayurveda', name: 'Ayurvedic & Herbal', icon: 'spa', desc: 'Natural Ayurvedic remedies, Chyawanprash, and herbal teas.' },
+      { id: 'cat_fitness', name: 'Fitness & Protein', icon: 'fitness_center', desc: 'Whey protein, plant protein, BCAAs, and workout nutrition.' },
+      { id: 'cat_personal', name: 'Personal Care & Hygiene', icon: 'sanitizer', desc: 'Organic soaps, herbal shampoos, skincare, and sanitizers.' },
+      { id: 'cat_vitamins', name: 'Vitamins & Supplements', icon: 'medication', desc: 'Essential daily vitamins, minerals, and dietary supplements.' },
+      { id: 'cat_organic', name: 'Organic Wellness', icon: 'eco', desc: 'Certified organic honey, cold-pressed oils, and superfoods.' },
+      { id: 'cat_acc', name: 'Fitness Accessories', icon: 'sports_gymnastics', desc: 'Resistance bands, yoga mats, and recovery tools.' }
+    ];
+
+    // ── SPA CLIENT ROUTER ────────────────────────────────────────────────────────
+    window.addEventListener('hashchange', handleRoute);
+    window.addEventListener('load', () => {
+      renderCategoriesGrid();
+      handleRoute();
+      refreshCartData();
+      refreshWishlistData();
     });
 
-    function updateUserCoinsDisplay() {
-      var user = huGetUser();
-      var el = document.getElementById('store-user-coins');
-      if (el && user) el.textContent = (user.hu_coins || 0).toLocaleString();
-    }
+    async function handleRoute() {
+      const hash = window.location.hash || '#store';
+      document.querySelectorAll('.view-page').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-link').forEach(nl => nl.classList.remove('active'));
 
-    async function refreshCartData() {
-      try {
-        cartData = await huGetCart();
-        updateCartUI();
-        updateUserCoinsDisplay();
-      } catch (err) {
-        console.log('Cart fetch error:', err);
+      if (hash.startsWith('#category/')) {
+        const catId = hash.replace('#category/', '');
+        document.getElementById('view-category').classList.add('active');
+        loadCategoryPage(catId);
+      } else if (hash.startsWith('#product/')) {
+        const prodId = hash.replace('#product/', '');
+        document.getElementById('view-product').classList.add('active');
+        loadProductDetailPage(prodId);
+      } else if (hash.startsWith('#orders/') && hash !== '#orders') {
+        const orderId = hash.replace('#orders/', '');
+        document.getElementById('view-orders').classList.add('active');
+        loadOrderDetailsPage(orderId);
+      } else if (hash === '#cart') {
+        document.getElementById('view-cart').classList.add('active');
+        document.getElementById('nl-cart').classList.add('active');
+        renderCartPage();
+      } else if (hash === '#checkout') {
+        document.getElementById('view-checkout').classList.add('active');
+        renderCheckoutPage();
+      } else if (hash === '#orders') {
+        document.getElementById('view-orders').classList.add('active');
+        document.getElementById('nl-orders').classList.add('active');
+        renderOrdersPage();
+      } else if (hash === '#wishlist') {
+        document.getElementById('view-wishlist').classList.add('active');
+        document.getElementById('nl-wishlist').classList.add('active');
+        renderWishlistPage();
+      } else if (hash === '#rewards') {
+        document.getElementById('view-rewards').classList.add('active');
+        document.getElementById('nl-rewards').classList.add('active');
+        renderRewardsPage();
+      } else {
+        document.getElementById('view-store').classList.add('active');
+        document.getElementById('nl-store').classList.add('active');
+        fetchProducts();
       }
     }
 
-    async function fetchCategories() {
-      try {
-        const res = await fetch(`${HU_API}/api/products/categories`);
-        const data = await res.json();
-        const container = document.getElementById('cat-container');
-        if (data.categories && data.categories.length) {
-          container.innerHTML = data.categories.map(c => `
-            <div class="cat-card" onclick="filterCategory('${c.id}')">
-              <span class="material-icons-round cat-icon">${c.icon || 'local_pharmacy'}</span>
-              <div>
-                <div style="font-weight:700;font-size:15px;">${c.name}</div>
-                <div style="font-size:12px;color:var(--muted);">${c.description}</div>
-              </div>
-            </div>
-          `).join('');
-        }
-      } catch (err) {
-        console.log('Categories fallback:', err);
-      }
+    // ── MAIN STORE PAGE RENDERING ────────────────────────────────────────────────
+    function renderCategoriesGrid() {
+      const grid = document.getElementById('main-cat-grid');
+      grid.innerHTML = CATEGORIES_DATA.map(c => `
+        <a href="store.html#category/${c.id}" class="cat-card">
+          <span class="material-icons-round cat-icon">${c.icon}</span>
+          <div>
+            <div style="font-weight:700;font-size:14.5px;">${c.name}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px;">${c.desc}</div>
+          </div>
+        </a>
+      `).join('');
     }
 
-    async function fetchProducts(categoryId = '') {
+    async function fetchProducts(catId = null) {
+      const grid = document.getElementById('main-prod-grid');
+      const sort = document.getElementById('store-sort-select').value;
       try {
-        let url = `${HU_API}/api/products`;
-        if (categoryId) url += `?category_id=${categoryId}`;
+        let url = HU_API + '/api/products';
+        if (catId) url += `?category_id=${catId}`;
         const res = await fetch(url);
         const data = await res.json();
-        renderProducts(data.products || []);
+        let prods = data.products || [];
+
+        if (sort === 'price_low') prods.sort((a,b) => a.price - b.price);
+        else if (sort === 'price_high') prods.sort((a,b) => b.price - a.price);
+        else if (sort === 'rating') prods.sort((a,b) => (b.rating||0) - (a.rating||0));
+
+        currentProducts = prods;
+        renderProductsGrid(prods, grid);
       } catch (err) {
-        console.log('Products API fallback:', err);
+        grid.innerHTML = '<p style="color:#ef4444;grid-column:1/-1;text-align:center;">Failed to load products.</p>';
       }
     }
 
-    function renderProducts(products) {
-      const container = document.getElementById('prod-container');
+    function renderProductsGrid(products, container) {
       if (!products.length) {
-        container.innerHTML = '<p style="color:var(--muted);grid-column:1/-1;">No products found in this category.</p>';
+        container.innerHTML = '<p style="color:var(--muted);grid-column:1/-1;text-align:center;padding:40px 0;">No products found in this section.</p>';
         return;
       }
-      container.innerHTML = products.map(p => `
-        <div class="prod-card">
-          <img src="${p.image_url}" alt="${p.name}" class="prod-img"/>
-          <div class="prod-body">
-            <div>
-              <div class="prod-title">${p.name}</div>
-              <div class="prod-desc">${p.description}</div>
-            </div>
-            <div>
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:12px;color:var(--muted);">
-                <span>⭐ ${p.rating} (${p.reviews_count} reviews)</span>
-                <span style="color:#16a34a;font-weight:600;">Earn ${p.reward_coins_earn || 10} Coins</span>
+
+      container.innerHTML = products.map(p => {
+        const isWish = wishlistItems.some(w => w.id === p.id);
+        return `
+          <div class="prod-card">
+            <button onclick="toggleWishlist('${p.id}', this)" class="wish-heart-btn ${isWish ? 'saved' : ''}">
+              ${isWish ? '❤️' : '🤍'}
+            </button>
+            <img src="${p.image_url}" alt="${p.name}" class="prod-img" onclick="window.location.hash='#product/${p.id}'"/>
+            <div class="prod-body">
+              <div>
+                <span class="coins-tag">🪙 Earn +${p.reward_coins_earn || 10} Coins</span>
+                <div class="prod-title" onclick="window.location.hash='#product/${p.id}'">${p.name}</div>
+                <div class="prod-desc">${p.description}</div>
+                <div style="font-size:12px;color:#0284c7;font-weight:600;">⭐ ${p.rating || 4.8} (${p.reviews_count || 12} reviews)</div>
               </div>
               <div class="prod-meta">
                 <div>
                   <span class="prod-price">₹${p.price}</span>
                   ${p.original_price ? `<span class="prod-orig">₹${p.original_price}</span>` : ''}
                 </div>
-                <button class="add-btn" onclick="addToCart('${p.id}', '${p.name}')">
-                  <span class="material-icons-round" style="font-size:18px;">add_shopping_cart</span> Add
+                <button onclick="addToCart('${p.id}', '${p.name.replace(/'/g, "\\'")}')" class="add-btn">
+                  <span class="material-icons-round" style="font-size:16px;">shopping_cart</span> Add
                 </button>
               </div>
             </div>
           </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
-    function filterCategory(catId) {
-      fetchProducts(catId);
-    }
+    // ── CATEGORY DEDICATED PAGE ──────────────────────────────────────────────────
+    async function loadCategoryPage(catId) {
+      const catObj = CATEGORIES_DATA.find(c => c.id === catId) || { name: 'Health Products', desc: 'Verified remedies' };
+      document.getElementById('cat-breadcrumb-name').textContent = catObj.name;
+      document.getElementById('cat-page-title').textContent = catObj.name;
+      document.getElementById('cat-page-desc').textContent = catObj.desc;
 
-    async function addToCart(id, name) {
-      if (!huGetUser()) {
-        showToast('🔑 Please log in to add items to your cart & redeem HU Coins!');
-        setTimeout(() => { window.location.href = 'auth.html'; }, 1600);
-        return;
-      }
+      const grid = document.getElementById('category-prod-grid');
+      grid.innerHTML = '<p style="color:var(--muted);grid-column:1/-1;text-align:center;">Loading category products...</p>';
+
       try {
-        await huAddToCart(id, 1);
-        showToast(`🛒 Added "${name}" to cart!`);
+        const res = await fetch(HU_API + `/api/products?category_id=${catId}`);
+        const data = await res.json();
+        const prods = data.products || [];
+        document.getElementById('cat-page-count').textContent = `${prods.length} Products Available`;
+        renderProductsGrid(prods, grid);
+      } catch (err) {
+        grid.innerHTML = '<p style="color:#ef4444;grid-column:1/-1;text-align:center;">Could not load category products.</p>';
+      }
+    }
+
+    // ── PRODUCT DETAIL PAGE ──────────────────────────────────────────────────────
+    let pdSelectedQty = 1;
+
+    async function loadProductDetailPage(prodId) {
+      const container = document.getElementById('pd-content-container');
+      container.innerHTML = '<p style="color:var(--muted);text-align:center;padding:60px 0;">Loading product details...</p>';
+
+      try {
+        const data = await huGetProductDetails(prodId);
+        if (!data || !data.product) {
+          container.innerHTML = '<p style="color:#ef4444;text-align:center;padding:60px 0;">Product details not found.</p>';
+          return;
+        }
+
+        const p = data.product;
+        const related = data.related_products || [];
+        const fbt = data.frequently_bought_together || [];
+        document.getElementById('pd-breadcrumb-title').textContent = p.name;
+        pdSelectedQty = 1;
+
+        const discountPct = p.original_price ? Math.round(((p.original_price - p.price) / p.original_price) * 100) : 0;
+
+        container.innerHTML = `
+          <div class="pd-layout">
+            <div>
+              <img src="${p.image_url}" alt="${p.name}" class="pd-gallery-img"/>
+            </div>
+            <div>
+              <div class="pd-brand">${p.brand}</div>
+              <h1 class="pd-title">${p.name}</h1>
+              <div style="font-size:13.5px;color:#0284c7;font-weight:600;margin-bottom:12px;">
+                ⭐ ${p.rating || 4.8} (${p.reviews_count || 14} Verified Customer Reviews) · In Stock (${p.stock || 25} available)
+              </div>
+
+              <div class="pd-price-row">
+                <span class="pd-price">₹${p.price}</span>
+                ${p.original_price ? `<span class="pd-orig">₹${p.original_price}</span>` : ''}
+                ${discountPct > 0 ? `<span class="pd-discount">${discountPct}% OFF</span>` : ''}
+              </div>
+
+              <div style="background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:700;margin-bottom:20px;">
+                🪙 Earn +${(p.reward_coins_earn || 10) * pdSelectedQty} HU Coins on this purchase!
+              </div>
+
+              <div style="display:flex;align-items:center;margin-bottom:24px;">
+                <div class="qty-selector">
+                  <button class="qty-btn" onclick="changePDQty(-1)">-</button>
+                  <div class="qty-val" id="pd-qty-val">1</div>
+                  <button class="qty-btn" onclick="changePDQty(1)">+</button>
+                </div>
+
+                <button onclick="addPDToCart('${p.id}', '${p.name.replace(/'/g, "\\'")}')" class="add-btn" style="padding:12px 24px;font-size:15px;border-radius:10px;">
+                  <span class="material-icons-round">shopping_cart</span> Add to Cart
+                </button>
+
+                <button onclick="buyNowPD('${p.id}', '${p.name.replace(/'/g, "\\'")}')" class="add-btn" style="background:#0284c7;padding:12px 24px;font-size:15px;border-radius:10px;margin-left:10px;">
+                  Buy Now ⚡
+                </button>
+              </div>
+
+              <div style="font-size:13px;color:var(--muted);line-height:1.6;">
+                🚚 <strong>Delivery:</strong> ${p.delivery_info}
+              </div>
+            </div>
+          </div>
+
+          <!-- Product Details Tabs -->
+          <div class="pd-tabs">
+            <div class="pd-tab active" onclick="switchPDTab('tab-desc', this)">Description</div>
+            <div class="pd-tab" onclick="switchPDTab('tab-ingredients', this)">Ingredients &amp; Specs</div>
+            <div class="pd-tab" onclick="switchPDTab('tab-usage', this)">Usage &amp; Safety</div>
+            <div class="pd-tab" onclick="switchPDTab('tab-reviews', this)">Reviews (${(p.reviews_list||[]).length})</div>
+          </div>
+
+          <div id="tab-desc" class="pd-tab-content active">
+            <p>${p.description}</p>
+          </div>
+          <div id="tab-ingredients" class="pd-tab-content">
+            <p><strong>Ingredients:</strong> ${p.ingredients}</p>
+            <p style="margin-top:8px;"><strong>Specifications:</strong> ${p.specifications}</p>
+          </div>
+          <div id="tab-usage" class="pd-tab-content">
+            <p><strong>Usage Instructions:</strong> ${p.usage_instructions}</p>
+            <p style="margin-top:8px;"><strong>Safety Warning:</strong> ${p.safety_info}</p>
+          </div>
+          <div id="tab-reviews" class="pd-tab-content">
+            ${(p.reviews_list || []).map(r => `
+              <div style="border-bottom:1px solid var(--border);padding:10px 0;">
+                <div style="font-weight:700;font-size:14px;">${r.user_name} <span style="color:#eab308;font-size:12px;">★ ${r.rating}/5</span></div>
+                <div style="font-size:13px;color:#475569;margin-top:4px;">"${r.comment}"</div>
+                <small style="color:var(--muted);">${r.date}</small>
+              </div>
+            `).join('')}
+          </div>
+
+          <!-- Related Products -->
+          <div class="sec-title" style="margin-top:40px;">
+            <span>You May Also Like</span>
+          </div>
+          <div class="prod-grid">
+            ${related.map(r => `
+              <div class="prod-card">
+                <img src="${r.image_url}" alt="${r.name}" class="prod-img" onclick="window.location.hash='#product/${r.id}'"/>
+                <div class="prod-body">
+                  <div class="prod-title" onclick="window.location.hash='#product/${r.id}'">${r.name}</div>
+                  <div class="prod-price">₹${r.price}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } catch (err) {
+        container.innerHTML = '<p style="color:#ef4444;text-align:center;">Failed to load product details.</p>';
+      }
+    }
+
+    function changePDQty(delta) {
+      pdSelectedQty = Math.max(1, pdSelectedQty + delta);
+      const valEl = document.getElementById('pd-qty-val');
+      if (valEl) valEl.textContent = pdSelectedQty;
+    }
+
+    function switchPDTab(tabId, el) {
+      document.querySelectorAll('.pd-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.pd-tab-content').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    async function addPDToCart(id, name) {
+      try {
+        await huAddToCart(id, pdSelectedQty);
+        showToast(`🛒 Added ${pdSelectedQty} unit(s) of "${name}" to cart!`);
         await refreshCartData();
       } catch (err) {
-        if (err.message && err.message.toLowerCase().includes('auth')) {
-          showToast('🔑 Please log in to add items to your cart!');
-          setTimeout(() => { window.location.href = 'auth.html'; }, 1600);
-        } else {
-          showToast('❌ ' + (err.message || 'Failed to add item'));
-        }
+        showToast('❌ ' + (err.message || 'Failed to add'));
       }
     }
 
-    function updateCartUI() {
-      const totalCount = (cartData.items || []).reduce((sum, item) => sum + item.quantity, 0);
-      document.getElementById('cart-count').textContent = totalCount;
+    async function buyNowPD(id, name) {
+      await addPDToCart(id, name);
+      window.location.hash = '#checkout';
+    }
 
-      const container = document.getElementById('cart-items-container');
+    // ── SHOPPING CART & CHECKOUT PAGE ──────────────────────────────────────────
+    function renderCartPage() {
+      const container = document.getElementById('cart-page-items-list');
       const items = cartData.items || [];
 
       if (!items.length) {
-        container.innerHTML = '<p style="text-align:center;color:var(--muted);padding:30px 0;">Your cart is currently empty.</p>';
-        document.getElementById('rewards-redemption-box').style.display = 'none';
-        document.getElementById('cart-subtotal-price').textContent = '₹0';
-        document.getElementById('cart-final-price').textContent = '₹0';
-        document.getElementById('discount-row').style.display = 'none';
+        container.innerHTML = '<p style="text-align:center;color:var(--muted);padding:40px 0;">Your shopping cart is currently empty. <a href="store.html#store" style="color:var(--primary);">Start Shopping →</a></p>';
+        document.getElementById('cart-page-subtotal').textContent = '₹0';
+        document.getElementById('cart-page-final-amount').textContent = '₹0';
+        document.getElementById('cart-page-coins-box').style.display = 'none';
         return;
       }
 
-      container.innerHTML = items.map(item => {
-        const itemTotal = item.price * item.quantity;
-        return `
-          <div class="cart-item">
-            <img src="${item.image_url}" alt="${item.name}"/>
-            <div class="cart-item-details">
-              <div class="cart-item-title">${item.name}</div>
-              <div class="cart-item-price">₹${item.price} × ${item.quantity} = ₹${itemTotal}</div>
+      container.innerHTML = items.map(item => `
+        <div class="cart-line-item">
+          <img src="${item.image_url}" alt="${item.name}"/>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:15px;">${item.name}</div>
+            <div style="font-size:13px;color:var(--muted);margin:2px 0 6px;">₹${item.price} per unit</div>
+            <div class="qty-selector">
+              <button class="qty-btn" onclick="updateCartItemQty('${item.product_id}', ${item.quantity - 1})">-</button>
+              <div class="qty-val">${item.quantity}</div>
+              <button class="qty-btn" onclick="updateCartItemQty('${item.product_id}', ${item.quantity + 1})">+</button>
             </div>
-            <button onclick="removeItem('${item.product_id}')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:18px;">🗑️</button>
           </div>
-        `;
-      }).join('');
-
-      // Rewards Section
-      const rewardsBox = document.getElementById('rewards-redemption-box');
-      if (cartData.max_coins_redeemable > 0) {
-        rewardsBox.style.display = 'block';
-        document.getElementById('coins-avail-text').textContent = `${(cartData.hu_coins_balance || 0).toLocaleString()} coins available`;
-        document.getElementById('coins-discount-preview').textContent = `Redeem ${cartData.max_coins_redeemable.toLocaleString()} coins for ₹${cartData.max_coin_discount} discount!`;
-      } else {
-        rewardsBox.style.display = 'none';
-      }
+          <div style="text-align:right;">
+            <div style="font-size:16px;font-weight:800;color:var(--primary-dark);">₹${item.price * item.quantity}</div>
+            <button onclick="removeItem('${item.product_id}')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:13px;margin-top:8px;font-weight:600;">Remove 🗑️</button>
+          </div>
+        </div>
+      `).join('');
 
       updateCartTotals();
     }
 
+    async function updateCartItemQty(prodId, newQty) {
+      try {
+        await huUpdateCartQty(prodId, newQty);
+        await refreshCartData();
+        renderCartPage();
+      } catch (err) {
+        showToast('❌ ' + (err.message || 'Could not update quantity'));
+      }
+    }
+
     function updateCartTotals() {
       const total = cartData.total || 0;
-      const useCoins = document.getElementById('use-coins-toggle').checked;
+      const useCoins = document.getElementById('cart-use-coins-toggle') ? document.getElementById('cart-use-coins-toggle').checked : true;
       let discount = 0;
-      if (useCoins && cartData.max_coin_discount) {
-        discount = cartData.max_coin_discount;
+
+      const coinsBox = document.getElementById('cart-page-coins-box');
+      if (cartData.max_coins_redeemable > 0) {
+        if (coinsBox) coinsBox.style.display = 'block';
+        document.getElementById('cart-coins-info-text').textContent = `Redeem ${cartData.max_coins_redeemable} coins for ₹${cartData.max_coin_discount} discount!`;
+        if (useCoins) discount = cartData.max_coin_discount;
+      } else if (coinsBox) {
+        coinsBox.style.display = 'none';
       }
 
-      document.getElementById('cart-subtotal-price').textContent = `₹${total}`;
-      const discRow = document.getElementById('discount-row');
+      document.getElementById('cart-page-subtotal').textContent = `₹${total}`;
+      const discRow = document.getElementById('cart-page-discount-row');
       if (discount > 0) {
-        discRow.style.display = 'flex';
-        document.getElementById('cart-discount-price').textContent = `-₹${discount}`;
-      } else {
+        if (discRow) discRow.style.display = 'flex';
+        document.getElementById('cart-page-discount-amount').textContent = `-₹${discount}`;
+      } else if (discRow) {
         discRow.style.display = 'none';
       }
       const finalPrice = Math.max(0, total - discount);
-      document.getElementById('cart-final-price').textContent = `₹${finalPrice.toFixed(2)}`;
+      document.getElementById('cart-page-final-amount').textContent = `₹${finalPrice.toFixed(2)}`;
     }
 
-    async function removeItem(productId) {
-      try {
-        await huRemoveFromCart(productId);
-        await refreshCartData();
-        showToast('Item removed');
-      } catch (err) {
-        showToast('Error removing item');
-      }
-    }
-
-    function openCart() { document.getElementById('cart-modal').classList.add('open'); }
-    function closeCart() { document.getElementById('cart-modal').classList.remove('open'); }
-
-    async function processCheckout() {
-      if (!cartData.items || !cartData.items.length) {
-        showToast('Your cart is empty!');
+    function renderCheckoutPage() {
+      const summaryContainer = document.getElementById('co-items-summary');
+      const items = cartData.items || [];
+      if (!items.length) {
+        summaryContainer.innerHTML = '<p style="color:var(--muted);">Cart is empty.</p>';
         return;
       }
 
-      const btn = document.getElementById('btn-checkout');
+      summaryContainer.innerHTML = items.map(i => `
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--border);font-size:13.5px;">
+          <span>${i.name} (x${i.quantity})</span>
+          <strong>₹${i.price * i.quantity}</strong>
+        </div>
+      `).join('');
+    }
+
+    async function executeFinalCheckout() {
+      const btn = document.getElementById('btn-final-checkout');
       btn.disabled = true;
       btn.textContent = 'Processing Checkout...';
 
-      const useCoins = document.getElementById('use-coins-toggle').checked;
+      const address = document.getElementById('co-address-input').value.trim() || 'Standard Address';
+      const useCoins = document.getElementById('cart-use-coins-toggle') ? document.getElementById('cart-use-coins-toggle').checked : true;
 
       try {
-        const result = await huCheckout({ address: 'Primary Address', use_coins: useCoins });
-        showToast(`🎉 Order ${result.order_id} confirmed!`);
-        closeCart();
+        const res = await huCheckout({ address: address, use_coins: useCoins });
+        showToast(`🎉 Order #${res.order_id} confirmed!`);
         await refreshCartData();
-        openOrdersModal();
+        window.location.hash = `#orders/${res.order_id}`;
       } catch (err) {
         showToast('❌ ' + (err.message || 'Checkout failed'));
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Confirm Order & Checkout →';
+        btn.textContent = 'Confirm & Pay Order ⚡';
       }
     }
 
-    async function openOrdersModal() {
-      document.getElementById('orders-modal').classList.add('open');
-      const container = document.getElementById('orders-container');
-      container.innerHTML = '<p style="color:var(--muted);text-align:center;">Loading order history...</p>';
+    // ── ORDERS & ORDER TRACKING PAGE ───────────────────────────────────────────
+    async function renderOrdersPage() {
+      const container = document.getElementById('orders-page-container');
+      container.innerHTML = '<p style="color:var(--muted);text-align:center;padding:40px 0;">Loading your orders...</p>';
 
       try {
         const orders = await huGetMyOrders();
         if (!orders.length) {
-          container.innerHTML = '<p style="color:var(--muted);text-align:center;padding:30px 0;">No orders placed yet.</p>';
+          container.innerHTML = '<p style="color:var(--muted);text-align:center;padding:40px 0;">No past orders found.</p>';
           return;
         }
 
         container.innerHTML = orders.map(o => `
-          <div style="border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;background:#fff;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div style="background:white;border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:18px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
               <div>
-                <strong>Order #${o.id}</strong>
+                <strong style="font-size:16px;">Order #${o.id}</strong>
                 <div style="font-size:12px;color:var(--muted);">${new Date(o.created_at).toLocaleString('en-IN')}</div>
               </div>
-              <span style="background:${o.status === 'Cancelled' ? '#fee2e2' : '#dcfce7'};color:${o.status === 'Cancelled' ? '#ef4444' : '#166534'};padding:4px 10px;border-radius:12px;font-weight:700;font-size:12px;">${o.status}</span>
+              <span style="background:${o.status === 'Cancelled' ? '#fee2e2' : '#dcfce7'};color:${o.status === 'Cancelled' ? '#ef4444' : '#166534'};padding:4px 12px;border-radius:12px;font-weight:700;font-size:12px;">${o.status}</span>
             </div>
-            <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">
+
+            <div style="font-size:13.5px;color:#334155;margin-bottom:14px;">
               Items: ${(o.items || []).map(i => `${i.name} (x${i.quantity})`).join(', ')}
             </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;font-size:14px;border-top:1px solid var(--border);padding-top:8px;">
-              <div>
-                <span>Paid: <strong>₹${o.gateway_spent}</strong></span>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:12px;">
+              <div style="font-size:14px;">
+                Paid: <strong>₹${o.gateway_spent}</strong>
                 ${o.coins_spent ? `<span style="color:#16a34a;margin-left:8px;">(${o.coins_spent} Coins used)</span>` : ''}
               </div>
-              ${o.status !== 'Cancelled' ? `<button onclick="cancelMyOrder('${o.id}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:6px 12px;font-weight:600;font-size:12px;cursor:pointer;">Cancel Order</button>` : ''}
+              <a href="store.html#orders/${o.id}" class="add-btn" style="background:#0284c7;text-decoration:none;padding:6px 14px;font-size:13px;">
+                Track Order 📍
+              </a>
             </div>
           </div>
         `).join('');
       } catch (err) {
-        container.innerHTML = '<p style="color:#ef4444;text-align:center;">Failed to load orders.</p>';
+        container.innerHTML = '<p style="color:#ef4444;text-align:center;">Failed to load order history.</p>';
+      }
+    }
+
+    async function loadOrderDetailsPage(orderId) {
+      const container = document.getElementById('orders-page-container');
+      container.innerHTML = '<p style="color:var(--muted);text-align:center;padding:40px 0;">Loading order tracking...</p>';
+
+      try {
+        const order = await huGetOrderDetails(orderId);
+        if (!order) {
+          container.innerHTML = '<p style="color:#ef4444;text-align:center;">Order tracking info not found.</p>';
+          return;
+        }
+
+        const timeline = order.tracking_timeline || [];
+
+        container.innerHTML = `
+          <div style="background:white;border:1px solid var(--border);border-radius:20px;padding:32px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+              <div>
+                <h2 style="font-size:22px;font-weight:700;">Order #${order.id}</h2>
+                <div style="font-size:13px;color:var(--muted);">Placed on ${new Date(order.created_at).toLocaleString('en-IN')}</div>
+              </div>
+              <span style="background:${order.status === 'Cancelled' ? '#fee2e2' : '#dcfce7'};color:${order.status === 'Cancelled' ? '#ef4444' : '#166534'};padding:6px 16px;border-radius:20px;font-weight:700;font-size:13px;">${order.status}</span>
+            </div>
+
+            <!-- Tracking Timeline -->
+            <div class="tracking-stepper">
+              ${timeline.map((step, idx) => `
+                <div class="step-item ${step.status}">
+                  <div class="step-icon">${idx + 1}</div>
+                  <div class="step-label">${step.step}</div>
+                </div>
+              `).join('')}
+            </div>
+
+            <div style="background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:16px;margin:24px 0;">
+              <div style="font-size:13.5px;font-weight:700;margin-bottom:6px;">📍 Shipping Address:</div>
+              <div style="font-size:13px;color:#475569;">${order.shipping_address || 'Primary Address'}</div>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;">
+              <a href="store.html#orders" style="color:var(--primary);text-decoration:none;font-weight:700;font-size:14px;">← Back to All Orders</a>
+              ${order.status !== 'Cancelled' ? `<button onclick="cancelMyOrder('${order.id}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:8px 16px;font-weight:700;font-size:13px;cursor:pointer;">Cancel Order &amp; Refund Rewards</button>` : ''}
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        container.innerHTML = '<p style="color:#ef4444;text-align:center;">Could not fetch tracking details.</p>';
       }
     }
 
     async function cancelMyOrder(orderId) {
       if (!confirm(`Cancel order ${orderId} and refund rewards?`)) return;
       try {
-        const res = await huCancelOrder(orderId);
+        await huCancelOrder(orderId);
         showToast('✅ Order cancelled. Rewards refunded!');
-        await openOrdersModal();
-        await refreshCartData();
+        loadOrderDetailsPage(orderId);
+        refreshCartData();
       } catch (err) {
         showToast('❌ ' + (err.message || 'Could not cancel order'));
       }
     }
 
-    function closeOrdersModal() { document.getElementById('orders-modal').classList.remove('open'); }
+    // ── WISHLIST PAGE ────────────────────────────────────────────────────────────
+    async function refreshWishlistData() {
+      try {
+        wishlistItems = await huGetWishlist();
+      } catch (e) { wishlistItems = []; }
+    }
+
+    async function renderWishlistPage() {
+      await refreshWishlistData();
+      const grid = document.getElementById('wishlist-prod-grid');
+      renderProductsGrid(wishlistItems, grid);
+    }
+
+    async function toggleWishlist(prodId, btn) {
+      try {
+        const res = await huToggleWishlist(prodId);
+        if (res && res.in_wishlist) {
+          showToast('❤️ Saved to wishlist!');
+          if (btn) btn.classList.add('saved');
+        } else {
+          showToast('💔 Removed from wishlist');
+          if (btn) btn.classList.remove('saved');
+        }
+        await refreshWishlistData();
+      } catch (err) {
+        showToast('❌ Login to save wishlist items');
+      }
+    }
+
+    // ── REWARDS PAGE ─────────────────────────────────────────────────────────────
+    async function renderRewardsPage() {
+      const container = document.getElementById('rewards-page-container');
+      container.innerHTML = '<p style="color:var(--muted);text-align:center;padding:40px 0;">Loading rewards ledger...</p>';
+
+      try {
+        const data = await huGetRewardsSummary();
+        const coins = data ? data.hu_coins_balance : 500;
+        const totalSaved = data ? data.total_discount_saved_inr : 0;
+        const txs = data ? (data.transactions || []) : [];
+
+        container.innerHTML = `
+          <div style="background:linear-gradient(135deg, #15803d 0%, #16a34a 100%);color:white;padding:32px;border-radius:20px;display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+            <div>
+              <div style="font-size:14px;opacity:0.9;">Available Balance</div>
+              <h1 style="font-size:36px;font-family:'Fraunces',serif;margin:4px 0;">${coins.toLocaleString()} HU Coins</h1>
+              <div style="font-size:13.5px;background:rgba(255,255,255,0.2);padding:4px 12px;border-radius:12px;display:inline-block;margin-top:6px;">
+                🎉 Total Saved via Rewards: ₹${totalSaved}
+              </div>
+            </div>
+            <a href="store.html#store" class="add-btn" style="background:white;color:var(--primary-dark);font-size:14px;padding:12px 20px;border-radius:10px;text-decoration:none;">Redeem on Store 🛍️</a>
+          </div>
+
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:12px;">Rewards Ledger History</h3>
+          <div style="background:white;border:1px solid var(--border);border-radius:16px;padding:16px;">
+            ${txs.length === 0 ? '<p style="color:var(--muted);text-align:center;padding:20px 0;">No reward transactions yet.</p>' : txs.map(t => `
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f1f5f9;">
+                <div>
+                  <div style="font-weight:700;font-size:14px;">${t.source_type || 'Platform Activity'}</div>
+                  <small style="color:var(--muted);">${new Date(t.timestamp).toLocaleString('en-IN')}</small>
+                </div>
+                <span style="font-weight:800;font-size:15px;color:${t.credit_debit === 'CREDIT' ? '#16a34a' : '#dc2626'};">
+                  ${t.credit_debit === 'CREDIT' ? '+' : '-'}${t.amount} Coins
+                </span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } catch (err) {
+        container.innerHTML = '<p style="color:#ef4444;text-align:center;">Failed to load rewards history.</p>';
+      }
+    }
+
+    // ── COMMON STATE SYNC ────────────────────────────────────────────────────────
+    async function refreshCartData() {
+      try {
+        cartData = await huGetCart();
+        const count = (cartData.items || []).reduce((s, i) => s + i.quantity, 0);
+        document.getElementById('cart-count').textContent = count;
+        if (cartData.hu_coins_balance !== undefined) {
+          document.getElementById('user-coins-display').textContent = `Your Rewards: ${cartData.hu_coins_balance} HU Coins`;
+        }
+      } catch (e) {}
+    }
+
+    async function addToCart(id, name) {
+      try {
+        await huAddToCart(id, 1);
+        showToast(`🛒 Added "${name}" to cart!`);
+        await refreshCartData();
+      } catch (err) {
+        showToast('❌ ' + (err.message || 'Failed to add item'));
+      }
+    }
+
+    async function removeItem(productId) {
+      try {
+        await huRemoveFromCart(productId);
+        await refreshCartData();
+        if (window.location.hash === '#cart') renderCartPage();
+        showToast('Item removed');
+      } catch (err) {
+        showToast('Error removing item');
+      }
+    }
+
+    function handleHeaderSearch(query) {
+      query = query.trim().toLowerCase();
+      if (!query) { fetchProducts(); return; }
+      const filtered = currentProducts.filter(p => p.name.toLowerCase().includes(query) || p.description.toLowerCase().includes(query));
+      renderProductsGrid(filtered, document.getElementById('main-prod-grid'));
+    }
 
     function showToast(msg) {
       const toast = document.getElementById('toast');
