@@ -2210,6 +2210,39 @@ async function saveProfileToBackend() {
 
 
 
+<!-- DEEP TOPIC EXPLORATION MODAL -->
+<div class="modal-overlay" id="deep-topic-modal" onclick="closeDeepTopicModal()" style="display:none;z-index:9999;">
+  <div class="withdraw-modal-box" onclick="event.stopPropagation()" style="max-width:650px;width:90%;border-radius:18px;padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e2e8f0;padding-bottom:14px;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span id="dt-emoji" style="font-size:28px;">🧠</span>
+        <div>
+          <h2 id="dt-title" style="margin:0;font-size:20px;color:#0f172a;">Topic Deep Dive</h2>
+          <small id="dt-posts-count" style="color:#64748b;font-size:12.5px;">Explore clinical insights &amp; research</small>
+        </div>
+      </div>
+      <button onclick="closeDeepTopicModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#64748b;">✕</button>
+    </div>
+    
+    <div id="dt-body">
+      <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:16px;margin-bottom:16px;color:#0369a1;font-size:13.5px;line-height:1.5;" id="dt-description">
+        Loading topic clinical summary...
+      </div>
+
+      <h4 style="font-size:15px;color:#0f172a;margin-bottom:10px;">👨‍⚕️ Top Specialists in this Field</h4>
+      <div id="dt-doctors-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;"></div>
+
+      <h4 style="font-size:15px;color:#0f172a;margin-bottom:10px;">📚 Related Publications &amp; Research</h4>
+      <div id="dt-posts-list"></div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #e2e8f0;padding-top:14px;margin-top:16px;">
+      <span style="font-size:13px;color:#16a34a;font-weight:600;">💰 +10 HU Coins earned for reading deep dive!</span>
+      <button onclick="closeDeepTopicModal()" style="background:#0284c7;color:white;border:none;border-radius:8px;padding:8px 18px;font-weight:600;font-size:13.5px;cursor:pointer;">Got it!</button>
+    </div>
+  </div>
+</div>
+
 </body>
 <!-- Mobile Menu Button -->
 <button class="mobile-menu-btn" onclick="toggleSidebar()">

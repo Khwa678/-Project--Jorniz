@@ -2444,3 +2444,184 @@ async function promptEndorseSkill(recipientId, name, defaultSkill) {
     showToast("❌ " + (err.message || "Endorsement failed"));
   }
 }
+
+// ── DEEP TOPIC EXPLORATION MODAL ENGINE ───────────────────────────────────────
+const TOPIC_DATA = {
+  heart_health: {
+    title: "Heart & Cardiovascular Health",
+    emoji: "❤️",
+    postsCount: "12.5K Medical Publications",
+    desc: "Cardiovascular health encompasses prevention, diagnosis, and treatment of coronary artery disease, hypertension, arrhythmias, and heart failure. Regular aerobic activity, omega-3 rich diet, and blood pressure monitoring reduce long-term cardiovascular risks by up to 45%.",
+    doctors: [
+      { name: "Dr. Sarah Mitchell", specialty: "Cardiologist", hospital: "Mayo Clinic" },
+      { name: "Dr. Robert Vance", specialty: "Interventional Cardiology", hospital: "Johns Hopkins" }
+    ],
+    articles: [
+      "mRNA Innovations in Post-Infarction Tissue Recovery (Aug 2026)",
+      "Hypertension Management: 2026 Clinical Guidelines & Lifestyle Protocols"
+    ]
+  },
+  mental_wellness: {
+    title: "Mental Wellness & Psychiatry",
+    emoji: "🧠",
+    postsCount: "24.3K Medical Publications",
+    desc: "Mental wellness integrates neurobiological balance, cognitive behavioral therapies, and stress mitigation protocols. Sleep optimization and gut-brain axis nutrition play crucial roles in serotonin synthesis.",
+    doctors: [
+      { name: "Dr. Emily Chen", specialty: "Psychiatrist", hospital: "Stanford Medicine" },
+      { name: "Dr. Alan Ross", specialty: "Clinical Neurologist", hospital: "Harvard Medical" }
+    ],
+    articles: [
+      "Circadian Rhythms and Neurotransmitter Modulation (Jul 2026)",
+      "Mindfulness-Based Stress Reduction in Chronic Burnout Cases"
+    ]
+  },
+  nutrition_tips: {
+    title: "Clinical Nutrition & Dietetics",
+    emoji: "🥗",
+    postsCount: "18.7K Medical Publications",
+    desc: "Evidence-based clinical nutrition focuses on therapeutic macronutrient distribution, micronutrient bioavailability, and metabolic health optimization for metabolic syndrome and obesity management.",
+    doctors: [
+      { name: "Maria Santos, MSc", specialty: "Clinical Dietitian", hospital: "Cleveland Clinic" },
+      { name: "Dr. Kevin Patel", specialty: "Endocrinologist & Clinical Nutritionist", hospital: "Mount Sinai" }
+    ],
+    articles: [
+      "Plant-Based Micronutrient Bioavailability & Gut Microbiome Diversity",
+      "Intermittent Fasting & Insulin Sensitivity: A Meta-Analysis of 50 Trials"
+    ]
+  },
+  fitness_goals: {
+    title: "Sports Medicine & Physical Recovery",
+    emoji: "💪",
+    postsCount: "31.2K Medical Publications",
+    desc: "Sports medicine addresses biomechanics, progressive resistance training, VO2 max elevation, and musculoskeletal injury prevention for optimal physiological performance.",
+    doctors: [
+      { name: "James Cooper", specialty: "Exercise Physiologist", hospital: "US Olympic Training Center" },
+      { name: "Dr. Amanda Lee", specialty: "Orthopedic Sports Surgeon", hospital: "NYU Langone" }
+    ],
+    articles: [
+      "VO2 Max Hypertrophy and Mitochondrial Biogenesis in Resistance Athletes",
+      "ACL Reconstruction & Acceleration Protocols in Collegiate Athletes"
+    ]
+  },
+  gut_health: {
+    title: "Gut Microbiome & Gastroenterology",
+    emoji: "🦠",
+    postsCount: "42.1K Medical Publications",
+    desc: "The gut microbiome regulates mucosal immunity, short-chain fatty acid production (butyrate), and systemic inflammation. Dysbiosis is directly correlated with autoimmune and metabolic disorders.",
+    doctors: [
+      { name: "Dr. Marcus Thorne", specialty: "Gastroenterologist", hospital: "UCLA Health" },
+      { name: "Maria Santos, MSc", specialty: "Gut Microbiome Specialist", hospital: "Cleveland Clinic" }
+    ],
+    articles: [
+      "Fecal Microbiota Transplantation in Treatment-Resistant IBS",
+      "Short-Chain Fatty Acids and Immune Tolerance in IBD Patients"
+    ]
+  },
+  neuro_brain: {
+    title: "Neuroscience & Brain Performance",
+    emoji: "🧠",
+    postsCount: "38.5K Medical Publications",
+    desc: "Neuroplasticity, synaptic pruning, and neurotrophic factors (BDNF) dictate cognitive processing speed, memory consolidation, and resistance to neurodegenerative decline.",
+    doctors: [
+      { name: "Dr. Alan Ross", specialty: "Chief of Neurology", hospital: "Harvard Medical" },
+      { name: "Dr. Elena Rostova", specialty: "Neurosurgeon", hospital: "Charité Berlin" }
+    ],
+    articles: [
+      "BDNF Upregulation via High-Intensity Interval Exercise & Nootropics",
+      "Early Biomarkers in Amyloid Beta & Tau Protein Neurodegeneration"
+    ]
+  },
+  sexual_wellness: {
+    title: "Reproductive & Hormonal Health",
+    emoji: "🧬",
+    postsCount: "19.8K Medical Publications",
+    desc: "Hormonal equilibrium, vascular endothelial integrity, and reproductive endocrinology are fundamental to overall physiological vitality and fertility health.",
+    doctors: [
+      { name: "Dr. Rachel Adams", specialty: "Reproductive Endocrinologist", hospital: "Yale Medicine" },
+      { name: "Dr. Vikram Seth", specialty: "Urologist & Andrologist", hospital: "Apollo Hospitals" }
+    ],
+    articles: [
+      "Endothelial Nitric Oxide Expression & Microvascular Reproductive Health",
+      "Hormone Replacement Therapy: Risk-Benefit Analysis 2026 Update"
+    ]
+  },
+  sleep_recovery: {
+    title: "Sleep & Circadian Recovery",
+    emoji: "💤",
+    postsCount: "28.4K Medical Publications",
+    desc: "Glymphatic system clearance of metabolic waste occurs predominantly during slow-wave Deep NREM sleep. Chronobiology optimization enhances endocrine secretagogue secretion.",
+    doctors: [
+      { name: "Dr. Daniel Park", specialty: "Somnologist & Sleep Medicine Specialist", hospital: "Northwestern Medicine" }
+    ],
+    articles: [
+      "Glymphatic Clearance Dynamics During Stage N3 Sleep",
+      "Blue Light Spectrum Mitigation & Melatonin Secretion Kinetics"
+    ]
+  },
+  skin_barrier: {
+    title: "Dermatology & Skin Barrier",
+    emoji: "✨",
+    postsCount: "16.7K Medical Publications",
+    desc: "The stratum corneum epidermal barrier relies on ceramide lipid matrices and tight junction proteins to prevent transepidermal water loss and environmental pathogen entry.",
+    doctors: [
+      { name: "Dr. Priya Nair", specialty: "Dermatologist", hospital: "AIIMS Delhi" },
+      { name: "Dr. Chloe Martin", specialty: "Cosmetic & Surgical Dermatologist", hospital: "Cedars-Sinai" }
+    ],
+    articles: [
+      "Topical Ceramide Synthesis Acceleration via Niacinamide Derivatives",
+      "UV Photodamage & Collagen Matrix Degradation Prevention"
+    ]
+  }
+};
+
+function openDeepUnderstanding(topicKey) {
+  const modal = document.getElementById("deep-topic-modal");
+  if (!modal) return;
+
+  const data = TOPIC_DATA[topicKey] || {
+    title: "Healthcare Topic",
+    emoji: "🩺",
+    postsCount: "10K+ Publications",
+    desc: "Explore verified medical insights, expert recommendations, and peer-reviewed research in this specialty.",
+    doctors: [{ name: "Dr. Sarah Mitchell", specialty: "Specialist", hospital: "Medical Center" }],
+    articles: ["Clinical Overview & Guidelines 2026"]
+  };
+
+  document.getElementById("dt-emoji").textContent = data.emoji;
+  document.getElementById("dt-title").textContent = data.title;
+  document.getElementById("dt-posts-count").textContent = data.postsCount;
+  document.getElementById("dt-description").textContent = data.desc;
+
+  const docContainer = document.getElementById("dt-doctors-grid");
+  if (docContainer) {
+    docContainer.innerHTML = data.doctors.map((d, i) => `
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;">
+        <div style="font-weight:700;font-size:13.5px;color:#0f172a;">${d.name}</div>
+        <div style="font-size:12px;color:#64748b;">${d.specialty} · ${d.hospital}</div>
+        <button onclick="handleSendConnection('dt_doc_${i}', this)" style="margin-top:8px;background:#0284c7;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:11.5px;font-weight:600;cursor:pointer;width:100%;">Connect 🤝</button>
+      </div>
+    `).join("");
+  }
+
+  const postsContainer = document.getElementById("dt-posts-list");
+  if (postsContainer) {
+    postsContainer.innerHTML = data.articles.map(art => `
+      <div style="padding:8px 0;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:13px;color:#0f172a;font-weight:500;">📄 ${art}</span>
+        <button onclick="showToast('📥 Opening publication details...')" style="background:#e0f2fe;color:#0369a1;border:none;border-radius:6px;padding:4px 8px;font-size:11.5px;font-weight:600;cursor:pointer;">Read ↗</button>
+      </div>
+    `).join("");
+  }
+
+  modal.style.display = "flex";
+
+  // Award +10 HU Coins for deep topic exploration
+  if (typeof huUpdateUserCoins === "function" && typeof userCoins !== "undefined") {
+    huUpdateUserCoins(userCoins + 10);
+  }
+}
+
+function closeDeepTopicModal() {
+  const modal = document.getElementById("deep-topic-modal");
+  if (modal) modal.style.display = "none";
+}
