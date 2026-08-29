@@ -63,10 +63,17 @@ function huLogout() {
   window.location.href = "auth.html";
 }
 
-// ── Auth Guard ────────────────────────────────────────────────────────────────
-(function huAuthGuard() {
-  if (!huGetToken()) window.location.href = "auth.html";
-})();
+// ── Auth Guard Helper ─────────────────────────────────────────────────────────
+function huRequireAuth() {
+  if (!huGetToken()) {
+    showToast("🔑 Please sign in or create an account to perform this action!");
+    setTimeout(function () {
+      window.location.href = "auth.html";
+    }, 1500);
+    return false;
+  }
+  return true;
+}
 
 // ── Generic fetch wrapper ─────────────────────────────────────────────────────
 async function huFetch(path, options) {

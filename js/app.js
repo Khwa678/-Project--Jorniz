@@ -2426,6 +2426,7 @@ async function loadNetworkPage() {
 }
 
 async function handleSendConnection(receiverId, btn) {
+  if (typeof huRequireAuth === "function" && !huRequireAuth()) return;
   btn.disabled = true;
   btn.textContent = "Sending…";
   try {
@@ -2441,6 +2442,7 @@ async function handleSendConnection(receiverId, btn) {
 }
 
 async function handleAcceptConnection(connId, btn) {
+  if (typeof huRequireAuth === "function" && !huRequireAuth()) return;
   btn.disabled = true;
   try {
     const res = await huAcceptConnection(connId);
@@ -2453,6 +2455,7 @@ async function handleAcceptConnection(connId, btn) {
 }
 
 async function promptEndorseSkill(recipientId, name, defaultSkill) {
+  if (typeof huRequireAuth === "function" && !huRequireAuth()) return;
   const skill = prompt(`Endorse ${name} for a skill:`, defaultSkill);
   if (!skill || !skill.trim()) return;
 
