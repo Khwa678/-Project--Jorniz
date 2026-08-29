@@ -882,8 +882,7 @@ def seed_initial_data(conn):
     # Check if doctors exist
     cur.execute("SELECT COUNT(*) FROM doctors")
     if cur.fetchone()[0] == 0:
-        print("[INFO] Seeding initial Doctors, Products, and Diagnostics data...")
-        # Seed Doctors
+        print("[INFO] Seeding initial Doctors and Slots data...")
         doctors_data = [
             ("doc_1", "usr_doc1", "Dr. Rajesh Sharma", "Cardiology", "MD, DM (Cardiology)", 14, 800.0, 4.9, 320, "AIIMS New Delhi", "Delhi", "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=150", "Senior Cardiologist specializing in preventive heart care and hypertension management.", "Mon-Fri (10:00 AM - 4:00 PM)"),
             ("doc_2", "usr_doc2", "Dr. Ananya Roy", "Dermatology", "MD (Dermatology), DNB", 9, 650.0, 4.8, 210, "Apollo Hospitals", "Mumbai", "https://images.unsplash.com/photo-1594824813566-88855ce78961?w=150", "Expert dermatologist specializing in skincare, acne treatment, and holistic wellness.", "Tue-Sat (11:00 AM - 5:00 PM)"),
@@ -892,7 +891,6 @@ def seed_initial_data(conn):
         ]
         cur.executemany("INSERT INTO doctors (id, user_id, name, specialty, qualification, experience_years, fee, rating, reviews_count, hospital, location, avatar, bio, available_days) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", doctors_data)
 
-        # Seed Doctor Slots
         slots = [
             ("slot_1", "doc_1", "Tomorrow, 10:30 AM", 800.0, 0, None),
             ("slot_2", "doc_1", "Tomorrow, 02:00 PM", 800.0, 0, None),
@@ -902,21 +900,51 @@ def seed_initial_data(conn):
         ]
         cur.executemany("INSERT INTO doctor_slots (id, doctor_id, slot_time, price, is_booked, booked_by_user_id) VALUES (?,?,?,?,?,?)", slots)
 
-        # Seed Categories
+    # Check if products exist
+    cur.execute("SELECT COUNT(*) FROM products")
+    if cur.fetchone()[0] == 0:
+        print("[INFO] Seeding initial E-Commerce Categories & Products...")
         categories = [
-            ("cat_1", "Vitamins & Supplements", "pharmacy", "Essential daily vitamins, minerals, and dietary supplements."),
-            ("cat_2", "Ayurvedic & Herbal", "eco", "Natural Ayurvedic remedies, Chyawanprash, and herbal teas."),
-            ("cat_3", "Fitness & Protein", "fitness_center", "Whey protein, plant protein, BCAAs, and workout nutrition."),
-            ("cat_4", "Personal Care & Hygiene", "sanitizer", "Organic soaps, herbal shampoos, skincare, and sanitizers.")
+            ("cat_ayurveda", "Ayurvedic & Herbal", "spa", "Natural Ayurvedic remedies, Chyawanprash, and herbal teas."),
+            ("cat_fitness", "Fitness & Protein", "fitness_center", "Whey protein, plant protein, BCAAs, and workout nutrition."),
+            ("cat_personal", "Personal Care & Hygiene", "sanitizer", "Organic soaps, herbal shampoos, skincare, and sanitizers."),
+            ("cat_vitamins", "Vitamins & Supplements", "medication", "Essential daily vitamins, minerals, and dietary supplements."),
+            ("cat_organic", "Organic Wellness", "eco", "Certified organic honey, cold-pressed oils, and superfoods."),
+            ("cat_acc", "Fitness Accessories", "sports_gymnastics", "Resistance bands, yoga mats, and recovery tools.")
         ]
-        cur.executemany("INSERT INTO categories (id, name, icon, description) VALUES (?,?,?,?)", categories)
+        cur.executemany("INSERT OR IGNORE INTO categories (id, name, icon, description) VALUES (?,?,?,?)", categories)
 
-        # Seed Products
+        # Seed Products across all 6 categories
         products = [
-            ("prod_1", "Organic Ashwagandha Extract 500mg", "cat_2", 499.0, 699.0, "https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=300", "Pure KSM-66 Ashwagandha for stress relief, stamina, and immune support.", "Ashwagandha Root Extract, Black Pepper Extract", 100, 4.9, 88, 1),
-            ("prod_2", "Plant-Based Protein Powder (Chocolate)", "cat_3", 1299.0, 1599.0, "https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?w=300", "Clean pea and brown rice protein with digestive enzymes and BCAA.", "Pea Protein Isolate, Brown Rice Protein, Cocoa", 60, 4.8, 64, 1),
-            ("prod_3", "Vitamin D3 + K2 Immunity Softgels", "cat_1", 349.0, 499.0, "https://images.unsplash.com/photo-1550572017-edd951b55104?w=300", "High-potency Vitamin D3 (2000 IU) + K2 for bone health and cardiovascular support.", "Vitamin D3 (Cholecalciferol), Vitamin K2 (MK-7)", 150, 4.7, 112, 0),
-            ("prod_4", "Cold-Pressed Virgin Coconut Oil 500ml", "cat_4", 399.0, 450.0, "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=300", "100% pure raw unrefined coconut oil for hair growth, skin moisturizing, and cooking.", "100% Pure Virgin Coconut Oil", 80, 4.9, 95, 0)
+            # Ayurvedic & Herbal
+            ("prod_1", "Organic Ashwagandha Extract 500mg", "cat_ayurveda", 499.0, 699.0, "https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=300", "Pure KSM-66 Ashwagandha for stress relief, stamina, and immune support.", "Ashwagandha Root Extract, Black Pepper Extract", 100, 4.9, 88, 1),
+            ("prod_ayur_2", "Traditional Sugar-Free Chyawanprash 1kg", "cat_ayurveda", 599.0, 799.0, "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300", "Ayurvedic immunity booster rich in Amla, Giloy, and 40+ rejuvenative herbs.", "Amla, Giloy, Ashwagandha, Honey, Cardamom", 85, 4.8, 142, 1),
+            ("prod_ayur_3", "Pure Himalayan Shilajit Resin 20g", "cat_ayurveda", 999.0, 1499.0, "https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=300", "Authentic grade-A Himalayan Shilajit with 80%+ Fulvic Acid for energy & cellular vitality.", "100% Pure Himalayan Shilajit", 50, 4.9, 210, 1),
+            ("prod_ayur_4", "Triphala Digestive & Detox Capsules", "cat_ayurveda", 349.0, 450.0, "https://images.unsplash.com/photo-1550572017-edd951b55104?w=300", "Organic Amla, Haritaki, and Bibhitaki for natural digestion and gut wellness.", "Organic Amla, Haritaki, Bibhitaki", 120, 4.7, 76, 0),
+
+            # Fitness & Protein
+            ("prod_2", "Plant-Based Protein Powder (Chocolate)", "cat_fitness", 1299.0, 1599.0, "https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?w=300", "Clean pea and brown rice protein with digestive enzymes and 5.5g BCAA.", "Pea Protein Isolate, Brown Rice Protein, Cocoa", 60, 4.8, 64, 1),
+            ("prod_fit_2", "100% Whey Isolate Protein (Vanilla Bean 1kg)", "cat_fitness", 2499.0, 2999.0, "https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?w=300", "Micro-filtered whey isolate delivering 27g fast-absorbing protein per scoop.", "Whey Protein Isolate, Natural Vanilla, DigestZyme", 45, 4.9, 310, 1),
+            ("prod_fit_3", "Micronized Creatine Monohydrate 250g", "cat_fitness", 799.0, 999.0, "https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=300", "Unflavored 100% pure creatine for muscle power, ATP recovery, and strength.", "100% Micronized Creatine Monohydrate", 90, 4.8, 185, 0),
+            ("prod_fit_4", "BCAA 2:1:1 Intra-Workout Amino Acids", "cat_fitness", 899.0, 1199.0, "https://images.unsplash.com/photo-1550572017-edd951b55104?w=300", "L-Leucine, L-Isoleucine, and L-Valine with electrolytes for peak recovery.", "BCAA 2:1:1 Complex, Coconut Water Powder", 75, 4.7, 92, 0),
+
+            # Personal Care & Hygiene
+            ("prod_4", "Cold-Pressed Virgin Coconut Oil 500ml", "cat_personal", 399.0, 450.0, "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=300", "100% pure raw unrefined coconut oil for hair growth, skin moisturizing, and cooking.", "100% Pure Virgin Coconut Oil", 80, 4.9, 95, 0),
+            ("prod_pers_2", "Organic Neem & Tea Tree Face Wash", "cat_personal", 299.0, 399.0, "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=300", "Gentle sulfate-free face cleanser for clear skin, acne prevention, and glow.", "Organic Neem Extract, Tea Tree Essential Oil, Aloe Vera", 110, 4.8, 128, 1),
+            ("prod_pers_3", "Herbal Anti-Hairfall Shampoo 300ml", "cat_personal", 449.0, 599.0, "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=300", "Enriched with Bhringraj, Shikakai, and Onion Oil to strengthen hair roots.", "Bhringraj, Shikakai, Red Onion Seed Oil", 95, 4.7, 164, 0),
+
+            # Vitamins & Supplements
+            ("prod_3", "Vitamin D3 + K2 Immunity Softgels", "cat_vitamins", 349.0, 499.0, "https://images.unsplash.com/photo-1550572017-edd951b55104?w=300", "High-potency Vitamin D3 (2000 IU) + K2 for bone health and cardiovascular support.", "Vitamin D3 (Cholecalciferol), Vitamin K2 (MK-7)", 150, 4.7, 112, 0),
+            ("prod_vit_2", "Triple Strength Omega 3 Fish Oil 1000mg", "cat_vitamins", 699.0, 899.0, "https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=300", "Concentrated EPA (550mg) & DHA (350mg) for heart, brain, and joint wellness.", "Fish Oil Concentrate, Gelatin, Vitamin E", 130, 4.9, 240, 1),
+            ("prod_vit_3", "Daily Multivitamin for Men & Women", "cat_vitamins", 499.0, 649.0, "https://images.unsplash.com/photo-1550572017-edd951b55104?w=300", "23 essential vitamins, minerals, and antioxidants for daily vigor and vitality.", "Vitamin A, C, D, E, Zinc, Iron, Magnesium", 140, 4.8, 198, 0),
+
+            # Organic Wellness
+            ("prod_org_1", "Certified Raw Wildflower Honey 500g", "cat_organic", 499.0, 599.0, "https://images.unsplash.com/photo-1587049352847-4a222e784d38?w=300", "Unpasteurized raw honey harvested directly from wild organic forest hives.", "100% Pure Raw Wildflower Honey", 70, 4.9, 175, 1),
+            ("prod_org_2", "Organic Extra Virgin Olive Oil 500ml", "cat_organic", 799.0, 999.0, "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=300", "First cold-pressed Spanish olive oil ideal for dressings, cooking, and heart health.", "100% Organic Cold-Pressed Olive Oil", 65, 4.8, 88, 0),
+
+            # Fitness Accessories
+            ("prod_acc_1", "High-Density Non-Slip Yoga Mat 6mm", "cat_acc", 899.0, 1299.0, "https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=300", "Eco-friendly TPE yoga mat with alignment lines and extra cushioning for joints.", "Eco TPE Material", 40, 4.8, 110, 1),
+            ("prod_acc_2", "Pro Resistance Bands Set (5 Tube Levels)", "cat_acc", 699.0, 999.0, "https://images.unsplash.com/photo-1598289431512-b97b0917affc?w=300", "Heavy-duty latex resistance tubes with door anchor, handles, and ankle straps.", "Natural Latex Rubber", 55, 4.7, 95, 0)
         ]
         cur.executemany("INSERT INTO products (id, name, category_id, price, original_price, image_url, description, ingredients, stock, rating, reviews_count, is_featured) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", products)
 
@@ -926,7 +954,7 @@ def seed_initial_data(conn):
             ("diag_2", "Diabetes Care Profile (HbA1c & Fasting)", "Endocrinology", 599.0, "Includes HbA1c, Fasting Blood Sugar, Post Prandial Sugar, and Kidney Health Marker.", 12),
             ("diag_3", "Cardiac Risk Profile & Lipid Panel", "Cardiology", 899.0, "Cholesterol, Triglycerides, HDL/LDL ratio, hs-CRP, and Cardiac enzymes.", 24)
         ]
-        cur.executemany("INSERT INTO diagnostics (id, test_name, department, price, description, turnaround_hours) VALUES (?,?,?,?,?,?)", diagnostics)
+        cur.executemany("INSERT OR IGNORE INTO diagnostics (id, test_name, department, price, description, turnaround_hours) VALUES (?,?,?,?,?,?)", diagnostics)
 
         conn.commit()
 

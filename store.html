@@ -190,13 +190,30 @@
         <a href="store.html#store" style="color:var(--primary);text-decoration:none;font-weight:600;">Store</a> &gt; <span id="cat-breadcrumb-name">Category</span>
       </div>
 
-      <div style="background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%);color:white;padding:32px;border-radius:16px;margin:16px 0 24px;display:flex;justify-content:space-between;align-items:center;">
+      <div id="cat-page-banner" style="background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%);color:white;padding:32px;border-radius:16px;margin:16px 0 24px;display:flex;justify-content:space-between;align-items:center;">
         <div>
           <h1 id="cat-page-title" style="font-family:'Fraunces',serif;font-size:28px;margin-bottom:6px;">Category Name</h1>
-          <p id="cat-page-desc" style="font-size:14px;color:#94a3b8;">Explore certified health remedies and supplements.</p>
+          <p id="cat-page-desc" style="font-size:14px;color:rgba(255,255,255,0.85);">Explore certified health remedies and supplements.</p>
         </div>
-        <div id="cat-page-count" style="background:#0284c7;color:white;padding:8px 16px;border-radius:20px;font-weight:700;font-size:13px;">
+        <div id="cat-page-count" style="background:rgba(255,255,255,0.25);backdrop-filter:blur(10px);color:white;padding:8px 16px;border-radius:20px;font-weight:700;font-size:13px;border:1px solid rgba(255,255,255,0.4);">
           0 Products Available
+        </div>
+      </div>
+
+      <!-- Category Controls Bar -->
+      <div id="cat-controls-bar" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;gap:16px;flex-wrap:wrap;">
+        <div id="cat-pills-bar" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;">
+          <!-- Sub-category pills rendered via JS -->
+        </div>
+
+        <div style="display:flex;gap:12px;align-items:center;">
+          <input type="text" id="cat-search-input" placeholder="Search in this category..." oninput="handleCategorySearch(this.value)" style="padding:7px 14px;border-radius:8px;border:1px solid var(--border);font-family:inherit;font-size:13px;outline:none;width:200px;"/>
+          <select id="cat-sort-select" onchange="applyCategorySort()" style="padding:7px 12px;border-radius:8px;border:1px solid var(--border);font-family:inherit;font-size:13px;outline:none;">
+            <option value="popular">Sort: Popularity</option>
+            <option value="price_low">Sort: Price Low to High</option>
+            <option value="price_high">Sort: Price High to Low</option>
+            <option value="rating">Sort: Highest Rating</option>
+          </select>
         </div>
       </div>
 
@@ -486,11 +503,37 @@
     }
 
     // ── CATEGORY DEDICATED PAGE ──────────────────────────────────────────────────
+    let categoryProductsRaw = [];
+    let currentCategorySubFilter = 'all';
+
+    const CATEGORY_THEMES = {
+      cat_ayurveda: { bg: 'linear-gradient(135deg, #064e3b 0%, #15803d 100%)', pills: ['All', 'Ashwagandha', 'Chyawanprash', 'Shilajit', 'Triphala'] },
+      cat_fitness: { bg: 'linear-gradient(135deg, #0f172a 0%, #0284c7 100%)', pills: ['All', 'Whey Isolate', 'Plant Protein', 'Creatine', 'BCAA'] },
+      cat_personal: { bg: 'linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%)', pills: ['All', 'Virgin Oils', 'Organic Facewash', 'Herbal Shampoo'] },
+      cat_vitamins: { bg: 'linear-gradient(135deg, #0f766e 0%, #0d9488 100%)', pills: ['All', 'Vitamin D3 & K2', 'Omega 3', 'Multivitamins'] },
+      cat_organic: { bg: 'linear-gradient(135deg, #78350f 0%, #b45309 100%)', pills: ['All', 'Raw Honey', 'Olive Oil'] },
+      cat_acc: { bg: 'linear-gradient(135deg, #881337 0%, #e11d48 100%)', pills: ['All', 'Yoga Mats', 'Resistance Bands'] }
+    };
+
     async function loadCategoryPage(catId) {
       const catObj = CATEGORIES_DATA.find(c => c.id === catId) || { name: 'Health Products', desc: 'Verified remedies' };
+      const theme = CATEGORY_THEMES[catId] || { bg: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', pills: ['All'] };
+
       document.getElementById('cat-breadcrumb-name').textContent = catObj.name;
       document.getElementById('cat-page-title').textContent = catObj.name;
       document.getElementById('cat-page-desc').textContent = catObj.desc;
+      document.getElementById('cat-page-banner').style.background = theme.bg;
+
+      // Render Sub-category Pills
+      const pillsContainer = document.getElementById('cat-pills-bar');
+      currentCategorySubFilter = 'all';
+      if (pillsContainer) {
+        pillsContainer.innerHTML = theme.pills.map(p => `
+          <button onclick="setCategorySubFilter('${p}', this)" class="sub-pill ${p === 'All' ? 'active' : ''}" style="background:${p === 'All' ? 'var(--primary)' : 'white'};color:${p === 'All' ? 'white' : 'var(--text)'};border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;">
+            ${p}
+          </button>
+        `).join('');
+      }
 
       const grid = document.getElementById('category-prod-grid');
       grid.innerHTML = '<p style="color:var(--muted);grid-column:1/-1;text-align:center;">Loading category products...</p>';
@@ -498,12 +541,50 @@
       try {
         const res = await fetch(HU_API + `/api/products?category_id=${catId}`);
         const data = await res.json();
-        const prods = data.products || [];
-        document.getElementById('cat-page-count').textContent = `${prods.length} Products Available`;
-        renderProductsGrid(prods, grid);
+        categoryProductsRaw = data.products || [];
+        document.getElementById('cat-page-count').textContent = `${categoryProductsRaw.length} Products Available`;
+        applyCategorySort();
       } catch (err) {
         grid.innerHTML = '<p style="color:#ef4444;grid-column:1/-1;text-align:center;">Could not load category products.</p>';
       }
+    }
+
+    function setCategorySubFilter(pillName, btn) {
+      document.querySelectorAll('#cat-pills-bar .sub-pill').forEach(b => {
+        b.style.background = 'white';
+        b.style.color = 'var(--text)';
+      });
+      if (btn) {
+        btn.style.background = 'var(--primary)';
+        btn.style.color = 'white';
+      }
+      currentCategorySubFilter = pillName.toLowerCase();
+      applyCategorySort();
+    }
+
+    function handleCategorySearch(query) {
+      applyCategorySort();
+    }
+
+    function applyCategorySort() {
+      let filtered = [...categoryProductsRaw];
+      const searchVal = (document.getElementById('cat-search-input')?.value || '').trim().toLowerCase();
+      const sortVal = document.getElementById('cat-sort-select')?.value || 'popular';
+
+      if (currentCategorySubFilter && currentCategorySubFilter !== 'all') {
+        filtered = filtered.filter(p => p.name.toLowerCase().includes(currentCategorySubFilter) || p.description.toLowerCase().includes(currentCategorySubFilter));
+      }
+
+      if (searchVal) {
+        filtered = filtered.filter(p => p.name.toLowerCase().includes(searchVal) || p.description.toLowerCase().includes(searchVal));
+      }
+
+      if (sortVal === 'price_low') filtered.sort((a,b) => a.price - b.price);
+      else if (sortVal === 'price_high') filtered.sort((a,b) => b.price - a.price);
+      else if (sortVal === 'rating') filtered.sort((a,b) => (b.rating||0) - (a.rating||0));
+
+      const grid = document.getElementById('category-prod-grid');
+      renderProductsGrid(filtered, grid);
     }
 
     // ── PRODUCT DETAIL PAGE ──────────────────────────────────────────────────────
