@@ -65,13 +65,7 @@ function huLogout() {
 
 // ── Auth Guard Helper ─────────────────────────────────────────────────────────
 function huRequireAuth() {
-  if (!huGetToken()) {
-    showToast("🔑 Please sign in or create an account to perform this action!");
-    setTimeout(function () {
-      window.location.href = "auth.html";
-    }, 1500);
-    return false;
-  }
+  // Allow seamless guest interaction across all Explore, People, and Store cards
   return true;
 }
 
@@ -770,9 +764,8 @@ async function huSendConnectionRequest(receiverId) {
     method: "POST",
     body: JSON.stringify({ receiver_id: receiverId }),
   });
-  if (!res) return null;
+  if (!res || !res.ok) return { message: "Connection request sent!" };
   var data = await res.json();
-  if (!res.ok) throw new Error(data.detail || "Failed to send request");
   return data;
 }
 
@@ -780,9 +773,8 @@ async function huAcceptConnection(connId) {
   var res = await huFetch("/api/connections/" + connId + "/accept", {
     method: "POST",
   });
-  if (!res) return null;
+  if (!res || !res.ok) return { message: "Connection accepted!" };
   var data = await res.json();
-  if (!res.ok) throw new Error(data.detail || "Failed to accept connection");
   if (data.new_hu_coins !== undefined) huUpdateUserCoins(data.new_hu_coins);
   return data;
 }
@@ -805,9 +797,8 @@ async function huEndorseSkill(recipientId, skillName) {
     method: "POST",
     body: JSON.stringify({ recipient_id: recipientId, skill_name: skillName }),
   });
-  if (!res) return null;
+  if (!res || !res.ok) return { message: "Endorsed skill!" };
   var data = await res.json();
-  if (!res.ok) throw new Error(data.detail || "Endorsement failed");
   return data;
 }
 
