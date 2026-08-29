@@ -765,17 +765,98 @@ def init_db(db_path="healthy_universe.db"):
     );
     """)
 
-    # 38. User Education & Qualifications
+    # 39. Healthcare Communities & Groups
     cur.execute("""
-    CREATE TABLE IF NOT EXISTS user_education (
+    CREATE TABLE IF NOT EXISTS communities (
         id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        category TEXT DEFAULT 'Medical Specialty',
+        avatar_url TEXT,
+        banner_url TEXT,
+        member_count INTEGER DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
+
+    # 40. Community Membership
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS community_members (
+        id TEXT PRIMARY KEY,
+        community_id TEXT NOT NULL,
         user_id TEXT NOT NULL,
-        degree TEXT NOT NULL,
-        institution TEXT NOT NULL,
-        field_of_study TEXT,
-        year TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        role TEXT DEFAULT 'Member',
+        status TEXT DEFAULT 'Active',
+        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (community_id) REFERENCES communities(id),
         FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+    """)
+
+    # 41. Companies & Organizations
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS companies (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        industry TEXT DEFAULT 'Healthcare',
+        logo_url TEXT,
+        location TEXT,
+        description TEXT,
+        follower_count INTEGER DEFAULT 120,
+        employee_count INTEGER DEFAULT 45,
+        open_jobs_count INTEGER DEFAULT 3,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
+
+    # 42. Company Followers
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS company_followers (
+        id TEXT PRIMARY KEY,
+        company_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (company_id) REFERENCES companies(id),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+    """)
+
+    # 43. Professional Events & CME Webinars
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS events (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        organizer_name TEXT NOT NULL,
+        date_time TEXT NOT NULL,
+        location TEXT DEFAULT 'Online (Virtual CME)',
+        event_type TEXT DEFAULT 'Webinar',
+        cme_credits REAL DEFAULT 3.5,
+        reward_coins INTEGER DEFAULT 25,
+        attendee_count INTEGER DEFAULT 42,
+        banner_url TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
+
+    # 44. Event Attendees
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS event_attendees (
+        id TEXT PRIMARY KEY,
+        event_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (event_id) REFERENCES events(id),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+    """)
+
+    # 45. Skills Master Directory
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS skills (
+        id TEXT PRIMARY KEY,
+        name TEXT UNIQUE NOT NULL,
+        category TEXT DEFAULT 'Clinical Practice',
+        follower_count INTEGER DEFAULT 50
     );
     """)
 

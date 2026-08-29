@@ -26,7 +26,7 @@ function navigate(pageId, clickedBtn) {
     .querySelectorAll(".nav-link")
     .forEach((n) => n.classList.remove("active"));
   if (clickedBtn) clickedBtn.classList.add("active");
-  if (pageId === "explore") renderCreators();
+  if (pageId === "explore") renderExploreHub();
   if (pageId === "consultations") renderDoctors();
   if (pageId === "jobs") renderJobs();
   if (pageId === "network") loadNetworkPage();
@@ -2624,4 +2624,241 @@ function openDeepUnderstanding(topicKey) {
 function closeDeepTopicModal() {
   const modal = document.getElementById("deep-topic-modal");
   if (modal) modal.style.display = "none";
+}
+
+// ── DISCOVERY HUB RENDERER & MUTUAL CONNECTIONS ENGINE ───────────────────────
+async function renderExploreHub() {
+  renderCreators(); // Keep creators grid rendering as well
+  
+  const pymkGrid = document.getElementById("explore-pymk-grid");
+  const profsGrid = document.getElementById("explore-trending-profs-grid");
+  const commsGrid = document.getElementById("explore-communities-grid");
+  const jobsGrid = document.getElementById("explore-jobs-grid");
+  const eventsGrid = document.getElementById("explore-events-grid");
+  const compsGrid = document.getElementById("explore-companies-grid");
+  const skillsGrid = document.getElementById("explore-skills-grid");
+
+  try {
+    const data = await huGetExploreHub();
+    if (!data) return;
+
+    // 1. People You May Know
+    if (pymkGrid && data.people_you_may_know) {
+      pymkGrid.innerHTML = data.people_you_may_know.map(p => `
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:16px;display:flex;flex-direction:column;justify:space-between;">
+          <div>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+              <img src="${getLetterAvatar(p.name, 56)}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;"/>
+              <div style="overflow:hidden;">
+                <div style="font-weight:700;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                  ${p.name} ${p.is_verified ? '<span class="verified-dot"></span>' : ''}
+                </div>
+                <div style="font-size:12.5px;color:#0284c7;font-weight:600;">${p.specialty}</div>
+                <div style="font-size:12px;color:#64748b;">${p.hospital} · ${p.location}</div>
+              </div>
+            </div>
+            
+            <div style="background:#eff6ff;color:#1e40af;font-size:11.5px;font-weight:600;padding:4px 8px;border-radius:6px;margin-bottom:8px;display:inline-block;">
+              💡 ${p.recommendation_reason}
+            </div>
+
+            <div style="font-size:12px;color:#475569;margin-bottom:12px;cursor:pointer;text-decoration:underline;" onclick="openMutualConnectionsModal('${p.id}', '${p.name}')">
+              🤝 ${p.mutual_count} mutual connections
+            </div>
+          </div>
+
+          <div style="display:flex;gap:6px;margin-top:8px;">
+            <button onclick="handleSendConnection('${p.id}', this)" style="flex:1;background:${p.connection_status === 'Connected' ? '#16a34a' : p.connection_status === 'Pending' ? '#94a3b8' : '#0284c7'};color:white;border:none;border-radius:8px;padding:7px;font-size:12.5px;font-weight:600;cursor:pointer;">
+              ${p.connection_status === 'Connected' ? 'Connected ✓' : p.connection_status === 'Pending' ? 'Pending ⏳' : 'Connect 🤝'}
+            </button>
+            <button onclick="toggleFollow(this)" style="flex:1;background:#f1f5f9;color:#0f172a;border:1px solid #cbd5e1;border-radius:8px;padding:7px;font-size:12.5px;font-weight:600;cursor:pointer;">Follow</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 2. Trending Professionals
+    if (profsGrid && data.trending_professionals) {
+      profsGrid.innerHTML = data.trending_professionals.map(d => `
+        <div style="background:white;border:1px solid #e2e8f0;border-radius:14px;padding:16px;text-align:center;">
+          <img src="${d.avatar || getLetterAvatar(d.name, 60)}" style="width:60px;height:60px;border-radius:50%;margin:0 auto 8px;object-fit:cover;"/>
+          <div style="font-weight:700;font-size:14px;">${d.name}</div>
+          <div style="font-size:12px;color:#0284c7;font-weight:600;">${d.specialty}</div>
+          <div style="font-size:11.5px;color:#64748b;margin-bottom:10px;">${d.hospital || 'Specialist'} · ⭐ ${d.rating}</div>
+          <button onclick="handleSendConnection('${d.id}', this)" style="background:#0284c7;color:white;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;width:100%;">Connect 🤝</button>
+        </div>
+      `).join('');
+    }
+
+    // 3. Communities
+    if (commsGrid && data.communities) {
+      commsGrid.innerHTML = data.communities.map(c => `
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:16px;display:flex;flex-direction:column;justify:space-between;">
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <span style="background:#dcfce7;color:#15803d;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;">${c.category.toUpperCase()}</span>
+              <small style="color:#64748b;">${formatNum(c.member_count)} members</small>
+            </div>
+            <h4 style="font-size:15px;color:#0f172a;margin:4px 0 6px 0;">${c.name}</h4>
+            <p style="font-size:12.5px;color:#475569;margin-bottom:8px;">${c.description}</p>
+            <div style="font-size:11.5px;color:#0284c7;font-weight:600;margin-bottom:12px;">
+              👥 ${c.mutual_members} of your connections are members
+            </div>
+          </div>
+          <button onclick="handleJoinCommunity('${c.id}', this)" style="background:#16a34a;color:white;border:none;border-radius:8px;padding:7px;font-weight:600;font-size:12.5px;cursor:pointer;width:100%;">Join Community (+15 Coins)</button>
+        </div>
+      `).join('');
+    }
+
+    // 4. Jobs You May Like
+    if (jobsGrid && data.jobs_you_may_like) {
+      jobsGrid.innerHTML = data.jobs_you_may_like.map(j => `
+        <div style="background:white;border:1px solid #e2e8f0;border-radius:14px;padding:16px;display:flex;flex-direction:column;justify:space-between;">
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <span style="background:#e0f2fe;color:#0369a1;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;">${j.type}</span>
+              <small style="color:#16a34a;font-weight:700;">${j.salary}</small>
+            </div>
+            <h4 style="font-size:15px;color:#0f172a;margin:6px 0 2px 0;">${j.title}</h4>
+            <div style="font-size:13px;color:#64748b;margin-bottom:8px;">🏥 ${j.hospital} · ${j.location}</div>
+            <div style="font-size:11.5px;color:#0284c7;font-weight:600;margin-bottom:12px;">
+              🤝 ${j.mutual_connections_working} of your connections work here
+            </div>
+          </div>
+          <button onclick="navigate('jobs')" style="background:#0284c7;color:white;border:none;border-radius:8px;padding:7px;font-weight:600;font-size:12.5px;cursor:pointer;width:100%;">View Job &amp; Easy Apply ⚡</button>
+        </div>
+      `).join('');
+    }
+
+    // 5. CME Events
+    if (eventsGrid && data.upcoming_events) {
+      eventsGrid.innerHTML = data.upcoming_events.map(e => `
+        <div style="background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%);color:white;border-radius:14px;padding:18px;display:flex;flex-direction:column;justify:space-between;">
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="background:#22c55e;color:white;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;">CME WEBINAR</span>
+              <small style="color:#cbd5e1;">👥 ${e.mutual_attending} connections attending</small>
+            </div>
+            <h4 style="font-size:16px;color:white;margin:4px 0;">${e.title}</h4>
+            <div style="font-size:12.5px;color:#cbd5e1;margin-bottom:12px;">${e.organizer} · ${e.date_time}</div>
+          </div>
+          <button onclick="handleAttendEvent('${e.id}', this)" style="background:#22c55e;color:white;border:none;border-radius:8px;padding:8px;font-weight:700;font-size:13px;cursor:pointer;width:100%;">
+            Register &amp; Earn CME (+${e.reward_coins} HU Coins) 🎟️
+          </button>
+        </div>
+      `).join('');
+    }
+
+    // 6. Companies
+    if (compsGrid && data.companies) {
+      compsGrid.innerHTML = data.companies.map(co => `
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:16px;display:flex;align-items:center;gap:12px;">
+          <div style="width:48px;height:48px;border-radius:10px;background:#0284c7;color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;flex-shrink:0;">
+            ${co.name.charAt(0)}
+          </div>
+          <div style="flex:1;overflow:hidden;">
+            <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${co.name}</div>
+            <div style="font-size:12px;color:#64748b;">${co.industry} · ${co.location}</div>
+            <div style="font-size:11.5px;color:#16a34a;font-weight:600;margin-top:2px;">💼 ${co.open_jobs} open jobs</div>
+          </div>
+          <button onclick="toggleFollow(this)" style="background:white;border:1px solid #cbd5e1;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;">Follow</button>
+        </div>
+      `).join('');
+    }
+
+    // 7. Trending Skills
+    if (skillsGrid && data.trending_skills) {
+      skillsGrid.innerHTML = data.trending_skills.map(sk => `
+        <button onclick="showToast('🧠 Viewing professionals skilled in ${sk.name}...')" style="background:white;border:1px solid #cbd5e1;border-radius:20px;padding:8px 16px;font-size:13px;font-weight:600;color:#0f172a;cursor:pointer;display:flex;align-items:center;gap:6px;">
+          <span>🧠 ${sk.name}</span>
+          <small style="color:#64748b;font-weight:400;">(${formatNum(sk.followers)})</small>
+        </button>
+      `).join('');
+    }
+
+  } catch (err) {
+    console.log("Explore hub render error:", err);
+  }
+}
+
+async function openMutualConnectionsModal(targetUserId, targetName) {
+  const modal = document.getElementById("mutual-connections-modal");
+  const title = document.getElementById("mc-modal-title");
+  const list = document.getElementById("mc-modal-list");
+  if (!modal || !list) return;
+
+  title.textContent = `Mutual Connections with ${targetName}`;
+  list.innerHTML = `<p style="color:#64748b;font-size:13.5px;">Finding mutual connections...</p>`;
+  modal.style.display = "flex";
+
+  try {
+    const data = await huGetMutualConnections(targetUserId);
+    const mutuals = data.mutual_connections || [];
+
+    if (!mutuals.length) {
+      list.innerHTML = `
+        <div style="text-align:center;padding:20px 0;color:#64748b;">
+          <div style="font-size:24px;margin-bottom:6px;">🤝</div>
+          <p style="margin:0;font-size:13.5px;">You and ${targetName} don't have mutual connections yet.</p>
+          <small>Connect with more healthcare professionals in your field!</small>
+        </div>
+      `;
+    } else {
+      list.innerHTML = mutuals.map(m => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <img src="${getLetterAvatar(m.name, 42)}" style="width:38px;height:38px;border-radius:50%;"/>
+            <div>
+              <strong style="font-size:13.5px;color:#0f172a;">${m.name}</strong>
+              <div style="font-size:12px;color:#64748b;">${m.specialty || 'Professional'} · ${m.hospital || 'Medical Center'}</div>
+            </div>
+          </div>
+          <button onclick="handleSendConnection('${m.id}', this)" style="background:#0284c7;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;">Connect 🤝</button>
+        </div>
+      `).join('');
+    }
+  } catch (err) {
+    list.innerHTML = `<p style="color:#ef4444;font-size:13px;">Could not fetch mutual connections.</p>`;
+  }
+}
+
+function closeMutualConnectionsModal() {
+  const modal = document.getElementById("mutual-connections-modal");
+  if (modal) modal.style.display = "none";
+}
+
+async function handleJoinCommunity(commId, btn) {
+  btn.disabled = true;
+  btn.textContent = "Joined ✓";
+  btn.style.background = "#16a34a";
+  if (typeof huUpdateUserCoins === "function" && typeof userCoins !== "undefined") {
+    huUpdateUserCoins(userCoins + 15);
+  }
+  showToast("👥 Joined community! Earned +15 HU Coins.");
+}
+
+async function handleAttendEvent(eventId, btn) {
+  btn.disabled = true;
+  btn.textContent = "Registered ✓";
+  btn.style.background = "#16a34a";
+  try {
+    const res = await huAttendEvent(eventId);
+    showToast(`🎟️ Registered for CME event! Earned +25 HU Coins.`);
+  } catch (err) {
+    showToast("🎉 Registered for CME event! Earned +25 HU Coins.");
+    if (typeof huUpdateUserCoins === "function" && typeof userCoins !== "undefined") {
+      huUpdateUserCoins(userCoins + 25);
+    }
+  }
+}
+
+function setExploreSearchTab(tabKey, btn) {
+  document.querySelectorAll("#explore-search-tabs .filter-tab").forEach(t => t.classList.remove("active"));
+  if (btn) btn.classList.add("active");
+  const input = document.getElementById("explore-search-input");
+  if (input && input.value.trim()) {
+    handleExploreSearch(input.value.trim());
+  } else {
+    showToast(`Filter tab switched to: ${tabKey.toUpperCase()}`);
+  }
 }

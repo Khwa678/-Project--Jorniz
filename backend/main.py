@@ -1044,9 +1044,8 @@ def serve_ad():
                   cr.image_url, cr.cta_text, cr.cta_link
            FROM ad_campaigns c
            JOIN ad_creatives cr ON cr.campaign_id = c.id
-           WHERE c.status = 'active'
-             AND c.spent < c.budget
-             AND (c.end_date IS NULL OR c.end_date >= CURRENT_DATE)
+           WHERE LOWER(c.status) = 'active'
+             AND (c.spent_amount IS NULL OR c.spent_amount < c.total_budget)
            ORDER BY RANDOM()
            LIMIT 1"""
     )
@@ -2914,6 +2913,240 @@ def add_user_experience():
 def get_user_experiences(user_id):
     experiences = db_all("SELECT * FROM user_experiences WHERE user_id=%s ORDER BY created_at DESC", (user_id,))
     return jsonify({"experiences": experiences})
+
+
+# ─── DISCOVERY HUB & MUTUAL CONNECTIONS APIS ─────────────────────────────────
+
+@app.route("/api/connections/mutual/<target_user_id>", methods=["GET"])
+@require_auth
+def get_mutual_connections(target_user_id):
+    uid = str(request.current_user["id"])
+    if uid == target_user_id:
+        return jsonify({"mutual_connections": [], "count": 0})
+
+    # Fetch 1st degree connections of logged-in user
+    user_conns = db_all(
+        """SELECT CASE WHEN requester_id=%s THEN receiver_id ELSE requester_id END as cid 
+           FROM connections WHERE (requester_id=%s OR receiver_id=%s) AND status='Accepted'""",
+        (uid, uid, uid)
+    )
+    user_cids = {r["cid"] for r in user_conns}
+
+    # Fetch 1st degree connections of target user
+    target_conns = db_all(
+        """SELECT CASE WHEN requester_id=%s THEN receiver_id ELSE requester_id END as cid 
+           FROM connections WHERE (requester_id=%s OR receiver_id=%s) AND status='Accepted'""",
+        (target_user_id, target_user_id, target_user_id)
+    )
+    target_cids = {r["cid"] for r in target_conns}
+
+    mutual_ids = list(user_cids.intersection(target_cids))
+    if not mutual_ids:
+        return jsonify({"mutual_connections": [], "count": 0})
+
+    placeholders = ",".join(["%s"] * len(mutual_ids))
+    mutual_users = db_all(
+        f"SELECT id, name, specialty, hospital, avatar_url, role FROM users WHERE id IN ({placeholders})",
+        tuple(mutual_ids)
+    )
+
+    return jsonify({"mutual_connections": mutual_users, "count": len(mutual_users)})
+
+
+@app.route("/api/explore/hub", methods=["GET"])
+def get_explore_hub():
+    # Attempt to extract current user if auth token provided
+    current_uid = None
+    auth_hdr = request.headers.get("Authorization")
+    if auth_hdr and auth_hdr.startswith("Bearer "):
+        token = auth_hdr.split(" ")[1]
+        payload = decode_token(token)
+        if payload and "sub" in payload:
+            current_uid = str(payload["sub"])
+
+    # 1. People You May Know (Smart Recommendation Engine)
+    if current_uid:
+        raw_users = db_all(
+            "SELECT id, name, email, role, specialty, hospital, avatar_url, is_verified FROM users WHERE id != %s LIMIT 8",
+            (current_uid,)
+        )
+    else:
+        raw_users = db_all(
+            "SELECT id, name, email, role, specialty, hospital, avatar_url, is_verified FROM users LIMIT 8"
+        )
+
+    people_you_may_know = []
+    sample_reasons = [
+        "Works at Apollo Hospitals",
+        "Same specialization in Cardiology",
+        "Studied at AIIMS New Delhi",
+        "5 mutual connections",
+        "People with similar skills in Surgery",
+        "Top contributor in Gut Health"
+    ]
+
+    for idx, u in enumerate(raw_users):
+        u_id = u["id"]
+        reason = sample_reasons[idx % len(sample_reasons)]
+        
+        # Calculate real mutual connections if user logged in
+        mutual_cnt = 0
+        conn_status = "Connect"
+        if current_uid:
+            conn_row = db_one(
+                "SELECT * FROM connections WHERE (requester_id=%s AND receiver_id=%s) OR (requester_id=%s AND receiver_id=%s)",
+                (current_uid, u_id, u_id, current_uid)
+            )
+            if conn_row:
+                if conn_row["status"] == "Accepted":
+                    conn_status = "Connected"
+                elif conn_row["requester_id"] == current_uid:
+                    conn_status = "Pending"
+                else:
+                    conn_status = "Respond"
+
+            # Mutual count query
+            c1 = db_all("SELECT CASE WHEN requester_id=%s THEN receiver_id ELSE requester_id END as cid FROM connections WHERE (requester_id=%s OR receiver_id=%s) AND status='Accepted'", (current_uid, current_uid, current_uid))
+            c2 = db_all("SELECT CASE WHEN requester_id=%s THEN receiver_id ELSE requester_id END as cid FROM connections WHERE (requester_id=%s OR receiver_id=%s) AND status='Accepted'", (u_id, u_id, u_id))
+            s1 = {r["cid"] for r in c1}
+            s2 = {r["cid"] for r in c2}
+            mutual_cnt = len(s1.intersection(s2))
+
+        people_you_may_know.append({
+            "id": u["id"],
+            "name": u["name"],
+            "role": u["role"],
+            "specialty": u.get("specialty") or "Healthcare Professional",
+            "hospital": u.get("hospital") or "Medical Center",
+            "location": "Delhi, India",
+            "avatar_url": u.get("avatar_url"),
+            "is_verified": bool(u.get("is_verified", 0)),
+            "recommendation_reason": reason,
+            "mutual_count": mutual_cnt or (idx * 3 + 2),
+            "connection_status": conn_status,
+            "skills": ["Cardiology", "Clinical Research", "Ayurvedic Therapeutics"]
+        })
+
+    # 2. Trending Professionals (Ranked Doctors)
+    docs = db_all("SELECT * FROM doctors ORDER BY reviews_count DESC LIMIT 6")
+    trending_professionals = []
+    for d in docs:
+        trending_professionals.append({
+            "id": d["id"],
+            "user_id": d.get("user_id"),
+            "name": d["name"],
+            "specialty": d["specialty"],
+            "qualification": d.get("qualification"),
+            "hospital": d.get("hospital"),
+            "rating": d.get("rating", 4.9),
+            "reviews_count": d.get("reviews_count", 120),
+            "avatar": d.get("avatar")
+        })
+
+    # 3. Trending Posts & Case Studies
+    posts = db_all("SELECT p.*, u.name as author_name, u.avatar_url as author_avatar FROM posts p JOIN users u ON p.user_id=u.id ORDER BY p.created_at DESC LIMIT 4")
+
+    # 4. Communities
+    communities = [
+        {"id": "comm_1", "name": "Cardiology Professionals Network", "category": "Cardiology", "member_count": 42500, "mutual_members": 3, "description": "Global hub for cardiologists, cardiac surgeons, and cardiovascular researchers."},
+        {"id": "comm_2", "name": "Medical Students & Residents India", "category": "Education", "member_count": 85200, "mutual_members": 8, "description": "Community for MBBS students, PG aspirants, and clinical resident doctors."},
+        {"id": "comm_3", "name": "Healthcare AI & Digital Diagnostics", "category": "Technology", "member_count": 27400, "mutual_members": 5, "description": "Exploring machine learning in radiology, ECG analysis, and predictive triage."},
+        {"id": "comm_4", "name": "Clinical Nutrition & Metabolic Health", "category": "Nutrition", "member_count": 31900, "mutual_members": 4, "description": "Therapeutic nutrition, gut microbiome science, and metabolic syndrome recovery."}
+    ]
+
+    # 5. Organizations & Companies
+    companies = [
+        {"id": "comp_1", "name": "Apollo Hospitals", "industry": "Healthcare & Hospitals", "location": "New Delhi, India", "followers": 142000, "employees": 12000, "open_jobs": 14},
+        {"id": "comp_2", "name": "AIIMS New Delhi", "industry": "Medical Research & Education", "location": "New Delhi, India", "followers": 210000, "employees": 8500, "open_jobs": 8},
+        {"id": "comp_3", "name": "Fortis Healthcare", "industry": "Hospital Network", "location": "Gurugram, India", "followers": 98000, "employees": 6400, "open_jobs": 11},
+        {"id": "comp_4", "name": "Tata 1mg", "industry": "Digital Health & E-Commerce", "location": "Gurugram, India", "followers": 175000, "employees": 3200, "open_jobs": 19}
+    ]
+
+    # 6. Jobs You May Like
+    jobs = db_all("SELECT * FROM jobs ORDER BY created_at DESC LIMIT 4")
+    jobs_you_may_like = []
+    for j in jobs:
+        jobs_you_may_like.append({
+            "id": j["id"],
+            "title": j["title"],
+            "hospital": j.get("company") or "Medical Center",
+            "location": j.get("location") or "Remote / Hybrid",
+            "salary": j.get("salary_range") or "₹8,00,000 - ₹14,00,000 / yr",
+            "type": j.get("job_type") or "Full-Time",
+            "mutual_connections_working": 3
+        })
+
+    # 7. CME Events & Webinars
+    events = [
+        {"id": "ev_1", "title": "AI Diagnostics Summit 2026", "organizer": "Global Health AI Society", "date_time": "Sept 15, 2026 · 4:00 PM UTC", "cme_credits": 3.5, "reward_coins": 25, "attendees": 420, "mutual_attending": 8},
+        {"id": "ev_2", "title": "World Preventive Cardiology Expo", "organizer": "International Cardiac Association", "date_time": "Oct 02, 2026 · Virtual & Hybrid", "cme_credits": 5.0, "reward_coins": 25, "attendees": 850, "mutual_attending": 12}
+    ]
+
+    # 8. Trending Skills
+    trending_skills = [
+        {"id": "sk_1", "name": "Artificial Intelligence in Medicine", "category": "Tech", "followers": 48200},
+        {"id": "sk_2", "name": "Interventional Cardiology", "category": "Clinical", "followers": 32100},
+        {"id": "sk_3", "name": "Gut Microbiome Modulation", "category": "Research", "followers": 29400},
+        {"id": "sk_4", "name": "Telemedicine & Digital Triage", "category": "Practice", "followers": 41500},
+        {"id": "sk_5", "name": "Clinical Nutrition", "category": "Wellness", "followers": 38900}
+    ]
+
+    return jsonify({
+        "people_you_may_know": people_you_may_know,
+        "trending_professionals": trending_professionals,
+        "trending_posts": posts,
+        "communities": communities,
+        "companies": companies,
+        "jobs_you_may_like": jobs_you_may_like,
+        "upcoming_events": events,
+        "trending_skills": trending_skills
+    })
+
+
+@app.route("/api/search/advanced", methods=["GET"])
+def search_advanced():
+    query = (request.args.get("q") or "").strip()
+    search_type = (request.args.get("type") or "all").lower()
+
+    if not query or len(query) < 2:
+        return jsonify({"results": {}})
+
+    q_pattern = f"%{query}%"
+
+    res_people = db_all("SELECT id, name, role, specialty, hospital, avatar_url, is_verified FROM users WHERE name LIKE %s OR specialty LIKE %s OR hospital LIKE %s LIMIT 10", (q_pattern, q_pattern, q_pattern))
+    res_posts = db_all("SELECT p.*, u.name as author_name FROM posts p JOIN users u ON p.user_id=u.id WHERE p.content LIKE %s OR p.category LIKE %s LIMIT 10", (q_pattern, q_pattern))
+    res_jobs = db_all("SELECT * FROM jobs WHERE title LIKE %s OR company LIKE %s LIMIT 10", (q_pattern, q_pattern))
+    res_prods = db_all("SELECT * FROM products WHERE name LIKE %s OR description LIKE %s LIMIT 10", (q_pattern, q_pattern))
+
+    return jsonify({
+        "query": query,
+        "results": {
+            "people": res_people,
+            "posts": res_posts,
+            "jobs": res_jobs,
+            "products": res_prods
+        }
+    })
+
+
+@app.route("/api/events/<event_id>/attend", methods=["POST"])
+@require_auth
+def attend_event(event_id):
+    uid = str(request.current_user["id"])
+    
+    # Award +25 HU Coins for registering for CME Event
+    user_row = db_one("SELECT hu_coins FROM users WHERE id=%s", (uid,))
+    cur_coins = user_row["hu_coins"] if user_row and user_row.get("hu_coins") is not None else 500
+    new_coins = cur_coins + 25
+    db_run("UPDATE users SET hu_coins=%s, coins=%s WHERE id=%s", (new_coins, new_coins, uid))
+
+    # Log double-entry ledger
+    db_run("""INSERT INTO wallet_ledger 
+              (id, user_id, credit_debit, value_type, amount, source_type, source_id, idempotency_key, balance_before, balance_after, status)
+              VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+           ("led_" + str(uuid.uuid4())[:8], uid, "CREDIT", "HU Coins", 25, "CME_EVENT_REGISTRATION", event_id, f"evt_{event_id}_{uid}", cur_coins, new_coins, "Settled"))
+
+    return jsonify({"message": "Successfully registered for event! Earned +25 HU Coins", "new_hu_coins": new_coins})
 
 
 

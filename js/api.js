@@ -821,6 +821,42 @@ async function huReactToPost(postId, reactionType) {
   return await res.json();
 }
 
+// ── Explore Hub & Discovery APIs ──────────────────────────────────────────────
+async function huGetExploreHub() {
+  var res = await huFetch("/api/explore/hub");
+  if (!res || !res.ok) {
+    // Fallback if unauthenticated / server offline
+    var r = await fetch(HU_API + "/api/explore/hub");
+    if (!r || !r.ok) return null;
+    return await r.json();
+  }
+  return await res.json();
+}
+
+async function huGetMutualConnections(targetUserId) {
+  var res = await huFetch("/api/connections/mutual/" + targetUserId);
+  if (!res || !res.ok) return { mutual_connections: [], count: 0 };
+  return await res.json();
+}
+
+async function huSearchAdvanced(query, searchType) {
+  searchType = searchType || "all";
+  var res = await fetch(HU_API + "/api/search/advanced?q=" + encodeURIComponent(query) + "&type=" + searchType);
+  if (!res || !res.ok) return { results: {} };
+  return await res.json();
+}
+
+async function huAttendEvent(eventId) {
+  var res = await huFetch("/api/events/" + eventId + "/attend", {
+    method: "POST",
+  });
+  if (!res) return null;
+  var data = await res.json();
+  if (!res.ok) throw new Error(data.detail || "Registration failed");
+  if (data.new_hu_coins !== undefined) huUpdateUserCoins(data.new_hu_coins);
+  return data;
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", function () {
   applyUserToUI();
