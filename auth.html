@@ -502,7 +502,7 @@
 </div>
 
 <script>
-  const API = 'https://healthy-universe.onrender.com';
+  const API = (window.__JORNIZ_API_BASE__ || (document.querySelector("meta[name='jorniz-api-base']") || {}).content || window.location.origin).replace(/\/$/, "");
 
   // ── Redirect if already logged in ────────────────────────────────────────────
   if (localStorage.getItem('hu_token')) {

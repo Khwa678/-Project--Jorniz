@@ -15,9 +15,9 @@ from flask_socketio import SocketIO, emit, join_room
 load_dotenv()
 
 
-SUPABASE_URL         = os.getenv("SUPABASE_URL", "")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
-SUPABASE_BUCKET       = os.getenv("SUPABASE_BUCKET", "media")
+SUPABASE_URL          = os.getenv("SUPABASE_URL", "").strip()
+SUPABASE_SERVICE_KEY  = os.getenv("SUPABASE_SERVICE_KEY", "").strip()
+SUPABASE_BUCKET       = os.getenv("SUPABASE_BUCKET", "media").strip() or "media"
 
 try:
     from supabase import create_client
@@ -45,15 +45,41 @@ def upload_to_supabase(file_bytes: bytes, filename: str, content_type: str) -> s
     return supabase_client.storage.from_(SUPABASE_BUCKET).get_public_url(filename)
 
 # ─── CONFIG ────────────────────────────────────────────────────────────────────
-SECRET_KEY        = os.getenv("SECRET_KEY", "hu-super-secret-key-change-in-prod-2024")
+ENVIRONMENT  = os.getenv("ENVIRONMENT", os.getenv("FLASK_ENV", "development")).strip().lower()
+IS_PRODUCTION = ENVIRONMENT in ("production", "prod")
 
-# ─── ADMIN CONFIG — put the 2 admin emails here ────────────────────────────────
-ADMIN_EMAILS = {
-    "vanshikarai4040@gmail.com",
-    "kshitizsrivastava90@gmail.com",
-}
+def _as_list_csv(value):
+    return [v.strip() for v in (value or "").split(",") if v.strip()]
 
-TOKEN_EXPIRE_DAYS = int(os.getenv("TOKEN_EXPIRE_DAYS", 1))
+def _get_required(name, default=""):
+    value = os.getenv(name, default)
+    return str(value).strip() if value is not None else default
+
+SECRET_KEY = _get_required("SECRET_KEY")
+if not SECRET_KEY:
+    if IS_PRODUCTION:
+        raise RuntimeError("SECURITY ERROR: SECRET_KEY must be set in production")
+    SECRET_KEY = "dev-not-secure-change-before-deploy"
+    print("[WARN] SECRET_KEY not set; using development fallback")
+
+# ─── ADMIN CONFIG — comma-separated admin emails from ADMIN_EMAILS env var ─────
+ADMIN_EMAILS = set(_as_list_csv(os.getenv("ADMIN_EMAILS", "")))
+if not ADMIN_EMAILS:
+    if IS_PRODUCTION:
+        raise RuntimeError("SECURITY ERROR: ADMIN_EMAILS is required in production")
+    print("[WARN] ADMIN_EMAILS not set; admin routes will be inaccessible until configured.")
+
+ALLOWED_ORIGINS = _as_list_csv(os.getenv("ALLOWED_ORIGINS", ""))
+if not ALLOWED_ORIGINS:
+    if IS_PRODUCTION:
+        raise RuntimeError("SECURITY ERROR: ALLOWED_ORIGINS is required in production")
+    ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:8000", "http://127.0.0.1:8000"]
+elif "*" in ALLOWED_ORIGINS:
+    if IS_PRODUCTION:
+        raise RuntimeError("SECURITY ERROR: ALLOWED_ORIGINS cannot be wildcard (*) in production")
+    ALLOWED_ORIGINS = [x for x in ALLOWED_ORIGINS if x != "*"] or ["http://localhost:3000"]
+
+TOKEN_EXPIRE_DAYS = int(_get_required("TOKEN_EXPIRE_DAYS", "1"))
 UPLOAD_DIR        = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -63,17 +89,17 @@ DATABASE_URL = os.getenv(
 )
 
 # ─── EMAIL (EmailJS REST API) CONFIG — for OTP / forgot password ──────────────
-EMAILJS_SERVICE_ID  = os.getenv("EMAILJS_SERVICE_ID", "")
-EMAILJS_TEMPLATE_ID = os.getenv("EMAILJS_TEMPLATE_ID", "")
-EMAILJS_PUBLIC_KEY  = os.getenv("EMAILJS_PUBLIC_KEY", "")
-EMAILJS_PRIVATE_KEY = os.getenv("EMAILJS_PRIVATE_KEY", "")
+EMAILJS_SERVICE_ID  = _get_required("EMAILJS_SERVICE_ID", "")
+EMAILJS_TEMPLATE_ID = _get_required("EMAILJS_TEMPLATE_ID", "")
+EMAILJS_PUBLIC_KEY  = _get_required("EMAILJS_PUBLIC_KEY", "")
+EMAILJS_PRIVATE_KEY = _get_required("EMAILJS_PRIVATE_KEY", "")
 OTP_EXPIRE_MINUTES  = int(os.getenv("OTP_EXPIRE_MINUTES", 10))
 MAX_OTP_ATTEMPTS    = 5
 
 # ─── AD REWARDS CONFIG — HU Coins for viewing/clicking ads ────────────────────
-COIN_REWARD_PER_IMPRESSION = int(os.getenv("COIN_REWARD_PER_IMPRESSION", 1))
-COIN_REWARD_PER_CLICK      = int(os.getenv("COIN_REWARD_PER_CLICK", 5))
-COST_PER_IMPRESSION        = float(os.getenv("COST_PER_IMPRESSION", 0.01))
+COIN_REWARD_PER_IMPRESSION = int(_get_required("COIN_REWARD_PER_IMPRESSION", "1"))
+COIN_REWARD_PER_CLICK      = int(_get_required("COIN_REWARD_PER_CLICK", "5"))
+COST_PER_IMPRESSION        = float(_get_required("COST_PER_IMPRESSION", "0.01"))
 
 ALLOWED_IMAGES = {"image/jpeg","image/png","image/gif","image/webp"}
 ALLOWED_VIDEOS = {"video/mp4","video/webm","video/quicktime"}
@@ -92,9 +118,10 @@ PROFESSIONAL_ROLES = {
 
 # ─── APP ───────────────────────────────────────────────────────────────────────
 app = Flask(__name__)
-CORS(app, origins=os.getenv("ALLOWED_ORIGINS","*").split(","))
+cors_env = ALLOWED_ORIGINS
+CORS(app, origins=cors_env)
 
-socketio = SocketIO(app, cors_allowed_origins=os.getenv("ALLOWED_ORIGINS","*").split(","), async_mode="threading")
+socketio = SocketIO(app, cors_allowed_origins=cors_env, async_mode="threading")
 
 online_users = {}
 sid_to_user  = {}
@@ -2558,7 +2585,10 @@ def upload_media_chunk():
 @require_auth
 def get_private_signed_url():
     file_key = request.args.get("file_key", "doc.pdf")
-    return jsonify({"file_key": file_key, "signed_url": f"http://localhost:3000/uploads/{file_key}?token=" + str(uuid.uuid4())[:12]})
+    return jsonify({
+        "file_key": file_key,
+        "signed_url": f"{request.url_root}uploads/{file_key}?token={str(uuid.uuid4())[:12]}"
+    })
 
 @app.route("/api/search", methods=["GET"])
 def global_search():

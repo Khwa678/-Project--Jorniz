@@ -1,15 +1,21 @@
-# 🏛️ JORNIZ — Production Architecture Specification
+# 🏗️ JORNIZ — Platform Architecture & System Specification
 
-## 1. System Architecture Diagram
+**Project:** Jorniz (Healthcare Social Network + Creator Economy + Wallet + Doctor Consultations + Marketplace)  
+**Author:** Jorniz Senior Engineering Team  
+**Milestone:** Week 1 — Architecture & System Specification  
+
+---
+
+## 1. High-Level System Architecture
 
 ```mermaid
 graph TD
-    Client["User Clients (Web Browser / Native)"]
+    Client["User Clients (Web Browser / iOS / Android)"]
     Gateway["Unified Web Gateway (Port 3000 / NGINX / server.py)"]
     API["Flask REST & SocketIO API Host (Port 8000)"]
     DB[("PostgreSQL / SQLite Storage Engine")]
     S3["Supabase / S3 Media Bucket"]
-    WebRTC["WebRTC TURN Server"]
+    WebRTC["WebRTC TURN Server (Doctor Consultations)"]
 
     Client -->|HTTP / REST / WS| Gateway
     Gateway -->|Static Assets| Client
@@ -21,21 +27,7 @@ graph TD
 
 ---
 
-## 2. Backend Modules Overview
-
-```mermaid
-graph LR
-    Auth["Auth & Identity"] --- Social["Social Network"]
-    Auth --- Jobs["Jobs & Recruitment"]
-    Auth --- Doctors["Doctor Consultation"]
-    Auth --- Ads["Ad Engine"]
-    Auth --- Wallet["Wallet Ledger"]
-    Auth --- Marketplace["Healthy Marketplace"]
-```
-
----
-
-## 3. Authentication Flow Diagram
+## 2. Authentication & Authorization Flow
 
 ```mermaid
 sequenceDiagram
@@ -57,7 +49,20 @@ sequenceDiagram
 
 ---
 
-## 4. Database Flow Diagram
+## 3. API & Proxy Request Lifecycle
+
+```mermaid
+flowchart LR
+    A["Client Request: GET /api/search?q=cardiology"] --> B["Unified Gateway Handler (Port 3000)"]
+    B -->|Check Path /api/| C["Proxy Request to http://localhost:8000/api/search"]
+    C --> D["Flask Route Decorator @app.route('/api/search')"]
+    D --> E["Execute Parametrized SQL Query"]
+    E --> F["Return JSON Response (200 OK)"]
+```
+
+---
+
+## 4. Database Schema & Entity Relationship Overview
 
 ```mermaid
 erDiagram
@@ -65,12 +70,14 @@ erDiagram
     USERS ||--o{ APPOINTMENTS : books
     DOCTORS ||--o{ APPOINTMENTS : conducts
     USERS ||--o{ ORDERS : places
+    ORDERS ||--|{ ORDER_ITEMS : contains
     USERS ||--o{ WALLET_LEDGER : owns
+    ADVERTISERS ||--o{ AD_CAMPAIGNS : funds
 ```
 
 ---
 
-## 5. Deployment Pipeline Diagram
+## 5. Deployment Pipeline & Staging Architecture
 
 ```mermaid
 graph LR

@@ -6,6 +6,8 @@ import urllib.error
 import os, sys
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 3000
+DEFAULT_API_TARGET = "http://localhost:8000"
+API_TARGET = os.getenv("API_TARGET", DEFAULT_API_TARGET).rstrip("/")
 
 class UnifiedGatewayHandler(http.server.SimpleHTTPRequestHandler):
     """Unified Web Gateway resolving default documents and proxying backend APIs."""
@@ -48,7 +50,7 @@ class UnifiedGatewayHandler(http.server.SimpleHTTPRequestHandler):
         return http.server.SimpleHTTPRequestHandler.do_OPTIONS(self) if hasattr(http.server.SimpleHTTPRequestHandler, "do_OPTIONS") else self.send_response(200)
 
     def proxy_request(self, method):
-        target_url = f"http://localhost:8000{self.path}"
+        target_url = f"{API_TARGET}{self.path}"
         try:
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length) if content_length > 0 else None

@@ -1,6 +1,18 @@
-const HU_API = (typeof window !== "undefined" && window.location.hostname === "localhost") 
-  ? "http://localhost:3000" 
-  : "https://healthy-universe.onrender.com";
+// ─── api.js — Healthy Universe ───────────────────────────────────────────────
+// Precedence:
+// 1) window.__JORNIZ_API_BASE__ (set via deployment wrapper or local debug)
+// 2) <meta name="jorniz-api-base">
+// 3) Same-origin fallback (useful for local proxy setups)
+var HU_API = (function resolveHuApiBase() {
+  var fromGlobal = (window.__JORNIZ_API_BASE__ || "").trim();
+  if (fromGlobal) return fromGlobal;
+
+  var meta = (document.querySelector("meta[name='jorniz-api-base']") || {}).content || "";
+  meta = (meta || "").trim();
+  if (meta) return meta;
+
+  return window.location.origin;
+})();
 
 // ── Letter Avatar Generator ───────────────────────────────────────────────────
 function getLetterAvatar(name, size) {
