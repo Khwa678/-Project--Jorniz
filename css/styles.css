@@ -1071,6 +1071,7 @@ body.dark-mode ::-webkit-scrollbar-thumb {
   transform: translateY(-6px) rotate(-45deg);
 }
 .mobile-menu-btn.is-open {
+  display: none !important;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
