@@ -1509,10 +1509,89 @@ navigate = function (pageId, clickedBtn) {
   if (pageId === "wallet") renderWallet();
 };
 
-function toggleSidebar() {
-  document.querySelector(".sidebar").classList.toggle("open");
-  document.getElementById("sidebar-overlay").classList.toggle("show");
+const mobileMenuMedia = window.matchMedia("(max-width: 768px)");
+
+function setSidebarOpen(shouldOpen) {
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("sidebar-overlay");
+  const button = document.getElementById("mobile-menu-btn");
+  if (!sidebar || !overlay || !button) return;
+
+  const isOpen = Boolean(shouldOpen && mobileMenuMedia.matches);
+  sidebar.classList.toggle("open", isOpen);
+  overlay.classList.toggle("show", isOpen);
+  button.classList.toggle("is-open", isOpen);
+  button.setAttribute("aria-expanded", String(isOpen));
+  button.setAttribute("aria-label", isOpen ? "Close navigation menu" : "Open navigation menu");
+  overlay.setAttribute("aria-hidden", String(!isOpen));
+  document.body.classList.toggle("mobile-menu-open", isOpen);
 }
+
+function openSidebar() {
+  setSidebarOpen(true);
+}
+
+function closeSidebar() {
+  setSidebarOpen(false);
+}
+
+function toggleSidebar() {
+  const sidebar = document.getElementById("sidebar");
+  setSidebarOpen(!sidebar?.classList.contains("open"));
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const sidebar = document.getElementById("sidebar");
+  if (!sidebar) return;
+
+  sidebar.addEventListener("click", (event) => {
+    if (mobileMenuMedia.matches && event.target.closest(".nav-link")) {
+      closeSidebar();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeSidebar();
+  });
+
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let trackingSwipe = false;
+
+  document.addEventListener("touchstart", (event) => {
+    if (!mobileMenuMedia.matches || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    const menuIsOpen = sidebar.classList.contains("open");
+    const startedAtLeftEdge = touch.clientX <= 28;
+    const startedInsideMenu = menuIsOpen && touch.clientX <= sidebar.getBoundingClientRect().right;
+
+    trackingSwipe = startedAtLeftEdge || startedInsideMenu;
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+  }, { passive: true });
+
+  document.addEventListener("touchend", (event) => {
+    if (!trackingSwipe || !mobileMenuMedia.matches || event.changedTouches.length !== 1) return;
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - touchStartX;
+    const deltaY = touch.clientY - touchStartY;
+    const isHorizontalSwipe = Math.abs(deltaX) > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.25;
+
+    if (isHorizontalSwipe) {
+      if (deltaX > 0 && !sidebar.classList.contains("open")) openSidebar();
+      if (deltaX < 0 && sidebar.classList.contains("open")) closeSidebar();
+    }
+    trackingSwipe = false;
+  }, { passive: true });
+
+  document.addEventListener("touchcancel", () => {
+    trackingSwipe = false;
+  }, { passive: true });
+});
+
+mobileMenuMedia.addEventListener("change", (event) => {
+  if (!event.matches) closeSidebar();
+});
 
 /* ============================================
    ADS MANAGER LOGIC

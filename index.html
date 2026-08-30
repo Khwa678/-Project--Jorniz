@@ -70,6 +70,23 @@
 </head>
 <body>
 
+<button
+  class="mobile-menu-btn"
+  id="mobile-menu-btn"
+  type="button"
+  aria-label="Open navigation menu"
+  aria-controls="sidebar"
+  aria-expanded="false"
+  onclick="toggleSidebar()"
+>
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <line x1="3" y1="6" x2="21" y2="6"/>
+    <line x1="3" y1="12" x2="21" y2="12"/>
+    <line x1="3" y1="18" x2="21" y2="18"/>
+  </svg>
+</button>
+<div class="sidebar-overlay" id="sidebar-overlay" aria-hidden="true" onclick="closeSidebar()"></div>
+
 <aside class="sidebar" id="sidebar">
   <div class="logo">
     <div class="logo-text">
@@ -2266,9 +2283,4 @@ async function saveProfileToBackend() {
 </div>
 
 </body>
-<!-- Mobile Menu Button -->
-<button class="mobile-menu-btn" onclick="toggleSidebar()">
-  <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-</button>
-<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 </html>
