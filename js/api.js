@@ -258,7 +258,7 @@ function applyUserToUI() {
   if (wAvail) wAvail.textContent = "$" + bal;
 
   // ── HU Coins ──────────────────────────────────────────────────────────────────
-  ["rp-coins", "wallet-coins", "rev-coins"].forEach(function (id) {
+  ["sidebar-hu-coins", "rp-coins", "wallet-coins", "rev-coins"].forEach(function (id) {
     var el = document.getElementById(id);
     if (el) el.textContent = coins.toLocaleString();
   });

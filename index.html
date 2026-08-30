@@ -7,7 +7,7 @@
 <title>Healthy Universe – Healthcare Social Network</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
 <link rel="shortcut icon" href="favicon.ico"/>
-<link rel="stylesheet" href="css/styles.css?v=20260830-3"/>
+<link rel="stylesheet" href="css/styles.css?v=20260830-5"/>
 <link rel="stylesheet" href="css/components.css"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
@@ -88,6 +88,17 @@
 <div class="sidebar-overlay" id="sidebar-overlay" aria-hidden="true" onclick="closeSidebar()"></div>
 
 <aside class="sidebar" id="sidebar">
+  <button
+    class="mobile-menu-close-btn"
+    type="button"
+    aria-label="Close navigation menu"
+    onclick="closeSidebar()"
+  >
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <line x1="5" y1="5" x2="19" y2="19"/>
+      <line x1="19" y1="5" x2="5" y2="19"/>
+    </svg>
+  </button>
   <div class="logo">
     <div class="logo-text">
       <span class="logo-healthy">Jor</span><span class="logo-universe"> niz</span>
@@ -150,6 +161,15 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings
     </button>
   </nav>
+
+  <button class="sidebar-coins-card" type="button" onclick="navigate('wallet'); closeSidebar()">
+    <span class="sidebar-coins-icon" aria-hidden="true">HU</span>
+    <span class="sidebar-coins-copy">
+      <span class="sidebar-coins-label">HU Coins</span>
+      <strong class="sidebar-coins-value" id="sidebar-hu-coins">500</strong>
+    </span>
+    <span class="sidebar-coins-arrow" aria-hidden="true">›</span>
+  </button>
 
   <div class="sidebar-user">
     <img src="" alt="U" class="sidebar-avatar" id="sidebar-avatar"/>
@@ -2188,9 +2208,9 @@
 </a> -->
 
 <!-- SCRIPTS — api.js MUST be first -->
-<script src="js/api.js"></script>
+<script src="js/api.js?v=20260830-5"></script>
 <script src="js/data.js"></script>
-<script src="js/app.js?v=20260830-3"></script>
+<script src="js/app.js?v=20260830-4"></script>
 <script src="js/chatbot.js"></script>
 <script src="js/chat.js"></script>
 <script src="js/camera.js"></script>
