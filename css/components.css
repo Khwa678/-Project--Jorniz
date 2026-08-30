@@ -961,6 +961,32 @@ body.dark-mode .hu-chat-input:focus { border-color:var(--green); }
 body.dark-mode .hu-chat-badge   { border-color:var(--bg); }
 body.dark-mode .hu-dot          { background:var(--muted); }
 
+/* Move the desktop status rail below the main content on phones. */
+@media (max-width:768px) {
+  .right-panel {
+    position: static;
+    inset: auto;
+    width: calc(100% - 32px);
+    max-width: 560px;
+    height: auto;
+    display: flex !important;
+    margin: 0 auto;
+    padding: 8px 0 calc(110px + env(safe-area-inset-bottom));
+    overflow: visible;
+    flex-direction: column;
+    gap: 16px;
+    border-left: 0;
+    background: transparent;
+    box-sizing: border-box;
+  }
+
+  .right-panel .rp-widget {
+    width: 100%;
+    padding: 18px;
+    box-sizing: border-box;
+  }
+}
+
 /* ── RESPONSIVE ── */
 @media (max-width:480px) {
   .hu-chat-window { bottom:0; right:0; width:100vw; height:75vh; border-radius:20px 20px 0 0; border-bottom:none; }
