@@ -1046,6 +1046,7 @@ body.dark-mode ::-webkit-scrollbar-thumb {
   cursor: pointer;
   box-shadow: 0 2px 12px rgba(55, 125, 255, 0.3);
   -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 .mobile-menu-btn svg {
   width: 20px;
@@ -1069,16 +1070,29 @@ body.dark-mode ::-webkit-scrollbar-thumb {
 .mobile-menu-btn.is-open svg line:nth-child(3) {
   transform: translateY(-6px) rotate(-45deg);
 }
+.mobile-menu-btn.is-open {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(-12px);
+}
 
 .sidebar-overlay {
   display: none;
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 299;
+  z-index: 340;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
 }
 .sidebar-overlay.show {
   display: block;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 body.mobile-menu-open {
@@ -1108,6 +1122,10 @@ body.mobile-menu-open {
     display: flex;
   }
 
+  .sidebar-overlay {
+    display: block;
+  }
+
   .sidebar {
     width: min(86vw, var(--sidebar-w));
     max-width: 320px;
@@ -1116,6 +1134,7 @@ body.mobile-menu-open {
     z-index: 350;
     overflow-y: auto;
     overscroll-behavior: contain;
+    touch-action: pan-y;
     will-change: transform;
   }
   .sidebar.open {

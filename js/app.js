@@ -1542,7 +1542,10 @@ function toggleSidebar() {
 
 document.addEventListener("DOMContentLoaded", () => {
   const sidebar = document.getElementById("sidebar");
-  if (!sidebar) return;
+  const overlay = document.getElementById("sidebar-overlay");
+  if (!sidebar || !overlay) return;
+
+  overlay.addEventListener("click", closeSidebar);
 
   sidebar.addEventListener("click", (event) => {
     if (mobileMenuMedia.matches && event.target.closest(".nav-link")) {
@@ -1563,12 +1566,21 @@ document.addEventListener("DOMContentLoaded", () => {
     const touch = event.touches[0];
     const menuIsOpen = sidebar.classList.contains("open");
     const startedAtLeftEdge = touch.clientX <= 28;
-    const startedInsideMenu = menuIsOpen && touch.clientX <= sidebar.getBoundingClientRect().right;
 
-    trackingSwipe = startedAtLeftEdge || startedInsideMenu;
+    trackingSwipe = startedAtLeftEdge || menuIsOpen;
     touchStartX = touch.clientX;
     touchStartY = touch.clientY;
   }, { passive: true });
+
+  document.addEventListener("touchmove", (event) => {
+    if (!trackingSwipe || !mobileMenuMedia.matches || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    const deltaX = touch.clientX - touchStartX;
+    const deltaY = touch.clientY - touchStartY;
+    if (Math.abs(deltaX) > 12 && Math.abs(deltaX) > Math.abs(deltaY) * 1.15) {
+      event.preventDefault();
+    }
+  }, { passive: false });
 
   document.addEventListener("touchend", (event) => {
     if (!trackingSwipe || !mobileMenuMedia.matches || event.changedTouches.length !== 1) return;
