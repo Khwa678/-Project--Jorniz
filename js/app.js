@@ -1546,6 +1546,10 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!sidebar || !overlay) return;
 
   overlay.addEventListener("click", closeSidebar);
+  overlay.addEventListener("touchend", (event) => {
+    event.preventDefault();
+    closeSidebar();
+  }, { passive: false });
 
   sidebar.addEventListener("click", (event) => {
     if (mobileMenuMedia.matches && event.target.closest(".nav-link")) {
