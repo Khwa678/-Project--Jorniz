@@ -851,14 +851,15 @@ body.dark-mode .withdraw-success-box h2 { color:var(--text); }
   transition: transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .2s;
 }
 .hu-chat-btn:hover { transform: scale(1.1); box-shadow: 0 6px 28px rgba(55,125,255,.55); }
-.hu-chat-btn.active { background: linear-gradient(135deg,#374151,#1f2937); box-shadow:0 4px 20px rgba(0,0,0,.3); }
+.hu-chat-btn.active {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: scale(.82);
+}
 
-.hu-chat-btn .hu-btn-open,
-.hu-chat-btn .hu-btn-close { position:absolute; transition: opacity .2s, transform .25s; display:flex; align-items:center; justify-content:center; }
+.hu-chat-btn .hu-btn-open { position:absolute; transition: opacity .2s, transform .25s; display:flex; align-items:center; justify-content:center; }
 .hu-chat-btn .hu-btn-open  { opacity:1; transform:scale(1) rotate(0deg); }
-.hu-chat-btn .hu-btn-close { opacity:0; transform:scale(0.6) rotate(-90deg); }
-.hu-chat-btn.active .hu-btn-open  { opacity:0; transform:scale(0.6) rotate(90deg); }
-.hu-chat-btn.active .hu-btn-close { opacity:1; transform:scale(1) rotate(0deg); }
 .hu-chat-btn svg { width:24px; height:24px; stroke:#fff; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 
 .hu-chat-badge {
