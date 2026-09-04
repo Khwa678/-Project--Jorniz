@@ -5,12 +5,13 @@ from flask_cors import CORS
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from dotenv import load_dotenv
-import os, uuid, bcrypt, jwt, random, requests
+import os, uuid, bcrypt, jwt, random, requests, hashlib, secrets
 try:
     import psycopg2, psycopg2.extras
 except ImportError:
     psycopg2 = None
 from flask_socketio import SocketIO, emit, join_room
+from auth_policy import is_active_account, permission_decision, professional_approval_state
 
 load_dotenv()
 
@@ -62,13 +63,6 @@ if not SECRET_KEY:
     SECRET_KEY = "dev-not-secure-change-before-deploy"
     print("[WARN] SECRET_KEY not set; using development fallback")
 
-# ─── ADMIN CONFIG — comma-separated admin emails from ADMIN_EMAILS env var ─────
-ADMIN_EMAILS = set(_as_list_csv(os.getenv("ADMIN_EMAILS", "")))
-if not ADMIN_EMAILS:
-    if IS_PRODUCTION:
-        raise RuntimeError("SECURITY ERROR: ADMIN_EMAILS is required in production")
-    print("[WARN] ADMIN_EMAILS not set; admin routes will be inaccessible until configured.")
-
 ALLOWED_ORIGINS = _as_list_csv(os.getenv("ALLOWED_ORIGINS", ""))
 if not ALLOWED_ORIGINS:
     if IS_PRODUCTION:
@@ -115,6 +109,26 @@ PROFESSIONAL_ROLES = {
     "Naturopath", "Nurse", "Dentist", "Pharmacist", "Physiotherapist",
     "Psychologist", "Nutritionist", "Researcher", "Healthcare Professional",
 }
+
+USER_TYPES = {
+    "general_user", "creator", "job_seeker", "recruiter", "doctor",
+    "seller", "pharmacy_partner", "diagnostic_partner", "advertiser",
+}
+SYSTEM_ROLES = {"member", "moderator", "admin", "finance_admin", "super_admin"}
+USER_TYPE_ALIASES = {
+    "patient": "general_user", "general user": "general_user",
+    "job seeker": "job_seeker", "employer": "recruiter",
+    "brand": "seller", "pharmacist": "pharmacy_partner",
+    "pharmacy partner": "pharmacy_partner",
+    "diagnostic partner": "diagnostic_partner",
+}
+USER_TYPE_ALIASES.update({role.lower(): "doctor" for role in PROFESSIONAL_ROLES if role != "Pharmacist"})
+
+
+def normalize_user_type(value):
+    key = str(value or "general_user").strip().lower().replace("-", " ").replace("_", " ")
+    canonical = key.replace(" ", "_")
+    return canonical if canonical in USER_TYPES else USER_TYPE_ALIASES.get(key)
 
 # ─── APP ───────────────────────────────────────────────────────────────────────
 app = Flask(__name__)
@@ -174,14 +188,41 @@ def db_run(sql, params=()):
     finally:
         conn.close()
 
+def db_exec(conn, sql, params=()):
+    cur = conn.cursor()
+    cur.execute(sql.replace("%s", "?") if isinstance(conn, sqlite3.Connection) else sql, params)
+    return cur
+
 def safe_user(u) -> dict:
     if not u: return {}
     u = dict(u)
     u.pop("password", None)
+    u.pop("verification_doc", None)
+    u.pop("verification_doc_url", None)
     for k, v in u.items():
         if isinstance(v, datetime):
             u[k] = v.isoformat()
     return u
+
+def user_payload(user) -> dict:
+    data = safe_user(user)
+    user_type = normalize_user_type(data.get("user_type") or data.get("role")) or "general_user"
+    data["user_type"] = user_type
+    data["system_role"] = data.get("system_role") if data.get("system_role") in SYSTEM_ROLES else "member"
+    uid = data.get("id")
+    profile_queries = {
+        "doctor": "SELECT id,specialty,qualification,experience_years,hospital,location,consultation_fee,rating,reviews_count,verification_status FROM doctors WHERE user_id=%s",
+        "job_seeker": "SELECT id,title,experience_summary,skills,certifications,portfolio_url FROM candidate_profiles WHERE user_id=%s",
+        "recruiter": "SELECT id,company_name,logo_url,website,industry,is_verified FROM company_profiles WHERE user_id=%s",
+        "seller": "SELECT id,store_name,rating,status FROM seller_profiles WHERE user_id=%s",
+        "advertiser": "SELECT id,company_name,verified,prepaid_balance FROM advertisers WHERE user_id=%s",
+        "pharmacy_partner": "SELECT id,category AS partner_type,status AS verification_status FROM creator_verifications WHERE user_id=%s ORDER BY created_at DESC LIMIT 1",
+        "diagnostic_partner": "SELECT id,category AS partner_type,status AS verification_status FROM creator_verifications WHERE user_id=%s ORDER BY created_at DESC LIMIT 1",
+    }
+    data["profile"] = db_one(profile_queries[user_type], (uid,)) if uid and user_type in profile_queries else {}
+    data["verification_status"] = professional_approval_state(data)
+    data["professional_access"] = data["verification_status"] in {"approved", "not_required"}
+    return data
 
 def create_notification(user_id, actor_id, ntype, post_id=None, message=""):
     """user_id = recipient, actor_id = who did the action. Never notify yourself."""
@@ -202,21 +243,24 @@ def optional_uid_from_request():
     """Best-effort: return the user id from an Authorization header, or None."""
     auth  = request.headers.get("Authorization", "")
     token = auth[7:] if auth.startswith("Bearer ") else None
-    return decode_token(token) if token else None
+    user, _sid = authenticated_user(token)
+    return str(user["id"]) if user else None
 
 def post_with_author(post, viewer_id=None) -> dict:
     if not post: return {}
     post = dict(post)
     for k, v in post.items():
         if isinstance(v, datetime): post[k] = v.isoformat()
-    a = db_one("SELECT id,name,specialty,avatar_url,is_verified FROM users WHERE id=%s",
-               (post.get("user_id"),)) or {}
+    a = user_payload(db_one("SELECT id,name,user_type,system_role,avatar_url FROM users WHERE id=%s",
+                            (post.get("user_id"),)) or {})
+    profile = a.get("profile") or {}
     post["author"] = {
         "id":        str(a.get("id","")),
         "name":      a.get("name","Unknown"),
-        "specialty": a.get("specialty",""),
+        "user_type": a.get("user_type", "general_user"),
+        "specialty": profile.get("specialty", ""),
         "avatar":    a.get("avatar_url",""),
-        "verified":  bool(a.get("is_verified", False)),
+        "verified":  a.get("verification_status") == "approved",
     }
     cc = db_one("SELECT COUNT(*) AS n FROM post_comments WHERE post_id=%s", (post["id"],))
     post["comments_count"] = cc["n"] if cc else 0
@@ -229,9 +273,11 @@ def post_with_author(post, viewer_id=None) -> dict:
     return post
 
 # ─── JWT ───────────────────────────────────────────────────────────────────────
-def make_token(user_id: str) -> str:
+def make_token(user_id: str, session_id: str) -> str:
     payload = {
         "sub": str(user_id),
+        "sid": session_id,
+        "type": "access",
         "exp": datetime.now(timezone.utc) + timedelta(days=TOKEN_EXPIRE_DAYS),
         "iat": datetime.now(timezone.utc),
     }
@@ -239,9 +285,35 @@ def make_token(user_id: str) -> str:
 
 def decode_token(token: str):
     try:
-        return jwt.decode(token, SECRET_KEY, algorithms=["HS256"]).get("sub")
+        return jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
     except Exception:
         return None
+
+def create_session(user_id, conn=None):
+    session_id = str(uuid.uuid4())
+    refresh_token = secrets.token_urlsafe(48)
+    params = (
+        session_id, str(user_id), request.headers.get("User-Agent", "")[:500],
+        request.remote_addr or "", hashlib.sha256(refresh_token.encode()).hexdigest(),
+    )
+    query = "INSERT INTO user_sessions (id,user_id,device_info,ip_address,refresh_token) VALUES (%s,%s,%s,%s,%s)"
+    db_exec(conn, query, params) if conn else db_run(query, params)
+    return session_id, refresh_token
+
+def authenticated_user(token):
+    payload = decode_token(token) if token else None
+    if not payload or payload.get("type") != "access" or not payload.get("sid"):
+        return None, None
+    session = db_one(
+        "SELECT id,user_id FROM user_sessions WHERE id=%s AND user_id=%s AND is_revoked=0",
+        (payload["sid"], payload.get("sub")),
+    )
+    if not session:
+        return None, None
+    user = db_one("SELECT * FROM users WHERE id=%s", (session["user_id"],))
+    if not is_active_account(user):
+        return None, None
+    return user, session["id"]
 
 def require_auth(f):
     @wraps(f)
@@ -250,13 +322,11 @@ def require_auth(f):
         token = auth[7:] if auth.startswith("Bearer ") else None
         if not token:
             return jsonify({"error": "Authentication required"}), 401
-        uid = decode_token(token)
-        if not uid:
-            return jsonify({"error": "Invalid or expired token. Please log in again."}), 401
-        user = db_one("SELECT * FROM users WHERE id=%s", (uid,))
+        user, session_id = authenticated_user(token)
         if not user:
-            return jsonify({"error": "User not found"}), 401
+            return jsonify({"error": "Invalid or expired token. Please log in again."}), 401
         request.current_user = user
+        request.current_session_id = session_id
         return f(*args, **kwargs)
     return decorated
 
@@ -268,17 +338,32 @@ def require_admin(f):
         token = auth[7:] if auth.startswith("Bearer ") else None
         if not token:
             return jsonify({"error": "Authentication required"}), 401
-        uid = decode_token(token)
-        if not uid:
-            return jsonify({"error": "Invalid or expired token"}), 401
-        user = db_one("SELECT * FROM users WHERE id=%s", (uid,))
+        user, session_id = authenticated_user(token)
         if not user:
-            return jsonify({"error": "User not found"}), 401
-        if user["email"].lower() not in {e.lower() for e in ADMIN_EMAILS if e}:
+            return jsonify({"error": "Invalid or expired token"}), 401
+        if user.get("system_role") not in {"admin", "finance_admin", "super_admin"}:
             return jsonify({"detail": "Admin access required"}), 403
         request.current_user = user
+        request.current_session_id = session_id
         return f(*args, **kwargs)
     return decorated
+
+
+def require_user_type(*account_types, require_approval=True):
+    def decorator(f):
+        @wraps(f)
+        @require_auth
+        def decorated(*args, **kwargs):
+            decision = permission_decision(
+                user_payload(request.current_user),
+                account_types=account_types,
+                require_professional_approval=require_approval,
+            )
+            if not decision.allowed:
+                return jsonify({"detail": "This account cannot perform that action", "reason": decision.reason}), 403
+            return f(*args, **kwargs)
+        return decorated
+    return decorator
 
 
 # ─── EMAIL SENDING (via EmailJS REST API, called server-side) ─────────────────
@@ -326,8 +411,11 @@ def generate_otp_code() -> str:
 
 # ─── DB INIT ───────────────────────────────────────────────────────────────────
 def init_db():
-    from database_schema import init_db as init_unified_db
-    init_unified_db()
+    if DATABASE_URL.startswith(("postgresql://", "postgres://")):
+        db_one("SELECT 1")
+    else:
+        from database_schema import init_db as init_unified_db
+        init_unified_db()
 
 # ─── STARTUP ───────────────────────────────────────────────────────────────────
 with app.app_context():
@@ -409,8 +497,9 @@ def signup():
     name      = (data.get("name")      or "").strip()
     email     = (data.get("email")     or "").strip().lower()
     password  =  data.get("password")  or ""
-    role      = (data.get("role")      or "Patient").strip() or "Patient"
-    specialty =  data.get("specialty") or role or "General User"
+    requested_type = data.get("user_type") or data.get("role") or "general_user"
+    user_type = normalize_user_type(requested_type)
+    specialty = (data.get("specialty") or "General Medicine").strip()
     hospital  =  data.get("hospital")  or ""
 
     if not name:
@@ -419,19 +508,21 @@ def signup():
         return jsonify({"detail": "Valid email address is required"}), 400
     if len(password) < 6:
         return jsonify({"detail": "Password must be at least 6 characters"}), 400
+    if not user_type:
+        return jsonify({"detail": "Invalid user_type", "allowed_user_types": sorted(USER_TYPES)}), 400
 
     if db_one("SELECT id FROM users WHERE email=%s", (email,)):
         return jsonify({"detail": "This email is already registered. Please log in."}), 400
 
     # ── Professional verification gate ──────────────────────────────────────
-    needs_verification = role in PROFESSIONAL_ROLES
+    needs_verification = user_type in {"doctor", "pharmacy_partner", "diagnostic_partner"}
     verification_doc_url = ""
     verification_status = "not_required"
 
     if needs_verification:
         if not doc_file or not doc_file.filename:
             return jsonify({
-                "detail": f"Please upload your degree / registration / license certificate to sign up as a {role}."
+                "detail": f"Please upload the required professional certificate to sign up as {user_type}."
             }), 400
         ct = doc_file.content_type or ""
         if ct not in ALLOWED_DOCS:
@@ -451,21 +542,51 @@ def signup():
     uid    = str(uuid.uuid4())
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
-    db_run(
-        """INSERT INTO users (id, name, email, password, specialty, hospital, role,
-                               verification_doc_url, verification_status, is_verified)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-        (uid, name, email, hashed, specialty, hospital, role,
-         verification_doc_url, verification_status, False)
-    )
+    conn = get_db()
+    try:
+        db_exec(conn,
+            """INSERT INTO users (id,name,email,password,user_type,system_role,hu_coins)
+               VALUES (%s,%s,%s,%s,%s,%s,0)""",
+            (uid, name, email, hashed, user_type, "member"))
+        profile_id = str(uuid.uuid4())
+        if user_type == "doctor":
+            db_exec(conn, """INSERT INTO doctors
+                (id,user_id,name,specialty,hospital,bio,verification_document_url,verification_status)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s)""",
+                (profile_id, uid, name, specialty, hospital, data.get("bio") or "",
+                 verification_doc_url, verification_status))
+        elif user_type == "job_seeker":
+            db_exec(conn, "INSERT INTO candidate_profiles (id,user_id,title) VALUES (%s,%s,%s)",
+                    (profile_id, uid, data.get("title") or ""))
+        elif user_type == "recruiter":
+            db_exec(conn, "INSERT INTO company_profiles (id,user_id,company_name) VALUES (%s,%s,%s)",
+                    (profile_id, uid, data.get("company_name") or hospital or name))
+        elif user_type == "seller":
+            db_exec(conn, "INSERT INTO seller_profiles (id,user_id,store_name) VALUES (%s,%s,%s)",
+                    (profile_id, uid, data.get("store_name") or name))
+        elif user_type == "advertiser":
+            db_exec(conn, "INSERT INTO advertisers (id,user_id,company_name) VALUES (%s,%s,%s)",
+                    (profile_id, uid, data.get("company_name") or name))
+        elif user_type in {"pharmacy_partner", "diagnostic_partner"}:
+            db_exec(conn, """INSERT INTO creator_verifications
+                (id,user_id,category,document_url,status) VALUES (%s,%s,%s,%s,%s)""",
+                (profile_id, uid, user_type, verification_doc_url, "Pending"))
+        session_id, refresh_token = create_session(uid, conn)
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
-    user  = safe_user(db_one("SELECT * FROM users WHERE id=%s", (uid,)))
-    token = make_token(uid)
+    user  = user_payload(db_one("SELECT * FROM users WHERE id=%s", (uid,)))
+    token = make_token(uid, session_id)
     msg = f"Welcome to Healthy Universe, {name}! 🎉"
     if needs_verification:
         msg += " Your professional documents are under review — you'll be marked verified once approved."
     return jsonify({
         "access_token": token,
+        "refresh_token": refresh_token,
         "token_type":   "bearer",
         "user":         user,
         "message":      msg
@@ -490,10 +611,12 @@ def login():
     if user.get("is_banned"):
         return jsonify({"detail": "Your account has been suspended. Contact support."}), 403
 
-    u     = safe_user(user)
-    token = make_token(u["id"])
+    u = user_payload(user)
+    session_id, refresh_token = create_session(u["id"])
+    token = make_token(u["id"], session_id)
     return jsonify({
         "access_token": token,
+        "refresh_token": refresh_token,
         "token_type":   "bearer",
         "user":         u,
         "message":      f"Welcome back, {u['name']}! 👋"
@@ -503,7 +626,39 @@ def login():
 @app.route("/api/auth/me")
 @require_auth
 def get_me():
-    return jsonify(safe_user(request.current_user))
+    return jsonify(user_payload(request.current_user))
+
+
+@app.route("/api/auth/refresh", methods=["POST"])
+def refresh_session():
+    supplied = (request.get_json(force=True, silent=True) or {}).get("refresh_token") or ""
+    token_hash = hashlib.sha256(supplied.encode()).hexdigest()
+    session = db_one("SELECT * FROM user_sessions WHERE refresh_token=%s AND is_revoked=0", (token_hash,))
+    if not session:
+        return jsonify({"detail": "Invalid or revoked refresh token"}), 401
+    user = db_one("SELECT * FROM users WHERE id=%s", (session["user_id"],))
+    if not is_active_account(user):
+        db_run("UPDATE user_sessions SET is_revoked=1 WHERE id=%s", (session["id"],))
+        return jsonify({"detail": "This account is not active"}), 403
+    new_refresh = secrets.token_urlsafe(48)
+    db_run("UPDATE user_sessions SET refresh_token=%s WHERE id=%s",
+           (hashlib.sha256(new_refresh.encode()).hexdigest(), session["id"]))
+    return jsonify({"access_token": make_token(user["id"], session["id"]),
+                    "refresh_token": new_refresh, "token_type": "bearer", "user": user_payload(user)})
+
+
+@app.route("/api/auth/logout", methods=["POST"])
+@require_auth
+def logout():
+    db_run("UPDATE user_sessions SET is_revoked=1 WHERE id=%s", (request.current_session_id,))
+    return jsonify({"message": "Logged out"})
+
+
+@app.route("/api/auth/logout-all", methods=["POST"])
+@require_auth
+def logout_all():
+    db_run("UPDATE user_sessions SET is_revoked=1 WHERE user_id=%s", (str(request.current_user["id"]),))
+    return jsonify({"message": "All sessions revoked"})
 
 
 @app.route("/api/auth/update", methods=["PUT"])
@@ -512,19 +667,18 @@ def update_profile():
     data      = request.get_json(force=True) or {}
     uid       = str(request.current_user["id"])
     name      = (data.get("name") or "").strip()
-    specialty =  data.get("specialty") or request.current_user.get("specialty","")
-    hospital  =  data.get("hospital")  or ""
     bio       =  data.get("bio")       or ""
-    location  =  data.get("location")  or request.current_user.get("location","")
+    avatar_url = data.get("avatar_url") or request.current_user.get("avatar_url", "")
 
     if not name:
         return jsonify({"detail": "Name cannot be empty"}), 400
 
-    db_run(
-        "UPDATE users SET name=%s, specialty=%s, hospital=%s, bio=%s, location=%s WHERE id=%s",
-        (name, specialty, hospital, bio, location, uid)
-    )
-    user = safe_user(db_one("SELECT * FROM users WHERE id=%s", (uid,)))
+    db_run("UPDATE users SET name=%s,bio=%s,avatar_url=%s WHERE id=%s", (name, bio, avatar_url, uid))
+    if normalize_user_type(request.current_user.get("user_type") or request.current_user.get("role")) == "doctor":
+        db_run("UPDATE doctors SET name=%s,specialty=%s,hospital=%s,location=%s,bio=%s,updated_at=CURRENT_TIMESTAMP WHERE user_id=%s",
+               (name, data.get("specialty") or "General Medicine", data.get("hospital") or "",
+                data.get("location") or "", bio, uid))
+    user = user_payload(db_one("SELECT * FROM users WHERE id=%s", (uid,)))
     return jsonify({"user": user, "message": "Profile updated successfully ✅"})
 
 
@@ -547,7 +701,8 @@ def change_password():
 
     hashed = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
     db_run("UPDATE users SET password=%s WHERE id=%s", (hashed, uid))
-    return jsonify({"message": "Password changed successfully 🔐"})
+    db_run("UPDATE user_sessions SET is_revoked=1 WHERE user_id=%s", (uid,))
+    return jsonify({"message": "Password changed; all sessions were revoked 🔐"})
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -665,6 +820,7 @@ def reset_password():
     hashed = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
     db_run("UPDATE users SET password=%s WHERE id=%s", (hashed, user["id"]))
     db_run("UPDATE password_resets SET is_used=TRUE WHERE id=%s", (reset_row["id"],))
+    db_run("UPDATE user_sessions SET is_revoked=1 WHERE user_id=%s", (user["id"],))
 
     return jsonify({"message": "Password reset successfully. You can now log in. ✅"})
 
@@ -684,7 +840,7 @@ def create_post():
     if not content and not media:
         return jsonify({"detail": "Please add text or media to your post"}), 400
 
-    media_url = ""; media_type = ""
+    media_url = ""; media_type = ""; upload_warning = ""
     if media and media.filename:
         ct = media.content_type or ""
         if ct not in (ALLOWED_IMAGES | ALLOWED_VIDEOS):
@@ -694,42 +850,75 @@ def create_post():
             return jsonify({"detail": "File too large (max 50MB)"}), 400
         ext   = os.path.splitext(media.filename)[1] or ".bin"
         fname = str(uuid.uuid4()) + ext
-        media_url  = upload_to_supabase(file_bytes, fname, ct)
-        media_type = "image" if ct in ALLOWED_IMAGES else "video"
+        try:
+            media_url = upload_to_supabase(file_bytes, fname, ct)
+            if not media_url:
+                raise RuntimeError("Upload returned no URL")
+            media_type = "image" if ct in ALLOWED_IMAGES else "video"
+        except Exception as exc:
+            print(f"[WARN] Post media upload failed: {exc}")
+            media_url = ""
+            media_type = ""
+            upload_warning = "Media upload failed. Your post was created without media."
 
-    post_id = str(uuid.uuid4())
-    db_run(
-        """INSERT INTO posts (id, user_id, content, media_url, media_type, category)
-           VALUES (%s, %s, %s, %s, %s, %s)""",
-        (post_id, uid, content, media_url, media_type, category)
-    )
-    post = db_one("SELECT * FROM posts WHERE id=%s", (post_id,))
+    if not content and not media_url:
+        return jsonify({"detail": "Please add text or successfully uploaded media to your post"}), 400
 
-    # Award 10 HU Coins for social media contribution
-    user_row = db_one("SELECT hu_coins FROM users WHERE id=%s", (uid,))
-    current_coins = user_row["hu_coins"] if user_row and user_row.get("hu_coins") is not None else 500
-    new_coins = current_coins + 10
-    db_run("UPDATE users SET hu_coins = %s, coins = %s WHERE id = %s", (new_coins, new_coins, uid))
-    db_run("""INSERT INTO wallet_ledger 
-              (id, user_id, credit_debit, value_type, amount, source_type, source_id, idempotency_key, balance_before, balance_after, status)
-              VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-           ("led_" + str(uuid.uuid4())[:8], uid, "CREDIT", "HU Coins", 10, "SOCIAL_POST_REWARD", post_id, f"post_rew_{post_id}", current_coins, new_coins, "Settled"))
+    request_key = (request.headers.get("Idempotency-Key") or "").strip()[:128]
+    post_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"jorniz:post:{uid}:{request_key}")) if request_key else str(uuid.uuid4())
+    existing = db_one("SELECT * FROM posts WHERE id=%s", (post_id,)) if request_key else None
+    if existing:
+        result = post_with_author(existing, uid)
+        result.update({"reward_earned": 0, "idempotent_replay": True})
+        if upload_warning:
+            result["warning"] = upload_warning
+        return jsonify(result), 200
+
+    conn = get_db()
+    try:
+        db_exec(conn, "INSERT INTO posts (id,user_id,content,media_url,media_type,category) VALUES (%s,%s,%s,%s,%s,%s)",
+                (post_id, uid, content, media_url, media_type, category))
+        lock = "SELECT hu_coins FROM users WHERE id=%s" + (" FOR UPDATE" if not isinstance(conn, sqlite3.Connection) else "")
+        row = db_exec(conn, lock, (uid,)).fetchone()
+        current_coins = (dict(row).get("hu_coins") if row else 0) or 0
+        new_coins = current_coins + 10
+        db_exec(conn, "UPDATE users SET hu_coins=%s,coins=%s WHERE id=%s", (new_coins, new_coins, uid))
+        db_exec(conn, """INSERT INTO wallet_ledger
+                  (id,user_id,credit_debit,value_type,amount,source_type,source_id,idempotency_key,balance_before,balance_after,status)
+                  VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                (str(uuid.uuid4()), uid, "CREDIT", "HU Coins", 10, "SOCIAL_POST_REWARD", post_id,
+                 f"post_rew_{post_id}", current_coins, new_coins, "Settled"))
+        post = dict(db_exec(conn, "SELECT * FROM posts WHERE id=%s", (post_id,)).fetchone())
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
     # Broadcast: everyone on the platform gets notified about a new post.
     actor_name = request.current_user.get("name", "Someone")
     snippet = (content[:80] + "…") if len(content) > 80 else content
-    broadcast_new_post_notification(uid, post_id, f"{actor_name} shared a new post: \"{snippet}\"" if snippet else f"{actor_name} shared a new post")
+    try:
+        broadcast_new_post_notification(uid, post_id, f"{actor_name} shared a new post: \"{snippet}\"" if snippet else f"{actor_name} shared a new post")
+    except Exception as exc:
+        print(f"[WARN] Post notification failed: {exc}")
 
     ret_data = post_with_author(post, uid)
     ret_data["reward_earned"] = 10
     ret_data["new_hu_coins"] = new_coins
+    if upload_warning:
+        ret_data["warning"] = upload_warning
     return jsonify(ret_data), 201
 
 
 @app.route("/api/posts")
 def get_posts():
-    limit  = min(int(request.args.get("limit",  20)), 100)
-    offset = int(request.args.get("offset", 0))
+    try:
+        limit = max(1, min(int(request.args.get("limit", 20)), 100))
+        offset = max(0, int(request.args.get("offset", 0)))
+    except ValueError:
+        return jsonify({"detail": "limit and offset must be integers"}), 400
     viewer_id = optional_uid_from_request()
     posts  = db_all(
         "SELECT * FROM posts ORDER BY created_at DESC LIMIT %s OFFSET %s",
@@ -1623,10 +1812,10 @@ def admin_check():
 @app.route("/api/admin/users")
 @require_admin
 def admin_list_users():
-    rows = db_all("""SELECT id,name,email,specialty,role,is_verified,verification_status,
+    rows = db_all("""SELECT id,name,email,user_type,system_role,is_verified,verification_status,
                              verification_doc_url,is_banned,balance,hu_coins,created_at
                       FROM users ORDER BY created_at DESC""")
-    return jsonify([safe_user(r) for r in rows])
+    return jsonify([user_payload(r) for r in rows])
 
 
 @app.route("/api/admin/users/<user_id>/ban", methods=["POST"])
@@ -1653,6 +1842,10 @@ def admin_toggle_verify(user_id):
     db_run(
         "UPDATE users SET is_verified=%s, verification_status=%s WHERE id=%s",
         (approve, "approved" if approve else "rejected", user_id)
+    )
+    db_run(
+        "UPDATE doctors SET verification_status=%s, verified_at=%s WHERE user_id=%s",
+        ("approved" if approve else "rejected", datetime.now(timezone.utc) if approve else None, user_id)
     )
     return jsonify({"is_verified": approve})
 
@@ -1822,17 +2015,17 @@ def job_to_frontend_shape(j) -> dict:
 
 def doctor_to_frontend_shape(d) -> dict:
     d = dict(d)
-    tags = d.get("tags") or []
-    if isinstance(tags, str):
-        try: tags = _json.loads(tags)
-        except Exception: tags = []
     return {
-        "id": d["id"], "name": d["name"], "specialty": d["specialty"],
-        "hospital": d["hospital"], "avatar": d["avatar_url"], "verified": d["verified"],
-        "rating": float(d["rating"]), "reviews": d["reviews"], "experience": d["experience"],
-        "consultations": d["consultations"], "status": d["status"], "price": float(d["price"]),
-        "coins": d["coins"], "tags": tags, "nextSlot": d["next_slot"],
-        "addedBy": str(d["added_by"]) if d.get("added_by") else None,
+        "id": d["id"], "user_id": d.get("user_id"), "name": d["name"],
+        "specialty": d["specialty"], "qualification": d.get("qualification"),
+        "experience_years": d.get("experience_years") or 0, "hospital": d.get("hospital") or "",
+        "location": d.get("location") or "", "avatar": d.get("avatar") or "",
+        "bio": d.get("bio") or "", "available_days": d.get("available_days") or [],
+        "registration_number": d.get("registration_number"), "jurisdiction": d.get("jurisdiction"),
+        "verification_status": d.get("verification_status") or "pending",
+        "is_verified": d.get("verification_status") == "approved",
+        "consultation_fee": float(d.get("consultation_fee") or d.get("fee") or 0),
+        "rating": float(d.get("rating") or 0), "reviews_count": d.get("reviews_count") or 0,
     }
 
 
@@ -1951,11 +2144,8 @@ def admin_delete_job(job_id):
 # ── DOCTORS / CONSULTATIONS ───────────────────────────────────────
 @app.route("/api/doctors")
 def get_doctors():
-    try:
-        rows = db_all("SELECT * FROM doctors")
-    except Exception:
-        rows = []
-    return jsonify({"doctors": rows})
+    rows = db_all("SELECT * FROM doctors WHERE user_id IS NOT NULL AND verification_status='approved' ORDER BY rating DESC")
+    return jsonify([doctor_to_frontend_shape(row) for row in rows])
 
 @app.route("/api/doctors/book", methods=["POST"])
 def book_doctor_slot():
@@ -1975,32 +2165,32 @@ def book_doctor_slot():
 @require_admin
 def admin_create_doctor():
     data = request.get_json(force=True) or {}
+    user_id = str(data.get("user_id") or "").strip()
     name = (data.get("name") or "").strip()
     specialty = (data.get("specialty") or "").strip()
-    if not name or not specialty:
-        return jsonify({"detail": "Name and specialty are required"}), 400
-
-    tags = data.get("tags") or []
-    if isinstance(tags, str):
-        tags = [t.strip() for t in tags.split(",") if t.strip()]
-
-    did = str(uuid.uuid4())
-    db_run(
-        """INSERT INTO doctors (id, name, specialty, hospital, avatar_url, verified,
-           rating, reviews, experience, consultations, status, price, coins, tags, next_slot)
-           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-        (did, name, specialty, data.get("hospital") or "", data.get("avatar_url") or "",
-         bool(data.get("verified", True)), data.get("rating") or 4.8, data.get("reviews") or 0,
-         data.get("experience") or 0, data.get("consultations") or 0, data.get("status") or "online",
-         data.get("price") or 0, data.get("coins") or (float(data.get("price") or 0) * 2),
-         _json.dumps(tags), data.get("next_slot") or "Available Now")
-    )
-    return jsonify({"message": "Doctor added ✅", "id": did}), 201
+    user = db_one("SELECT id,user_type,name FROM users WHERE id=%s", (user_id,)) if user_id else None
+    if not user or normalize_user_type(user.get("user_type")) != "doctor" or not specialty:
+        return jsonify({"detail": "A valid doctor user ID and specialty are required"}), 400
+    existing = db_one("SELECT id FROM doctors WHERE user_id=%s", (user_id,))
+    did = existing["id"] if existing else str(uuid.uuid4())
+    values = (name or user["name"], specialty, data.get("hospital") or "", data.get("avatar") or "",
+              int(data.get("experience_years") or 0), float(data.get("consultation_fee") or 0),
+              float(data.get("rating") or 0), int(data.get("reviews_count") or 0),
+              _json.dumps(data.get("available_days") or []), did)
+    if existing:
+        db_run("""UPDATE doctors SET name=%s,specialty=%s,hospital=%s,avatar=%s,experience_years=%s,
+                  consultation_fee=%s,fee=%s,rating=%s,reviews_count=%s,available_days=%s,updated_at=CURRENT_TIMESTAMP WHERE id=%s""",
+               values[:6] + (values[5],) + values[6:])
+    else:
+        db_run("""INSERT INTO doctors (id,user_id,name,specialty,hospital,avatar,experience_years,consultation_fee,fee,rating,reviews_count,available_days)
+                  VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+               (did, user_id, values[0], values[1], values[2], values[3], values[4], values[5], values[5], values[6], values[7], values[8]))
+    return jsonify(doctor_to_frontend_shape(db_one("SELECT * FROM doctors WHERE id=%s", (did,)))), 201
 
 @app.route("/api/admin/doctors")
 @require_admin
 def admin_list_doctors():
-    rows = db_all("SELECT * FROM doctors ORDER BY created_at DESC")
+    rows = db_all("SELECT * FROM doctors WHERE user_id IS NOT NULL ORDER BY created_at DESC")
     return jsonify([doctor_to_frontend_shape(r) for r in rows])
 
 @app.route("/api/admin/doctors/<doctor_id>", methods=["DELETE"])
@@ -2022,19 +2212,16 @@ def user_add_doctor():
     data = request.form if is_multipart else (request.get_json(force=True, silent=True) or {})
     avatar_file = request.files.get("avatar") if is_multipart else None
 
-    name = (data.get("name") or "").strip()
+    uid = str(request.current_user["id"])
+    if normalize_user_type(request.current_user.get("user_type")) != "doctor":
+        return jsonify({"detail": "Only doctor accounts can maintain a doctor profile"}), 403
+    name = (request.current_user.get("name") or "").strip()
     specialty = (data.get("specialty") or "").strip()
     if not name or not specialty:
         return jsonify({"detail": "Name and specialty are required"}), 400
 
-    tags = data.get("tags") or []
-    if isinstance(tags, str):
-        try:
-            tags = _json.loads(tags)
-        except Exception:
-            tags = [t.strip() for t in tags.split(",") if t.strip()]
-
-    avatar_url = data.get("avatar_url") or ""
+    available_days = data.get("available_days") or []
+    avatar_url = data.get("avatar") or ""
     if avatar_file and avatar_file.filename:
         ct = avatar_file.content_type or ""
         if ct not in ALLOWED_IMAGES:
@@ -2046,18 +2233,22 @@ def user_add_doctor():
         fname = str(uuid.uuid4()) + ext
         avatar_url = upload_to_supabase(file_bytes, fname, ct)
 
-    uid = str(request.current_user["id"])
-    did = str(uuid.uuid4())
-    db_run(
-        """INSERT INTO doctors (id, name, specialty, hospital, avatar_url, verified,
-           rating, reviews, experience, consultations, status, price, coins, tags, next_slot, added_by)
-           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-        (did, name, specialty, data.get("hospital") or "", avatar_url,
-         True, data.get("rating") or 4.8, data.get("reviews") or 0,
-         data.get("experience") or 0, data.get("consultations") or 0, data.get("status") or "online",
-         data.get("price") or 0, data.get("coins") or (float(data.get("price") or 0) * 2),
-         _json.dumps(tags), data.get("next_slot") or "Available Now", uid)
-    )
+    existing = db_one("SELECT id FROM doctors WHERE user_id=%s", (uid,))
+    did = existing["id"] if existing else str(uuid.uuid4())
+    values = (name, specialty, data.get("hospital") or "", avatar_url,
+              int(data.get("experience_years") or 0), float(data.get("consultation_fee") or 0),
+              _json.dumps(available_days), did)
+    if existing:
+        db_run("""UPDATE doctors SET name=%s,specialty=%s,hospital=%s,avatar=%s,experience_years=%s,
+                  consultation_fee=%s,fee=%s,available_days=%s,updated_at=CURRENT_TIMESTAMP WHERE id=%s""",
+               values[:6] + (values[5], values[6], values[7]))
+    else:
+        db_run("""INSERT INTO doctors (id,user_id,name,specialty,hospital,avatar,experience_years,consultation_fee,fee,available_days,verification_status)
+                  VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+               (did, uid, name, specialty, data.get("hospital") or "", avatar_url,
+                int(data.get("experience_years") or 0), float(data.get("consultation_fee") or 0),
+                float(data.get("consultation_fee") or 0), _json.dumps(available_days),
+                request.current_user.get("verification_status") or "pending"))
     doctor = db_one("SELECT * FROM doctors WHERE id=%s", (did,))
     return jsonify(doctor_to_frontend_shape(doctor)), 201
 
@@ -2070,8 +2261,8 @@ def user_delete_doctor(doctor_id):
     if not doctor:
         return jsonify({"detail": "Doctor not found"}), 404
 
-    is_owner = doctor.get("added_by") and str(doctor["added_by"]) == uid
-    is_admin = request.current_user["email"].lower() in {e.lower() for e in ADMIN_EMAILS if e}
+    is_owner = doctor.get("user_id") and str(doctor["user_id"]) == uid
+    is_admin = request.current_user.get("system_role") in {"admin", "super_admin"}
     if not is_owner and not is_admin:
         return jsonify({"detail": "You can only remove doctors you added"}), 403
 
@@ -2504,25 +2695,16 @@ def get_active_sessions():
     sessions = db_all("SELECT id, device_info, ip_address, created_at, is_revoked FROM user_sessions WHERE user_id=%s AND is_revoked=0", (uid,))
     return jsonify({"sessions": sessions})
 
-@app.route("/api/auth/logout-all", methods=["POST"])
-@require_auth
-def logout_all_sessions():
-    uid = str(request.current_user["id"])
-    db_run("UPDATE user_sessions SET is_revoked=1 WHERE user_id=%s", (uid,))
-    return jsonify({"message": "Logged out from all active sessions successfully"})
-
 @app.route("/api/auth/2fa/enable", methods=["POST"])
 @require_auth
 def enable_two_factor_auth():
-    uid = str(request.current_user["id"])
-    db_run("UPDATE users SET is_verified=1 WHERE id=%s", (uid,))
-    return jsonify({"message": "2FA enabled for account", "secret": "JORNIZ-2FA-" + str(uuid.uuid4())[:8].upper()})
+    return jsonify({"detail": "Two-factor authentication is not available yet"}), 501
 
 @app.route("/api/auth/export-data", methods=["POST"])
 @require_auth
 def export_user_data():
     uid = str(request.current_user["id"])
-    user = db_one("SELECT id, name, email, role, wallet_balance, coins, created_at FROM users WHERE id=%s", (uid,))
+    user = db_one("SELECT id,name,email,user_type,system_role,hu_coins,created_at FROM users WHERE id=%s", (uid,))
     posts = db_all("SELECT id, content, created_at FROM posts WHERE user_id=%s", (uid,))
     return jsonify({"user": user, "posts": posts, "export_date": datetime.now().isoformat()})
 
@@ -2939,13 +3121,13 @@ def accept_connection_request(conn_id):
 def get_my_connections():
     uid = str(request.current_user["id"])
     active_rows = db_all(
-        """SELECT c.id, c.status, c.created_at, u.id as user_id, u.name, u.specialty, u.avatar_url, u.hospital 
+        """SELECT c.id,c.status,c.created_at,u.id AS user_id,u.name,u.user_type,u.avatar_url
            FROM connections c JOIN users u ON (c.requester_id = u.id OR c.receiver_id = u.id) 
            WHERE (c.requester_id = %s OR c.receiver_id = %s) AND u.id != %s AND c.status = 'Accepted'""",
         (uid, uid, uid)
     )
     pending_requests = db_all(
-        """SELECT c.id, c.status, c.created_at, u.id as user_id, u.name, u.specialty, u.avatar_url, u.hospital 
+        """SELECT c.id,c.status,c.created_at,u.id AS user_id,u.name,u.user_type,u.avatar_url
            FROM connections c JOIN users u ON c.requester_id = u.id 
            WHERE c.receiver_id = %s AND c.status = 'Pending'""",
         (uid,)
@@ -2958,7 +3140,7 @@ def get_my_connections():
 def get_connection_suggestions():
     uid = str(request.current_user["id"])
     suggestions = db_all(
-        """SELECT id, name, specialty, hospital, avatar_url, role 
+        """SELECT id,name,user_type,avatar_url
            FROM users 
            WHERE id != %s AND id NOT IN (
                SELECT receiver_id FROM connections WHERE requester_id = %s
@@ -3338,14 +3520,21 @@ def attend_event(event_id):
 
 
 
+try:
+    from services.hardened_rewards import install_hardened_rewards
+except ImportError:
+    from backend.services.hardened_rewards import install_hardened_rewards
+
+install_hardened_rewards(globals())
+
+
 # ─── RUN ───────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     print("\n" + "="*50)
     print("  [HEALTHY UNIVERSE API]  v2.1  ")
     print("="*50)
     try:
-        from database_schema import init_db as init_unified_db
-        init_unified_db()
+        init_db()
         port  = int(os.getenv("PORT", 8000))
         debug = False
         print(f"[API SERVER] Running on http://localhost:{port}")

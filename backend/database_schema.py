@@ -53,7 +53,9 @@ def init_db(db_path="healthy_universe.db"):
         ("avatar_url", "TEXT"),
         ("wallet_balance", "REAL DEFAULT 0.0"),
         ("coins", "INTEGER DEFAULT 0"),
-        ("hu_coins", "INTEGER DEFAULT 500")
+        ("hu_coins", "INTEGER DEFAULT 500"),
+        ("user_type", "TEXT DEFAULT 'general_user'"),
+        ("system_role", "TEXT DEFAULT 'member'")
     ]:
         try:
             cur.execute(f"ALTER TABLE users ADD COLUMN {col} {col_type}")

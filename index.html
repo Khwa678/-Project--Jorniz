@@ -1247,6 +1247,7 @@
       <button class="admin-add-btn" onclick="openAddDoctorForm()">+ Add Doctor</button>
     </div>
     <div id="admin-add-doctor-form" class="admin-inline-form" style="display:none;flex-wrap:wrap;gap:10px;">
+      <input type="text" id="doc-user-id" placeholder="Doctor user ID"/>
       <input type="text" id="doc-name" placeholder="Dr. Full Name"/>
       <!-- <select id="doc-specialty">
         <option>Cardiologist</option><option>Psychiatrist</option><option>Nutritionist</option>
@@ -1393,8 +1394,8 @@
                 <input type="text" class="settings-input with-prefix" id="sf-username" value=""/>
               </div>
             </div>
-            <div class="settings-field">
-              <label class="settings-label">Specialty / Role</label>
+            <div class="settings-field" id="sf-specialty-field">
+              <label class="settings-label">Doctor Specialty</label>
               <select class="settings-input" id="sf-specialty">
                 <!-- <option>Psychiatrist</option><option>Cardiologist</option><option>Dermatologist</option>
                 <option>General Physician</option><option>Nutritionist</option><option>Orthopedic Surgeon</option>
@@ -1408,7 +1409,7 @@
                 <option>Unani Practitioner</option><option>Naturopath</option><option>Yoga Instructor</option>
               </select>
             </div>
-            <div class="settings-field">
+            <div class="settings-field" id="sf-hospital-field">
               <label class="settings-label">Hospital / Organisation</label>
               <input type="text" class="settings-input" id="sf-hospital" value=""/>
             </div>
@@ -2207,14 +2208,16 @@
 </a> -->
 
 <!-- SCRIPTS — api.js MUST be first -->
-<script src="js/api.js?v=20260830-5"></script>
+<script src="js/identity.js?v=20260904-1"></script>
+<script src="js/features/wallet.js?v=20260904-1"></script>
+<script src="js/api.js?v=20260904-1"></script>
 <script src="js/data.js"></script>
 <script src="js/app.js?v=20260830-4"></script>
-<script src="js/chatbot.js"></script>
-<script src="js/chat.js"></script>
-<script src="js/camera.js"></script>
-<script src="js/call.js"></script>
-<script src="js/admin.js"></script>
+<script src="js/features/chatbot.js"></script>
+<script src="js/features/chat.js"></script>
+<script src="js/features/camera.js"></script>
+<script src="js/features/call.js"></script>
+<script src="js/features/admin.js"></script>
 
 
 <script>
@@ -2224,20 +2227,26 @@ async function saveProfileToBackend() {
   var specialty = (document.getElementById('sf-specialty') || {}).value || '';
   var hospital  = (document.getElementById('sf-hospital')  || {}).value || '';
   var bio       = (document.getElementById('sf-bio')       || {}).value || '';
+  var user      = huGetUser();
 
   if (!name.trim()) { showToast('❌ Name cannot be empty'); return; }
 
   try {
+    var payload = { name: name.trim(), bio: bio };
+    if (user && user.user_type === 'doctor') {
+      payload.specialty = specialty;
+      payload.hospital = hospital;
+    }
     var res = await huFetch('/api/auth/update', {
       method: 'PUT',
-      body: JSON.stringify({ name: name.trim(), specialty: specialty, hospital: hospital, bio: bio })
+      body: JSON.stringify(payload)
     });
     if (!res) return;
     var data = await res.json();
     if (!res.ok) { showToast('❌ ' + (data.detail || 'Update failed')); return; }
 
     // Update localStorage with new user data
-    localStorage.setItem('hu_user', JSON.stringify(data.user));
+    JornizIdentity.storeSession(huGetToken(), data.user, localStorage.getItem('hu_refresh_token'));
     showToast('✅ Profile updated successfully!');
 
     // Re-apply UI with updated data

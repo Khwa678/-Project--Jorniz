@@ -968,11 +968,12 @@ async function loadAdminAddedDoctors() {
   try {
     const res = await fetch(HU_API + "/api/doctors");
     if (!res.ok) return;
-    const adminDoctors = await res.json();
+    const payload = await res.json();
+    const adminDoctors = Array.isArray(payload) ? payload : (payload.doctors || []);
 
     const existingIds = new Set(DOCTORS.map(d => d.id));
     adminDoctors.forEach(function (ad) {
-      if (!existingIds.has(ad.id)) DOCTORS.push(ad);
+      if (!existingIds.has(ad.id)) DOCTORS.push(huNormalizeDoctor(ad));
     });
 
     const doctorsGrid = document.getElementById("doctors-grid");

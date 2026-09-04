@@ -4,6 +4,10 @@
 // 2) <meta name="jorniz-api-base">
 // 3) Same-origin fallback (useful for local proxy setups)
 var HU_API = (function resolveHuApiBase() {
+  if (["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+    return window.location.origin;
+  }
+
   var fromGlobal = (window.__JORNIZ_API_BASE__ || "").trim();
   if (fromGlobal) return fromGlobal;
 
@@ -58,31 +62,54 @@ function timeAgo(dateStr) {
   return days + "d ago";
 }
 
+function huNormalizeUser(user) { return JornizIdentity.normalizeUser(user); }
+function huNormalizeDoctor(doctor) { return JornizIdentity.normalizeDoctor(doctor); }
+function huUserLabel(user) { return JornizIdentity.professionalLabel(user); }
+function huUserOrganization(user) { return JornizIdentity.organization(user); }
+
 // ── Token helpers ─────────────────────────────────────────────────────────────
 function huGetToken() {
   return localStorage.getItem("hu_token");
 }
 function huGetUser() {
   try {
-    return JSON.parse(localStorage.getItem("hu_user") || "null");
+    return huNormalizeUser(JSON.parse(localStorage.getItem("hu_user") || "null"));
   } catch (e) {
     return null;
   }
 }
-function huLogout() {
-  localStorage.removeItem("hu_token");
-  localStorage.removeItem("hu_user");
-  window.location.href = "auth.html";
+async function huLogout() {
+  try {
+    if (huGetToken()) await huFetch("/api/auth/logout", { method: "POST" }, true);
+  } finally {
+    JornizIdentity.clearSession();
+    window.location.href = "auth.html";
+  }
 }
 
 // ── Auth Guard Helper ─────────────────────────────────────────────────────────
 function huRequireAuth() {
-  // Allow seamless guest interaction across all Explore, People, and Store cards
-  return true;
+  if (huGetToken()) return true;
+  window.location.href = "auth.html";
+  return false;
 }
 
 // ── Generic fetch wrapper ─────────────────────────────────────────────────────
-async function huFetch(path, options) {
+async function huRefreshSession() {
+  var refreshToken = localStorage.getItem("hu_refresh_token");
+  if (!refreshToken) return false;
+  var response = await fetch(HU_API + "/api/auth/refresh", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  });
+  if (!response.ok) return false;
+  var data = await response.json();
+  JornizIdentity.storeSession(data.access_token, data.user, data.refresh_token);
+  return true;
+}
+
+async function huFetch(path, options, retried) {
   options = options || {};
   var token = huGetToken();
   var headers = Object.assign({}, options.headers || {});
@@ -97,7 +124,11 @@ async function huFetch(path, options) {
     Object.assign({}, options, { headers: headers }),
   );
   if (res.status === 401) {
-    // Return null without redirecting to auth.html so guest users can stay on the page
+    if (!retried && path !== "/api/auth/refresh" && await huRefreshSession()) {
+      return huFetch(path, options, true);
+    }
+    JornizIdentity.clearSession();
+    window.location.href = "auth.html";
     return null;
   }
   return res;
@@ -109,10 +140,39 @@ async function huCreatePost(opts) {
   fd.append("content", opts.content || "");
   fd.append("category", opts.category || "General Wellness");
   if (opts.mediaFile) fd.append("media", opts.mediaFile);
-  var res = await huFetch("/api/posts/create", { method: "POST", body: fd });
+  var key = opts.idempotencyKey || sessionStorage.getItem("jorniz_pending_post_key");
+  if (!key) {
+    key = (crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + Math.random());
+    sessionStorage.setItem("jorniz_pending_post_key", key);
+  }
+  var res = await huFetch("/api/posts/create", {
+    method: "POST",
+    headers: { "Idempotency-Key": key },
+    body: fd,
+  });
   if (!res) return null;
-  var data = await res.json();
-  if (!res.ok) throw new Error(data.detail || "Failed to create post");
+  var responseText = await res.text();
+  var data;
+  var isJson = false;
+  try {
+    data = JSON.parse(responseText);
+    isJson = true;
+  } catch (e) {
+    // The server may return an HTML or plain-text error page.
+  }
+  if (!isJson || res.status < 200 || res.status >= 300) {
+    var serverMessage = isJson && data && (data.detail || data.message || data.error);
+    var shortResponse = String(serverMessage || responseText || "No response body")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 200);
+    throw new Error(
+      "HTTP " + res.status + (res.statusText ? " " + res.statusText : "") + ": " +
+      (shortResponse || "Failed to create post")
+    );
+  }
+  sessionStorage.removeItem("jorniz_pending_post_key");
+  if (data && data.new_hu_coins !== undefined) huUpdateUserCoins(data.new_hu_coins);
   return data;
 }
 
@@ -218,11 +278,11 @@ function applyUserToUI() {
   if (!u) return;
 
   var name = u.name || "User";
-  var role = u.specialty || "Member";
+  var role = huUserLabel(u);
   var bal = parseFloat(u.balance || 0).toFixed(2);
-  var coins = u.hu_coins || 500;
+  var coins = Number(u.hu_coins != null ? u.hu_coins : u.coins || 0);
   var email = u.email || "";
-  var hospital = u.hospital || "";
+  var hospital = huUserOrganization(u);
   var bio = u.bio || "";
   var created = u.created_at
     ? new Date(u.created_at).toLocaleDateString("en-IN", {
@@ -293,8 +353,7 @@ function applyUserToUI() {
   var pRole = document.getElementById("profile-role");
   var pBio = document.getElementById("profile-bio");
   var pAv = document.getElementById("profile-avatar");
-  if (pName)
-    pName.innerHTML = name + ' <span class="verified-dot large"></span>';
+  if (pName) pName.innerHTML = name + (u.is_verified ? ' <span class="verified-dot large"></span>' : '');
   if (pRole) pRole.textContent = role + (hospital ? " | " + hospital : "");
   if (pBio && bio) pBio.textContent = bio;
   if (pAv) {
@@ -328,6 +387,12 @@ function applyUserToUI() {
   setField("sf-hospital", hospital);
   setField("sf-bio", bio);
   setField("sf-member-since", created);
+
+  var isDoctor = u.user_type === "doctor";
+  var specialtyField = document.getElementById("sf-specialty-field");
+  var hospitalField = document.getElementById("sf-hospital-field");
+  if (specialtyField) specialtyField.style.display = isDoctor ? "block" : "none";
+  if (hospitalField) hospitalField.style.display = isDoctor ? "block" : "none";
 
   // Specialty dropdown
   var sfSpec = document.getElementById("sf-specialty");
@@ -370,7 +435,8 @@ window.publishPost = async function () {
     var post = await huCreatePost({ content: content, mediaFile: mediaFile });
     if (!post) throw new Error("No response");
 
-    showToast("✅ Post published successfully!");
+    var reward = Number(post.reward_earned || 0);
+    showToast(reward ? "Post published. Earned +" + reward + " HU Coins." : "Post published.");
     closeModal();
 
     var container = document.getElementById("feed-container");
@@ -444,7 +510,7 @@ function buildPostCard(post) {
     verified +
     "</div>" +
     '<div class="post-role">' +
-    (author.specialty || "Healthcare Professional") +
+    huUserLabel(author) +
     " · " +
     timeAgo(post.created_at) +
     "</div>" +
@@ -700,9 +766,11 @@ function huUpdateUserCoins(newCoins) {
   var u = huGetUser();
   if (u) {
     u.hu_coins = newCoins;
-    u.coins = newCoins;
-    localStorage.setItem("hu_user", JSON.stringify(u));
+    JornizIdentity.storeSession(huGetToken(), u, localStorage.getItem("hu_refresh_token"));
     applyUserToUI();
+  }
+  if (window.JornizWallet && JornizWallet.acceptServerResult) {
+    JornizWallet.acceptServerResult({ new_hu_coins: newCoins });
   }
 }
 
@@ -738,16 +806,24 @@ async function huRemoveFromCart(productId) {
 
 async function huCheckout(opts) {
   opts = opts || {};
+  var key = opts.idempotency_key || sessionStorage.getItem("jorniz_pending_checkout_key");
+  if (!key) {
+    key = (crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + Math.random());
+    sessionStorage.setItem("jorniz_pending_checkout_key", key);
+  }
   var res = await huFetch("/api/checkout", {
     method: "POST",
+    headers: { "Idempotency-Key": key },
     body: JSON.stringify({
       address: opts.address || "Standard Address",
       use_coins: opts.use_coins !== false,
+      idempotency_key: key,
     }),
   });
   if (!res) return null;
   var data = await res.json();
   if (!res.ok) throw new Error(data.detail || "Checkout failed");
+  sessionStorage.removeItem("jorniz_pending_checkout_key");
   if (data.new_hu_coins !== undefined) huUpdateUserCoins(data.new_hu_coins);
   return data;
 }
@@ -776,8 +852,9 @@ async function huSendConnectionRequest(receiverId) {
     method: "POST",
     body: JSON.stringify({ receiver_id: receiverId }),
   });
-  if (!res || !res.ok) return { message: "Connection request sent!" };
+  if (!res) throw new Error("Connection request failed");
   var data = await res.json();
+  if (!res.ok) throw new Error(data.detail || "Connection request failed");
   return data;
 }
 
@@ -785,8 +862,9 @@ async function huAcceptConnection(connId) {
   var res = await huFetch("/api/connections/" + connId + "/accept", {
     method: "POST",
   });
-  if (!res || !res.ok) return { message: "Connection accepted!" };
+  if (!res) throw new Error("Connection acceptance failed");
   var data = await res.json();
+  if (!res.ok) throw new Error(data.detail || "Connection acceptance failed");
   if (data.new_hu_coins !== undefined) huUpdateUserCoins(data.new_hu_coins);
   return data;
 }
@@ -912,6 +990,12 @@ async function huGetRewardsSummary() {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", async function () {
+  if (!huGetToken()) return huRequireAuth();
+  var response = await huFetch("/api/auth/me", { method: "GET" });
+  if (!response || !response.ok) return;
+  var user = await response.json();
+  JornizIdentity.storeSession(huGetToken(), user, localStorage.getItem("hu_refresh_token"));
   applyUserToUI();
+  if (window.JornizWallet) JornizWallet.refreshSummary().catch(function () {});
 });

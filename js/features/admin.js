@@ -50,6 +50,7 @@ async function loadAdminUsers() {
 
   list.innerHTML = users
     .map(function (u) {
+      u = huNormalizeUser(u);
       return (
         '<div class="admin-row">' +
         '<div class="admin-row-info">' +
@@ -60,7 +61,7 @@ async function loadAdminUsers() {
         "<span>" +
         u.email +
         " · " +
-        (u.specialty || "Member") +
+        JornizIdentity.typeLabel(u) + " · " + huUserLabel(u) + " · " + u.system_role +
         "</span>" +
         "</div>" +
         '<div class="admin-row-actions">' +
@@ -452,9 +453,10 @@ async function loadAdminDoctors() {
   if (!res || !res.ok) { list.innerHTML = '<p class="admin-loading">Could not load</p>'; return; }
   const docs = await res.json();
   if (docs.length === 0) { list.innerHTML = '<p class="admin-loading">No doctors added yet</p>'; return; }
-  list.innerHTML = docs.map(function (d) {
+  list.innerHTML = docs.map(function (raw) {
+    const d = huNormalizeDoctor(raw);
     return '<div class="admin-row"><div class="admin-row-info"><strong>' + d.name +
-      '</strong><span>' + d.specialty + ' · ₹' + d.price + '</span></div>' +
+      '</strong><span>' + d.specialty + ' · ₹' + d.consultation_fee + ' · ' + d.verification_status + '</span></div>' +
       '<div class="admin-row-actions"><button class="admin-action-btn danger" onclick="deleteAdminDoctor(\'' + d.id + '\')">Delete</button></div></div>';
   }).join("");
 }
@@ -468,19 +470,16 @@ async function submitNewDoctor() {
   const res = await huFetch("/api/admin/doctors", {
     method: "POST",
     body: JSON.stringify({
+      user_id: document.getElementById("doc-user-id").value.trim(),
       name,
       specialty: document.getElementById("doc-specialty").value,
       hospital: document.getElementById("doc-hospital").value.trim(),
-      avatar_url: document.getElementById("doc-avatar").value.trim(),
-      experience: document.getElementById("doc-experience").value || 0,
+      avatar: document.getElementById("doc-avatar").value.trim(),
+      experience_years: document.getElementById("doc-experience").value || 0,
       rating: document.getElementById("doc-rating").value || 4.8,
-      reviews: document.getElementById("doc-reviews").value || 0,
-      consultations: document.getElementById("doc-consultations").value || 0,
-      status: document.getElementById("doc-status").value,
-      price: document.getElementById("doc-price").value || 0,
-      coins: document.getElementById("doc-coins").value || "",
-      next_slot: document.getElementById("doc-nextslot").value.trim() || "Available Now",
-      tags,
+      reviews_count: document.getElementById("doc-reviews").value || 0,
+      consultation_fee: document.getElementById("doc-price").value || 0,
+      available_days: tags,
     }),
   });
   if (res && res.ok) { showToast("✅ Doctor added"); closeAddDoctorForm(); loadAdminDoctors(); }

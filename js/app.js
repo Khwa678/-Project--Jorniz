@@ -363,6 +363,17 @@ document.getElementById("media-input").addEventListener("change", function (e) {
 });
 
 // PUBLISH POST - handled by api.js (saves to database)
+if (typeof window.huCreatePost === "function") {
+  const createPostRequest = window.huCreatePost;
+  window.huCreatePost = async (...args) => {
+    const result = await createPostRequest(...args);
+    if (result?.warning) {
+      setTimeout(() => showToast(result.warning), 0);
+    }
+    return result;
+  };
+}
+
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     closeModal();
@@ -374,8 +385,6 @@ document.addEventListener("keydown", (e) => {
 document.addEventListener("DOMContentLoaded", async () => {
   applyStoredTheme();
 
-  // Render fake posts first
-  renderFeed();
   renderNotifications();
   renderProfileGrid();
   renderSuggestedUsers();
@@ -384,13 +393,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Load real posts from database and show on top
   try {
     const realPosts = await huGetFeed(20, 0);
-    if (realPosts && realPosts.length > 0) {
-      const container = document.getElementById("feed-container");
-      realPosts.forEach((post) => {
-        container.insertAdjacentHTML("afterbegin", buildPostCard(post));
-      });
-    }
-  } catch (e) {}
+    const container = document.getElementById("feed-container");
+    if (container) container.innerHTML = realPosts.length
+      ? realPosts.map(buildPostCard).join("")
+      : `<p style="padding:24px;color:#64748b;">No posts yet. Create the first post.</p>`;
+  } catch (e) {
+    const container = document.getElementById("feed-container");
+    if (container) container.innerHTML = `<p style="padding:24px;color:#ef4444;">Could not load posts.</p>`;
+  }
   injectSponsoredAd();
   loadRealNotifications();
 });
@@ -411,18 +421,7 @@ function switchFeedTab(tab, btn) {
 
 /* Revenue Badge */
 function claimRevenue(postId, btn) {
-  if (btn.classList.contains("claimed")) return;
-  const post = POSTS.find((p) => p.id === postId);
-  if (!post) return;
-  btn.classList.add("claimed");
-  btn.textContent = "✓ Claimed!";
-  const bal =
-    parseFloat(document.getElementById("user-balance").textContent) +
-    (post.earnings || 0);
-  document.getElementById("user-balance").textContent = bal.toFixed(2);
-  const mob = document.getElementById("mobile-user-balance");
-  if (mob) mob.textContent = bal.toFixed(2);
-  showToast(`💰 $${post.earnings.toFixed(2)} added to your Health Balance!`);
+  showToast("Revenue claims are not available until backend settlement is enabled.");
 }
 
 /* Creators Grid with LinkedIn Professional Networking Actions */
@@ -597,7 +596,7 @@ const BookingState = {
 function renderDoctors(list) {
   const grid = document.getElementById("doctors-grid");
   if (!grid) return;
-  const data = list || DOCTORS;
+  const data = (list || DOCTORS).map(huNormalizeDoctor);
   if (!data || data.length === 0) {
     grid.innerHTML =
       '<div class="no-doctors-msg"><h3>No doctors found</h3><p>Try adjusting your search or specialty filter</p></div>';
@@ -607,34 +606,34 @@ function renderDoctors(list) {
   const myId = myUser ? String(myUser.id) : null;
   grid.innerHTML = data
     .map((doc, idx) => {
-      const canDelete = doc.addedBy && myId && String(doc.addedBy) === myId;
+      const canDelete = doc.user_id && myId && String(doc.user_id) === myId;
       return `
     <div class="doctor-card" style="animation-delay:${idx * 0.05}s">
       ${canDelete ? `<button class="doc-delete-btn" onclick="deleteMyDoctor('${doc.id}', event)">🗑 Remove</button>` : ""}
       <div class="doc-card-top">
         <div class="doc-avatar-wrap">
-          <img src="${doc.avatar}" alt="${doc.name}" class="doc-avatar" loading="lazy"/>
-          <span class="doc-online-dot ${doc.status}"></span>
-          ${doc.experience >= 10 ? `<span class="doc-exp-badge">${doc.experience}yr</span>` : ""}
+          <img src="${doc.avatar || getLetterAvatar(doc.name, 80)}" alt="${doc.name}" class="doc-avatar" loading="lazy"/>
+          <span class="doc-online-dot ${doc.availability_status}"></span>
+          ${doc.experience_years >= 10 ? `<span class="doc-exp-badge">${doc.experience_years}yr</span>` : ""}
         </div>
         <div class="doc-card-info">
-          <div class="doc-name">${doc.name}${doc.verified ? '<span class="verified-dot"></span>' : ""}</div>
+          <div class="doc-name">${doc.name}${doc.is_verified ? '<span class="verified-dot"></span>' : ""}</div>
           <div class="doc-specialty">${doc.specialty}</div>
           <div class="doc-hospital">🏥 ${doc.hospital}</div>
-          <div class="doc-rating"><span class="stars">★★★★${doc.rating >= 4.8 ? "★" : "☆"}</span>${doc.rating}<small>(${doc.reviews})</small></div>
+          <div class="doc-rating"><span class="stars">★★★★${doc.rating >= 4.8 ? "★" : "☆"}</span>${doc.rating}<small>(${doc.reviews_count})</small></div>
         </div>
       </div>
-      <div class="doc-tags">${doc.tags.map((t) => `<span class="doc-tag">${t}</span>`).join("")}</div>
+      <div class="doc-tags">${doc.available_days.map((day) => `<span class="doc-tag">${day}</span>`).join("")}</div>
       <div class="doc-meta-row">
-        <div class="doc-meta-item">🩺 <strong>${formatNum(doc.consultations)}</strong> consults</div>
-        <div class="doc-meta-item">⏱ <strong>${doc.experience} yrs</strong> exp</div>
-        <span class="doc-status-badge ${doc.status}">${doc.status === "online" ? "● Online" : doc.status === "busy" ? "● In Session" : "○ Offline"}</span>
+        <div class="doc-meta-item">🩺 <strong>${formatNum(doc.consultation_count)}</strong> consults</div>
+        <div class="doc-meta-item">⏱ <strong>${doc.experience_years} yrs</strong> exp</div>
+        <span class="doc-status-badge ${doc.availability_status}">${doc.availability_status === "online" ? "● Online" : doc.availability_status === "busy" ? "● In Session" : "○ Offline"}</span>
       </div>
       <div class="doc-price-row">
-        <div><span class="doc-price-amount">₹${doc.price}</span><span class="doc-price-coins">or ${doc.coins} HU Coins</span></div>
-        <button class="doc-book-btn" onclick="openBookingModal('${doc.id}')" ${doc.status === "offline" ? "disabled" : ""}>${doc.status === "offline" ? "Unavailable" : "Book Now"}</button>
+        <div><span class="doc-price-amount">₹${doc.consultation_fee}</span><span class="doc-price-coins">or ${doc.coin_price} HU Coins</span></div>
+        <button class="doc-book-btn" onclick="openBookingModal('${doc.id}')" ${doc.availability_status === "offline" ? "disabled" : ""}>${doc.availability_status === "offline" ? "Unavailable" : "Book Now"}</button>
       </div>
-      <div class="doc-next-slot">🕐 Next: ${doc.nextSlot}</div>
+      <div class="doc-next-slot">🕐 Next: ${doc.next_available}</div>
     </div>
   `;
     })
@@ -644,11 +643,14 @@ function renderDoctors(list) {
 }
 
 function openAddDoctorModal() {
-  if (!huGetToken()) {
-    showToast("⚠️ Please log in to add a doctor");
+  const user = huGetUser();
+  if (!user || user.user_type !== "doctor") {
+    showToast("⚠️ Only doctor accounts can maintain a doctor profile");
     return;
   }
   document.getElementById("add-doctor-form").reset();
+  document.getElementById("ud-doc-name").value = user.name || "";
+  document.getElementById("ud-doc-name").readOnly = true;
   const preview = document.getElementById("ud-doc-avatar-preview");
   if (preview) preview.innerHTML = "";
   document.getElementById("add-doctor-modal").style.display = "flex";
@@ -715,14 +717,11 @@ async function handleAddDoctorSubmit(event) {
       name: name,
       specialty: specialty,
       hospital: document.getElementById("ud-doc-hospital").value.trim(),
-      avatar_url: avatarUrl,
-      experience:
+      avatar: avatarUrl,
+      experience_years:
         parseInt(document.getElementById("ud-doc-experience").value) || 0,
-      price: parseFloat(document.getElementById("ud-doc-price").value) || 0,
-      tags: tags,
-      next_slot:
-        document.getElementById("ud-doc-nextslot").value.trim() ||
-        "Available Now",
+      consultation_fee: parseFloat(document.getElementById("ud-doc-price").value) || 0,
+      available_days: tags,
     };
 
     const res = await huFetch("/api/doctors/add", {
@@ -736,7 +735,9 @@ async function handleAddDoctorSubmit(event) {
       return;
     }
 
-    DOCTORS.push(data);
+    const doctor = huNormalizeDoctor(data);
+    DOCTORS = DOCTORS.filter((item) => String(item.user_id || item.addedBy || "") !== String(doctor.user_id));
+    DOCTORS.push(doctor);
     renderDoctors();
     closeAddDoctorModal();
     showToast("✅ Doctor added successfully!");
@@ -744,7 +745,7 @@ async function handleAddDoctorSubmit(event) {
     showToast("❌ " + (e.message || "Could not connect to server"));
   } finally {
     btn.disabled = false;
-    btn.textContent = "Add Doctor";
+    btn.textContent = "Save Doctor Profile";
   }
 }
 
@@ -770,12 +771,12 @@ async function deleteMyDoctor(doctorId, event) {
 function filterDoctors(q) {
   const query = q.toLowerCase();
   renderDoctors(
-    DOCTORS.filter(
+    DOCTORS.map(huNormalizeDoctor).filter(
       (d) =>
         !query ||
         d.name.toLowerCase().includes(query) ||
         d.specialty.toLowerCase().includes(query) ||
-        d.tags.some((t) => t.toLowerCase().includes(query)),
+        d.available_days.some((day) => day.toLowerCase().includes(query)),
     ),
   );
 }
@@ -788,27 +789,28 @@ function filterBySpecialty(spec, btn) {
   renderDoctors(
     spec === "All"
       ? DOCTORS
-      : DOCTORS.filter((d) => d.specialty.includes(spec)),
+      : DOCTORS.map(huNormalizeDoctor).filter((d) => d.specialty.includes(spec)),
   );
 }
 
 function sortDoctors(by) {
   renderDoctors(
-    [...DOCTORS].sort((a, b) =>
+    [...DOCTORS].map(huNormalizeDoctor).sort((a, b) =>
       by === "rating"
         ? b.rating - a.rating
         : by === "price_low"
-          ? a.price - b.price
+          ? a.consultation_fee - b.consultation_fee
           : by === "price_high"
-            ? b.price - a.price
-            : b.experience - a.experience,
+            ? b.consultation_fee - a.consultation_fee
+            : b.experience_years - a.experience_years,
     ),
   );
 }
 
 function openBookingModal(docId) {
-  const doc = DOCTORS.find((d) => d.id === docId);
-  if (!doc) return;
+  const rawDoctor = DOCTORS.find((d) => d.id === docId);
+  if (!rawDoctor) return;
+  const doc = huNormalizeDoctor(rawDoctor);
   BookingState.doctor = doc;
   BookingState.type = "video";
   BookingState.date = null;
@@ -818,9 +820,9 @@ function openBookingModal(docId) {
   document.getElementById("booking-step-1").style.display = "block";
   document.getElementById("booking-step-2").style.display = "none";
   document.getElementById("booking-doc-info").innerHTML = `
-    <img src="${doc.avatar}" alt="${doc.name}"/>
+    <img src="${doc.avatar || getLetterAvatar(doc.name, 80)}" alt="${doc.name}"/>
     <div><strong>${doc.name}</strong><span>${doc.specialty} · ${doc.hospital}</span></div>
-    <div class="booking-doc-price"><strong>₹${doc.price}</strong><span>★ ${doc.rating}</span></div>
+    <div class="booking-doc-price"><strong>₹${doc.consultation_fee}</strong><span>★ ${doc.rating}</span></div>
   `;
   document
     .querySelectorAll(".consult-type-card")
@@ -951,7 +953,7 @@ function updatePaymentDisplay() {
     }
   ).value;
   BookingState.payment = method;
-  const base = doc.price;
+  const base = doc.consultation_fee;
   let html = "";
   if (method === "coins") {
     const disc = Math.round(base * 0.1);
@@ -984,7 +986,7 @@ function confirmBooking() {
   if (BookingState.payment === "wallet") {
     const bal =
       parseFloat(document.getElementById("user-balance").textContent) -
-      doc.price / 80;
+      doc.consultation_fee / 80;
     document.getElementById("user-balance").textContent = Math.max(
       0,
       bal,
@@ -1471,31 +1473,8 @@ function updateWithdrawDisplay(amount) {
 }
 
 function confirmWithdrawal() {
-  const amount =
-    parseFloat(document.getElementById("withdraw-amount").value) || 0;
-  const method = document.querySelector(
-    'input[name="withdraw-method"]:checked',
-  ).value;
-  const methodLabels = {
-    bank: "2-3 business days",
-    upi: "within minutes",
-    paypal: "1-2 business days",
-  };
-
   closeWithdrawModal();
-
-  const currentBal = parseFloat(
-    document.getElementById("wallet-balance").textContent,
-  );
-  const newBal = Math.max(0, currentBal - amount);
-  document.getElementById("wallet-balance").textContent = newBal.toFixed(2);
-  document.getElementById("user-balance").textContent = newBal.toFixed(2);
-  const mobBal = document.getElementById("mobile-user-balance");
-  if (mobBal) mobBal.textContent = newBal.toFixed(2);
-
-  document.getElementById("withdraw-success-details").innerHTML =
-    `Your withdrawal of <strong>$${amount.toFixed(2)}</strong> has been initiated. You'll receive it ${methodLabels[method]}.`;
-  document.getElementById("withdraw-success-modal").classList.add("open");
+  showToast("Withdrawals are not available until backend settlement is enabled.");
 }
 
 function closeWithdrawSuccess() {
@@ -1917,15 +1896,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function checkDailySpinPopup() {
-  const lastSpinDate = localStorage.getItem("lastHealthSpinDate");
-  const today = new Date().toDateString();
-
-  if (lastSpinDate !== today) {
-    setTimeout(() => {
-      const modal = document.getElementById("daily-spin-modal");
-      if (modal) modal.style.display = "flex";
-    }, 1500);
-  }
+  return;
 }
 
 function closeSpinModal() {
@@ -2467,7 +2438,7 @@ async function loadNetworkPage() {
             <img src="${getLetterAvatar(req.name, 48)}" style="width:40px;height:40px;border-radius:50%;"/>
             <div>
               <strong style="font-size:14px;color:#0f172a;">${req.name}</strong>
-              <div style="font-size:12px;color:#64748b;">${req.specialty || 'Healthcare Professional'} ${req.hospital ? '· ' + req.hospital : ''}</div>
+              <div style="font-size:12px;color:#64748b;">${huUserLabel(req)} ${huUserOrganization(req) ? '· ' + huUserOrganization(req) : ''}</div>
             </div>
           </div>
           <button onclick="handleAcceptConnection('${req.id}', this)" style="background:#16a34a;color:white;border:none;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;">
@@ -2487,9 +2458,9 @@ async function loadNetworkPage() {
           <img src="${getLetterAvatar(c.name, 56)}" style="width:48px;height:48px;border-radius:50%;"/>
           <div style="flex:1;overflow:hidden;">
             <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.name}</div>
-            <div style="font-size:12px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.specialty || 'Professional'}</div>
+            <div style="font-size:12px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${huUserLabel(c)}</div>
             <div style="display:flex;gap:6px;margin-top:6px;">
-              <button onclick="promptEndorseSkill('${c.user_id}', '${c.name}', '${c.specialty || 'Clinical Expertise'}')" style="background:#dcfce7;color:#15803d;border:none;border-radius:6px;padding:4px 8px;font-size:11.5px;font-weight:600;cursor:pointer;">
+              <button onclick="promptEndorseSkill('${c.user_id}', '${c.name}', '${huUserLabel(c)}')" style="background:#dcfce7;color:#15803d;border:none;border-radius:6px;padding:4px 8px;font-size:11.5px;font-weight:600;cursor:pointer;">
                 👏 Endorse (+5 Coins)
               </button>
             </div>
@@ -2507,7 +2478,7 @@ async function loadNetworkPage() {
           <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;text-align:center;">
             <img src="${getLetterAvatar(s.name, 64)}" style="width:56px;height:56px;border-radius:50%;margin:0 auto 8px;"/>
             <div style="font-weight:700;font-size:14px;">${s.name}</div>
-            <div style="font-size:12px;color:#64748b;margin-bottom:12px;">${s.specialty || s.role}</div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:12px;">${huUserLabel(s)}</div>
             <button onclick="handleSendConnection('${s.id}', this)" style="background:#0284c7;color:white;border:none;border-radius:8px;padding:7px 16px;font-weight:600;font-size:13px;cursor:pointer;width:100%;">
               Connect 🤝
             </button>
@@ -2733,10 +2704,6 @@ function openDeepUnderstanding(topicKey) {
 
   modal.style.display = "flex";
 
-  // Award +10 HU Coins for deep topic exploration
-  if (typeof huUpdateUserCoins === "function" && typeof userCoins !== "undefined") {
-    huUpdateUserCoins(userCoins + 10);
-  }
 }
 
 function closeDeepTopicModal() {
@@ -2771,8 +2738,8 @@ async function renderExploreHub() {
                 <div style="font-weight:700;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                   ${p.name} ${p.is_verified ? '<span class="verified-dot"></span>' : ''}
                 </div>
-                <div style="font-size:12.5px;color:#0284c7;font-weight:600;">${p.specialty}</div>
-                <div style="font-size:12px;color:#64748b;">${p.hospital} · ${p.location}</div>
+                <div style="font-size:12.5px;color:#0284c7;font-weight:600;">${huUserLabel(p)}</div>
+                <div style="font-size:12px;color:#64748b;">${huUserOrganization(p)}${p.location ? ' · ' + p.location : ''}</div>
               </div>
             </div>
             
@@ -2928,7 +2895,7 @@ async function openMutualConnectionsModal(targetUserId, targetName) {
             <img src="${getLetterAvatar(m.name, 42)}" style="width:38px;height:38px;border-radius:50%;"/>
             <div>
               <strong style="font-size:13.5px;color:#0f172a;">${m.name}</strong>
-              <div style="font-size:12px;color:#64748b;">${m.specialty || 'Professional'} · ${m.hospital || 'Medical Center'}</div>
+              <div style="font-size:12px;color:#64748b;">${huUserLabel(m)}${huUserOrganization(m) ? ' · ' + huUserOrganization(m) : ''}</div>
             </div>
           </div>
           <button onclick="handleSendConnection('${m.id}', this)" style="background:#0284c7;color:white;border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;">Connect 🤝</button>
@@ -2946,13 +2913,7 @@ function closeMutualConnectionsModal() {
 }
 
 async function handleJoinCommunity(commId, btn) {
-  btn.disabled = true;
-  btn.textContent = "Joined ✓";
-  btn.style.background = "#16a34a";
-  if (typeof huUpdateUserCoins === "function" && typeof userCoins !== "undefined") {
-    huUpdateUserCoins(userCoins + 15);
-  }
-  showToast("👥 Joined community! Earned +15 HU Coins.");
+  showToast("Community membership is not connected to the backend yet.");
 }
 
 async function handleAttendEvent(eventId, btn) {
@@ -2961,12 +2922,12 @@ async function handleAttendEvent(eventId, btn) {
   btn.style.background = "#16a34a";
   try {
     const res = await huAttendEvent(eventId);
-    showToast(`🎟️ Registered for CME event! Earned +25 HU Coins.`);
+    showToast(`Registered for the event. Earned +${Number(res.reward_earned || 0)} HU Coins.`);
+    if (res.new_hu_coins !== undefined) huUpdateUserCoins(res.new_hu_coins);
   } catch (err) {
-    showToast("🎉 Registered for CME event! Earned +25 HU Coins.");
-    if (typeof huUpdateUserCoins === "function" && typeof userCoins !== "undefined") {
-      huUpdateUserCoins(userCoins + 25);
-    }
+    btn.disabled = false;
+    btn.textContent = "Register";
+    showToast("Could not register for the event.");
   }
 }
 

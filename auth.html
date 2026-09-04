@@ -296,13 +296,13 @@
 
     <div class="field">
       <label>Email Address</label>
-      <input type="email" id="login-email" value="khwa@gmail.com" placeholder="you@email.com" required autocomplete="email"/>
+      <input type="email" id="login-email" placeholder="you@email.com" required autocomplete="email"/>
     </div>
 
     <div class="field">
       <label>Password</label>
       <div class="password-wrap">
-        <input type="password" id="login-password" value="123456" placeholder="Your password" required autocomplete="current-password"/>
+        <input type="password" id="login-password" placeholder="Your password" required autocomplete="current-password"/>
         <button type="button" class="toggle-pw" onclick="togglePw('login-password', this)">
           <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
         </button>
@@ -316,16 +316,7 @@
       <span class="btn-text">Sign In →</span>
     </button>
 
-    <div class="divider">or continue with</div>
-
-    <div class="social-row">
-      <button type="button" class="social-btn" onclick="loginWithGoogle()">
-        <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google"/> Google
-      </button>
-      <button type="button" class="social-btn" onclick="loginWithLinkedIn()">
-        <img src="https://www.svgrepo.com/show/448234/linkedin.svg" alt="LinkedIn"/> LinkedIn
-      </button>
-    </div>
+    <div class="divider">Secure email and password access</div>
 
     <p style="text-align:center;font-size:13px;color:var(--muted);margin-top:4px;">
       Don't have an account?
@@ -337,7 +328,7 @@
   <form class="auth-form" id="form-signup" onsubmit="submitSignup(event)">
     <div>
       <div class="form-title">Join Jorniz 🏥</div>
-      <div class="form-subtitle">Create your verified healthcare professional account</div>
+      <div class="form-subtitle">Choose your account type. Permissions are assigned separately.</div>
     </div>
 
     <div class="error-banner"   id="signup-error"></div>
@@ -354,26 +345,18 @@
     </div>
 
     <div class="field">
-      <label for="signup-role">Role</label>
+      <label for="signup-role">Account Type</label>
       <select id="signup-role" onchange="handleRoleChange()">
-        <option value="">Select your role</option>
-        <option value="Patient">Patient / General User</option>
-        <option value="Doctor">Doctor (Allopathic)</option>
-        <option value="Ayurvedic Doctor">Ayurvedic Doctor</option>
-        <option value="Homeopathic Doctor">Homeopathic Doctor</option>
-        <option value="Unani Practitioner">Unani Practitioner</option>
-        <option value="Naturopath">Naturopath</option>
-        <option value="Nurse">Nurse</option>
-        <option value="Medical Student">Medical Student</option>
-        <option value="Dentist">Dentist</option>
-        <option value="Pharmacist">Pharmacist</option>
-        <option value="Physiotherapist">Physiotherapist</option>
-        <option value="Psychologist">Psychologist</option>
-        <option value="Nutritionist">Nutritionist / Dietitian</option>
-        <option value="Yoga Instructor">Yoga Instructor / Wellness Coach</option>
-        <option value="Researcher">Medical Researcher</option>
-        <option value="Fitness Professional">Fitness Professional</option>
-        <option value="Healthcare Professional">Other Healthcare Professional</option>
+        <option value="">Select your account type</option>
+        <option value="general_user">General User</option>
+        <option value="creator">Creator</option>
+        <option value="job_seeker">Job Seeker</option>
+        <option value="recruiter">Recruiter</option>
+        <option value="doctor">Doctor / Licensed Practitioner</option>
+        <option value="seller">Marketplace Seller</option>
+        <option value="pharmacy_partner">Pharmacy Partner</option>
+        <option value="diagnostic_partner">Diagnostic Partner</option>
+        <option value="advertiser">Advertiser</option>
       </select>
     </div>
 
@@ -384,8 +367,8 @@
       </div>
     </div>
 
-    <div class="field">
-      <label>Hospital / Organisation <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+    <div class="field" id="signup-organization-container" style="display:none;">
+      <label id="signup-organization-label">Organisation <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
       <input type="text" id="signup-hospital" placeholder="e.g. AIIMS Delhi" autocomplete="organization"/>
     </div>
 
@@ -502,12 +485,68 @@
   </div>
 </div>
 
+<script src="js/identity.js"></script>
 <script>
-  const API = (window.__JORNIZ_API_BASE__ || (document.querySelector("meta[name='jorniz-api-base']") || {}).content || window.location.origin).replace(/\/$/, "");
+  const IS_LOCAL = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+  const API = (IS_LOCAL ? window.location.origin : window.__JORNIZ_API_BASE__ || (document.querySelector("meta[name='jorniz-api-base']") || {}).content || window.location.origin).replace(/\/$/, "");
 
-  // ── Redirect if already logged in ────────────────────────────────────────────
-  if (localStorage.getItem('hu_token')) {
-    window.location.href = 'index.html';
+  // ── Validate an existing backend session before entering the app ─────────────
+  var existingToken = localStorage.getItem('hu_token') || '';
+  if (existingToken && existingToken.split('.').length === 3) {
+    validateExistingSession(existingToken);
+  } else if (existingToken) {
+    JornizIdentity.clearSession();
+  }
+
+  function professionalAuthState(user) {
+    var professionalTypes = ['doctor', 'pharmacy_partner', 'diagnostic_partner'];
+    var userType = JornizIdentity.canonicalType((user || {}).user_type);
+    if (professionalTypes.indexOf(userType) === -1) return 'not_required';
+    var profile = (user || {}).profile || {};
+    var status = String((user || {}).verification_status || profile.verification_status || 'pending').toLowerCase();
+    if (status === 'rejected') return 'rejected';
+    if (status === 'approved' && (user || {}).is_verified === true) return 'approved';
+    return 'pending';
+  }
+
+  function acceptIssuedSession(data, successId) {
+    var user = data.user || {};
+    var state = professionalAuthState(user);
+    var errorId = successId.replace('success', 'error');
+
+    if (state === 'rejected') {
+      JornizIdentity.clearSession();
+      showError(errorId, 'Professional verification was rejected. Contact support before signing in.');
+      return 'rejected';
+    }
+    if (state === 'pending') {
+      JornizIdentity.clearSession();
+      showSuccess(successId, 'Approval pending. Your professional documents are still under review.');
+      return 'pending';
+    }
+
+    JornizIdentity.storeSession(data.access_token, user, data.refresh_token);
+    return 'active';
+  }
+
+  async function validateExistingSession(token) {
+    try {
+      var res = await fetch(API + '/api/auth/me', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      var user = await res.json();
+      if (!res.ok) throw new Error(user.detail || user.error || 'Session expired');
+
+      var state = acceptIssuedSession({
+        access_token: token,
+        refresh_token: localStorage.getItem('hu_refresh_token'),
+        user: user
+      }, 'login-success');
+      if (state === 'active') window.location.href = 'index.html';
+    } catch (err) {
+      JornizIdentity.clearSession();
+      showError('login-error', 'Your session could not be verified. Please sign in again.');
+    }
   }
 
   // ── Tab Switch ────────────────────────────────────────────────────────────────
@@ -523,39 +562,22 @@
   }
 
   // ── Role / Specialty handling ──────────────────────────────────────────────────
-  var SPECIALTIES = {
-    'Doctor': ['General Medicine', 'Cardiology', 'Dermatology', 'Pediatrics', 'Orthopedics', 'Gynecology', 'Neurology', 'ENT', 'Ophthalmology', 'Psychiatry', 'Other'],
-    'Ayurvedic Doctor': ['Panchakarma', 'Kayachikitsa', 'General Ayurveda', 'Other'],
-    'Homeopathic Doctor': ['General Homeopathy', 'Pediatric Homeopathy', 'Other'],
-    'Unani Practitioner': ['General Unani', 'Other'],
-    'Naturopath': ['General Naturopathy', 'Other'],
-    'Nurse': ['General Nursing', 'ICU/Critical Care', 'Pediatric Nursing', 'Other'],
-    'Dentist': ['General Dentistry', 'Orthodontics', 'Endodontics', 'Oral Surgery', 'Other'],
-    'Physiotherapist': ['Sports Physiotherapy', 'Neuro Physiotherapy', 'Orthopedic Physiotherapy', 'Other'],
-    'Psychologist': ['Clinical Psychology', 'Counseling Psychology', 'Other'],
-    'Nutritionist': ['Clinical Nutrition', 'Sports Nutrition', 'Other'],
-    'Researcher': ['Clinical Research', 'Public Health Research', 'Other'],
-  };
-
-  // Roles that require a verification document at signup (must match backend PROFESSIONAL_ROLES)
-  var PROFESSIONAL_ROLES = [
-    'Doctor', 'Ayurvedic Doctor', 'Homeopathic Doctor', 'Unani Practitioner',
-    'Naturopath', 'Nurse', 'Dentist', 'Pharmacist', 'Physiotherapist',
-    'Psychologist', 'Nutritionist', 'Researcher', 'Healthcare Professional'
-  ];
+  var SPECIALTIES = ['General Medicine', 'Cardiology', 'Dermatology', 'Pediatrics', 'Orthopedics', 'Gynecology', 'Neurology', 'ENT', 'Ophthalmology', 'Psychiatry', 'Dentistry', 'Ayurveda', 'Homeopathy', 'Unani Medicine', 'Naturopathy', 'Physiotherapy', 'Psychology', 'Nutrition', 'Other'];
+  var VERIFIED_TYPES = ['doctor', 'pharmacy_partner', 'diagnostic_partner'];
 
   function handleRoleChange() {
-    var role = document.getElementById('signup-role').value;
+    var userType = document.getElementById('signup-role').value;
     var container = document.getElementById('specialty-container');
     var select = document.getElementById('signup-specialty');
+    var organizationContainer = document.getElementById('signup-organization-container');
+    var organizationLabel = document.getElementById('signup-organization-label');
+    var organizationInput = document.getElementById('signup-hospital');
     var docContainer = document.getElementById('verification-doc-container');
     var docInput = document.getElementById('signup-doc');
-
-    var list = SPECIALTIES[role];
     select.innerHTML = '';
 
-    if (list && list.length) {
-      list.forEach(function(spec) {
+    if (userType === 'doctor') {
+      SPECIALTIES.forEach(function(spec) {
         var opt = document.createElement('option');
         opt.value = spec;
         opt.textContent = spec;
@@ -566,8 +588,16 @@
       container.style.display = 'none';
     }
 
-    // Only professional roles need a verification document — Patients/General Users don't.
-    var needsDoc = PROFESSIONAL_ROLES.indexOf(role) !== -1;
+    var organizationLabels = {
+      doctor: 'Hospital / Clinic', recruiter: 'Company', seller: 'Store Name',
+      pharmacy_partner: 'Pharmacy Name', diagnostic_partner: 'Diagnostic Centre', advertiser: 'Company'
+    };
+    var organizationName = organizationLabels[userType];
+    organizationContainer.style.display = organizationName ? 'block' : 'none';
+    organizationLabel.innerHTML = (organizationName || 'Organisation') + ' <span style="color:var(--muted);font-weight:400;">(optional)</span>';
+    organizationInput.placeholder = organizationName ? 'Enter ' + organizationName.toLowerCase() : '';
+
+    var needsDoc = VERIFIED_TYPES.indexOf(userType) !== -1;
     docContainer.style.display = needsDoc ? 'block' : 'none';
     if (docInput) {
       if (needsDoc) docInput.setAttribute('required', 'required');
@@ -635,68 +665,10 @@
     return canvas.toDataURL();
   }
 
-  // ── GOOGLE & LINKEDIN LOGIN ──────────────────────────────────────────────────
-  function loginWithGoogle() {
-    hideMsg('login-error');
-    setLoading('login-btn', true);
-    var emailInput = document.getElementById('login-email').value.trim();
-    var email = emailInput || 'khwa@gmail.com';
-    var name = email.indexOf('@') !== -1 ? email.split('@')[0] : 'Khawa';
-    name = name.charAt(0).toUpperCase() + name.slice(1);
-
-    showSuccess('login-success', 'Authenticated with Google! Redirecting...');
-    
-    var userObj = {
-      id: 'google_' + Date.now(),
-      name: name,
-      email: email,
-      role: 'Doctor',
-      specialty: 'General Medicine',
-      hospital: 'Jorniz Verified',
-      avatar: getLetterAvatar(name, 80),
-      verified: true
-    };
-
-    localStorage.setItem('hu_token', 'google_token_' + Date.now());
-    localStorage.setItem('hu_user', JSON.stringify(userObj));
-
-    setTimeout(function() {
-      window.location.href = 'index.html';
-    }, 600);
-  }
-
-  function loginWithLinkedIn() {
-    hideMsg('login-error');
-    setLoading('login-btn', true);
-    var emailInput = document.getElementById('login-email').value.trim();
-    var email = emailInput || 'user@linkedin.com';
-    var name = email.split('@')[0];
-    name = name.charAt(0).toUpperCase() + name.slice(1);
-
-    showSuccess('login-success', 'Authenticated with LinkedIn! Redirecting...');
-    
-    var userObj = {
-      id: 'linkedin_' + Date.now(),
-      name: name,
-      email: email,
-      role: 'Healthcare Professional',
-      specialty: 'Clinical Research',
-      hospital: 'Jorniz Network',
-      avatar: getLetterAvatar(name, 80),
-      verified: true
-    };
-
-    localStorage.setItem('hu_token', 'linkedin_token_' + Date.now());
-    localStorage.setItem('hu_user', JSON.stringify(userObj));
-
-    setTimeout(function() {
-      window.location.href = 'index.html';
-    }, 600);
-  }
-
   // ── LOGIN ─────────────────────────────────────────────────────────────────────
   async function submitLogin(e) {
     e.preventDefault();
+    JornizIdentity.clearSession();
     hideMsg('login-error');
     hideMsg('login-success');
     setLoading('login-btn', true);
@@ -711,62 +683,19 @@
     }
 
     try {
-      var controller = new AbortController();
-      var timeoutId = setTimeout(function() { controller.abort(); }, 3000);
-
       var res = await fetch(API + '/api/auth/login', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ email: email, password: password }),
-        signal:  controller.signal
+        body:    JSON.stringify({ email: email, password: password })
       });
-      clearTimeout(timeoutId);
-
       var data = await res.json();
 
       if (!res.ok) {
-        // Auto-register on backend if account not found
-        try {
-          var name = email.indexOf('@') !== -1 ? email.split('@')[0] : 'User';
-          name = name.charAt(0).toUpperCase() + name.slice(1);
-          var signupRes = await fetch(API + '/api/auth/signup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: name, email: email, password: password, role: 'Doctor', specialty: 'General Medicine' })
-          });
-          var signupData = await signupRes.json();
-          if (signupRes.ok && signupData.access_token) {
-            localStorage.setItem('hu_token', signupData.access_token);
-            localStorage.setItem('hu_user', JSON.stringify(signupData.user));
-            showSuccess('login-success', 'Account created and signed in! Redirecting...');
-            setTimeout(function() { window.location.href = 'index.html'; }, 600);
-            return;
-          }
-        } catch (sErr) {}
-
-        // Seamless fallback authentication
-        var name = email.split('@')[0];
-        name = name.charAt(0).toUpperCase() + name.slice(1);
-        var fallbackUser = {
-          id: 'user_' + Date.now(),
-          name: name,
-          email: email,
-          role: 'Doctor',
-          specialty: 'General Medicine',
-          hospital: 'Jorniz Healthcare',
-          hu_coins: 500,
-          verified: true
-        };
-        localStorage.setItem('hu_token', 'token_' + Date.now());
-        localStorage.setItem('hu_user', JSON.stringify(fallbackUser));
-
-        showSuccess('login-success', 'Sign in successful! Redirecting...');
-        setTimeout(function() { window.location.href = 'index.html'; }, 600);
+        showError('login-error', data.detail || data.error || 'Sign in failed.');
         return;
       }
 
-      localStorage.setItem('hu_token', data.access_token);
-      localStorage.setItem('hu_user',  JSON.stringify(data.user));
+      if (acceptIssuedSession(data, 'login-success') !== 'active') return;
 
       showSuccess('login-success', data.message || 'Login successful! Redirecting...');
 
@@ -775,27 +704,7 @@
       }, 600);
 
     } catch (err) {
-      // Fallback authentication if server is slow or unreachable
-      var name = email.split('@')[0];
-      name = name.charAt(0).toUpperCase() + name.slice(1);
-      var fallbackUser = {
-        id: 'user_' + Date.now(),
-        name: name,
-        email: email,
-        role: 'Doctor',
-        specialty: 'General Medicine',
-        hospital: 'Jorniz Healthcare',
-        avatar: getLetterAvatar(name, 80),
-        verified: true
-      };
-      localStorage.setItem('hu_token', 'token_' + Date.now());
-      localStorage.setItem('hu_user', JSON.stringify(fallbackUser));
-
-      showSuccess('login-success', 'Sign in successful! Redirecting...');
-
-      setTimeout(function() {
-        window.location.href = 'index.html';
-      }, 600);
+      showError('login-error', 'Could not connect to Jorniz. Please try again.');
     } finally {
       setLoading('login-btn', false);
     }
@@ -806,6 +715,7 @@
   // asks for or checks this document again.
   async function submitSignup(e) {
     e.preventDefault();
+    JornizIdentity.clearSession();
     hideMsg('signup-error');
     hideMsg('signup-success');
     setLoading('signup-btn', true);
@@ -813,13 +723,13 @@
     var name      = document.getElementById('signup-name').value.trim();
     var email     = document.getElementById('signup-email').value.trim();
     var password  = document.getElementById('signup-password').value;
-    var role      = document.getElementById('signup-role').value;
+    var userType  = document.getElementById('signup-role').value;
     var specialtyEl = document.getElementById('signup-specialty');
     var specialty = (specialtyEl && specialtyEl.offsetParent !== null) ? specialtyEl.value : '';
     var hospital  = document.getElementById('signup-hospital').value.trim();
     var docInput  = document.getElementById('signup-doc');
     var docFile   = (docInput && docInput.files && docInput.files[0]) || null;
-    var needsDoc  = PROFESSIONAL_ROLES.indexOf(role) !== -1;
+    var needsDoc  = VERIFIED_TYPES.indexOf(userType) !== -1;
 
     if (!name) {
       showError('signup-error', 'Please enter your full name.');
@@ -829,8 +739,8 @@
       showError('signup-error', 'Please enter a valid email address.');
       setLoading('signup-btn', false); return;
     }
-    if (!role) {
-      showError('signup-error', 'Please select your role.');
+    if (!userType) {
+      showError('signup-error', 'Please select your account type.');
       setLoading('signup-btn', false); return;
     }
     if (password.length < 6) {
@@ -838,7 +748,7 @@
       setLoading('signup-btn', false); return;
     }
     if (needsDoc && !docFile) {
-      showError('signup-error', 'Please upload your degree / registration / license certificate to sign up as a ' + role + '.');
+      showError('signup-error', 'Please upload the required verification document for ' + JornizIdentity.typeLabel({ user_type: userType }) + '.');
       setLoading('signup-btn', false); return;
     }
 
@@ -847,9 +757,15 @@
       fd.append('name', name);
       fd.append('email', email);
       fd.append('password', password);
-      fd.append('role', role);
-      fd.append('specialty', specialty);
-      fd.append('hospital', hospital);
+      fd.append('user_type', userType);
+      if (userType === 'doctor') {
+        fd.append('specialty', specialty);
+        fd.append('hospital', hospital);
+      } else if (userType === 'seller') {
+        fd.append('store_name', hospital);
+      } else if (['recruiter', 'advertiser', 'pharmacy_partner', 'diagnostic_partner'].indexOf(userType) !== -1) {
+        fd.append('company_name', hospital);
+      }
       if (needsDoc && docFile) fd.append('verification_doc', docFile);
 
       var res = await fetch(API + '/api/auth/signup', {
@@ -864,8 +780,7 @@
         return;
       }
 
-      localStorage.setItem('hu_token', data.access_token);
-      localStorage.setItem('hu_user',  JSON.stringify(data.user));
+      if (acceptIssuedSession(data, 'signup-success') !== 'active') return;
 
       showSuccess('signup-success', data.message || 'Account created! Redirecting...');
 

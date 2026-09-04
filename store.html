@@ -158,7 +158,7 @@
           <p>100% genuine vitamins, Ayurvedic remedies, fitness nutrition, and organic personal care. Use your earned HU Coins to save up to 50%!</p>
           <a href="store.html#rewards" class="coins-pill">
             <span class="material-icons-round" style="font-size:18px;color:#fde047;">stars</span>
-            <span id="user-coins-display">Your Rewards: 500 HU Coins</span>
+            <span id="user-coins-display">Your Rewards: 0 HU Coins</span>
           </a>
         </div>
       </div>
@@ -260,7 +260,7 @@
                   <input type="checkbox" id="cart-use-coins-toggle" checked onchange="updateCartTotals()"/> Redeem HU Coins (50% Off)
                 </label>
               </div>
-              <p id="cart-coins-info-text" style="font-size:12px;color:#166534;margin-top:2px;">You have 500 coins available.</p>
+              <p id="cart-coins-info-text" style="font-size:12px;color:#166534;margin-top:2px;">Loading server wallet balance...</p>
             </div>
 
             <div id="cart-page-discount-row" style="display:none;justify-content:space-between;margin-bottom:10px;font-size:14.5px;color:#16a34a;font-weight:700;">
@@ -375,10 +375,12 @@
     <span id="toast-msg">Item updated successfully!</span>
   </div>
 
+  <script src="js/identity.js"></script>
+  <script src="js/features/wallet.js" onerror="console.warn('wallet.js is not present; using server wallet endpoints.')"></script>
   <script src="js/api.js"></script>
   <script>
     let currentProducts = [];
-    let cartData = { items: [], total: 0, hu_coins_balance: 500, max_coins_redeemable: 0, max_coin_discount: 0 };
+    let cartData = { items: [], total: 0, hu_coins_balance: 0, max_coins_redeemable: 0, max_coin_discount: 0 };
     let wishlistItems = [];
 
     const CATEGORIES_DATA = [
@@ -887,6 +889,19 @@
       `).join('');
     }
 
+    const CHECKOUT_KEY_STORAGE = 'jorniz_checkout_idempotency_key';
+
+    function getStableCheckoutKey() {
+      let key = localStorage.getItem(CHECKOUT_KEY_STORAGE);
+      if (!key) {
+        key = window.crypto && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        localStorage.setItem(CHECKOUT_KEY_STORAGE, key);
+      }
+      return key;
+    }
+
     async function executeFinalCheckout() {
       const btn = document.getElementById('btn-final-checkout');
       btn.disabled = true;
@@ -896,9 +911,18 @@
       const useCoins = document.getElementById('cart-use-coins-toggle') ? document.getElementById('cart-use-coins-toggle').checked : true;
 
       try {
-        const res = await huCheckout({ address: address, use_coins: useCoins });
+        const response = await huFetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Idempotency-Key': getStableCheckoutKey() },
+          body: JSON.stringify({ address: address, use_coins: useCoins })
+        });
+        if (!response) throw new Error('Checkout response unavailable');
+        const res = await response.json();
+        if (!response.ok) throw new Error(res.detail || 'Checkout failed');
+        if (res.new_hu_coins !== undefined) huUpdateUserCoins(res.new_hu_coins);
         showToast(`🎉 Order #${res.order_id} confirmed!`);
-        await refreshCartData();
+        localStorage.removeItem(CHECKOUT_KEY_STORAGE);
+        await refreshServerJourneyState(res.order_id);
         window.location.hash = `#orders/${res.order_id}`;
       } catch (err) {
         showToast('❌ ' + (err.message || 'Checkout failed'));
@@ -927,7 +951,7 @@
                 <strong style="font-size:16px;">Order #${o.id}</strong>
                 <div style="font-size:12px;color:var(--muted);">${new Date(o.created_at).toLocaleString('en-IN')}</div>
               </div>
-              <span style="background:${o.status === 'Cancelled' ? '#fee2e2' : '#dcfce7'};color:${o.status === 'Cancelled' ? '#ef4444' : '#166534'};padding:4px 12px;border-radius:12px;font-weight:700;font-size:12px;">${o.status}</span>
+              <span style="background:${o.status === 'Cancelled' ? '#fee2e2' : '#dcfce7'};color:${o.status === 'Cancelled' ? '#ef4444' : '#166534'};padding:4px 12px;border-radius:12px;font-weight:700;font-size:12px;">${o.status}${o.refund_status && o.refund_status !== 'None' ? ` · ${o.refund_status}` : ''}</span>
             </div>
 
             <div style="font-size:13.5px;color:#334155;margin-bottom:14px;">
@@ -970,7 +994,7 @@
                 <h2 style="font-size:22px;font-weight:700;">Order #${order.id}</h2>
                 <div style="font-size:13px;color:var(--muted);">Placed on ${new Date(order.created_at).toLocaleString('en-IN')}</div>
               </div>
-              <span style="background:${order.status === 'Cancelled' ? '#fee2e2' : '#dcfce7'};color:${order.status === 'Cancelled' ? '#ef4444' : '#166534'};padding:6px 16px;border-radius:20px;font-weight:700;font-size:13px;">${order.status}</span>
+              <span style="background:${order.status === 'Cancelled' ? '#fee2e2' : '#dcfce7'};color:${order.status === 'Cancelled' ? '#ef4444' : '#166534'};padding:6px 16px;border-radius:20px;font-weight:700;font-size:13px;">${order.status}${order.refund_status && order.refund_status !== 'None' ? ` · ${order.refund_status}` : ''}</span>
             </div>
 
             <!-- Tracking Timeline -->
@@ -1002,10 +1026,10 @@
     async function cancelMyOrder(orderId) {
       if (!confirm(`Cancel order ${orderId} and refund rewards?`)) return;
       try {
-        await huCancelOrder(orderId);
-        showToast('✅ Order cancelled. Rewards refunded!');
-        loadOrderDetailsPage(orderId);
-        refreshCartData();
+        const result = await huCancelOrder(orderId);
+        await refreshServerJourneyState(orderId);
+        showToast(`✅ ${result.refunded_coins || 0} coins refunded. ${result.refund_status || 'Cancellation saved'}.`);
+        await loadOrderDetailsPage(orderId);
       } catch (err) {
         showToast('❌ ' + (err.message || 'Could not cancel order'));
       }
@@ -1069,7 +1093,7 @@
               <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f1f5f9;">
                 <div>
                   <div style="font-weight:700;font-size:14px;">${t.source_type || 'Platform Activity'}</div>
-                  <small style="color:var(--muted);">${new Date(t.timestamp).toLocaleString('en-IN')}</small>
+                  <small style="color:var(--muted);">${new Date(t.created_at).toLocaleString('en-IN')}</small>
                 </div>
                 <span style="font-weight:800;font-size:15px;color:${t.credit_debit === 'CREDIT' ? '#16a34a' : '#dc2626'};">
                   ${t.credit_debit === 'CREDIT' ? '+' : '-'}${t.amount} Coins
@@ -1084,14 +1108,26 @@
     }
 
     // ── COMMON STATE SYNC ────────────────────────────────────────────────────────
+    async function refreshServerJourneyState(orderId = null) {
+      const results = await Promise.allSettled([
+        huGetCart(),
+        huFetch('/api/wallet/ledger').then(r => r && r.ok ? r.json() : null),
+        huGetMyOrders(),
+        orderId ? huGetOrderDetails(orderId) : Promise.resolve(null)
+      ]);
+      if (results[0].status === 'fulfilled' && results[0].value) cartData = results[0].value;
+      window.jornizWalletState = results[1].status === 'fulfilled' ? results[1].value : null;
+      window.jornizOrderState = results[2].status === 'fulfilled' ? results[2].value : [];
+      window.jornizCurrentOrder = results[3].status === 'fulfilled' ? results[3].value : null;
+      const count = (cartData.items || []).reduce((sum, item) => sum + item.quantity, 0);
+      document.getElementById('cart-count').textContent = count;
+      document.getElementById('user-coins-display').textContent = `Your Rewards: ${cartData.hu_coins_balance || 0} HU Coins`;
+      return { cart: cartData, wallet: window.jornizWalletState, orders: window.jornizOrderState };
+    }
+
     async function refreshCartData() {
       try {
-        cartData = await huGetCart();
-        const count = (cartData.items || []).reduce((s, i) => s + i.quantity, 0);
-        document.getElementById('cart-count').textContent = count;
-        if (cartData.hu_coins_balance !== undefined) {
-          document.getElementById('user-coins-display').textContent = `Your Rewards: ${cartData.hu_coins_balance} HU Coins`;
-        }
+        await refreshServerJourneyState();
       } catch (e) {}
     }
 
