@@ -19,6 +19,12 @@ load_dotenv()
 SUPABASE_URL          = os.getenv("SUPABASE_URL", "").strip()
 SUPABASE_SERVICE_KEY  = os.getenv("SUPABASE_SERVICE_KEY", "").strip()
 SUPABASE_BUCKET       = os.getenv("SUPABASE_BUCKET", "media").strip() or "media"
+BLOB_READ_WRITE_TOKEN = os.getenv("BLOB_READ_WRITE_TOKEN", "").strip()
+
+try:
+    from vercel.blob import BlobClient
+except ImportError:
+    BlobClient = None
 
 try:
     from supabase import create_client
@@ -44,6 +50,38 @@ def upload_to_supabase(file_bytes: bytes, filename: str, content_type: str) -> s
         {"content-type": content_type}
     )
     return supabase_client.storage.from_(SUPABASE_BUCKET).get_public_url(filename)
+
+
+def upload_post_media_to_blob(file_bytes: bytes, filename: str, content_type: str) -> str:
+    """Upload public post media to Vercel Blob and return its durable URL."""
+    if not BLOB_READ_WRITE_TOKEN:
+        raise RuntimeError("Vercel Blob is not configured")
+    if BlobClient is None:
+        raise RuntimeError("Vercel Blob SDK is not installed")
+
+    with BlobClient(token=BLOB_READ_WRITE_TOKEN) as client:
+        blob = client.put(
+            filename,
+            file_bytes,
+            access="public",
+            content_type=content_type,
+            add_random_suffix=True,
+        )
+    return blob.url
+
+
+def delete_post_media_blob(media_url: str) -> bool:
+    """Delete only media URLs that belong to Vercel Blob."""
+    if not media_url or ".blob.vercel-storage.com/" not in media_url:
+        return False
+    if not BLOB_READ_WRITE_TOKEN:
+        raise RuntimeError("Vercel Blob is not configured")
+    if BlobClient is None:
+        raise RuntimeError("Vercel Blob SDK is not installed")
+
+    with BlobClient(token=BLOB_READ_WRITE_TOKEN) as client:
+        client.delete(media_url)
+    return True
 
 # ─── CONFIG ────────────────────────────────────────────────────────────────────
 ENVIRONMENT  = os.getenv("ENVIRONMENT", os.getenv("FLASK_ENV", "development")).strip().lower()
@@ -837,6 +875,14 @@ def create_post():
     media    =  request.files.get("media")
     uid      =  str(request.current_user["id"])
 
+    request_key = (request.headers.get("Idempotency-Key") or "").strip()[:128]
+    post_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"jorniz:post:{uid}:{request_key}")) if request_key else str(uuid.uuid4())
+    existing = db_one("SELECT * FROM posts WHERE id=%s", (post_id,)) if request_key else None
+    if existing:
+        result = post_with_author(existing, uid)
+        result.update({"reward_earned": 0, "idempotent_replay": True})
+        return jsonify(result), 200
+
     if not content and not media:
         return jsonify({"detail": "Please add text or media to your post"}), 400
 
@@ -849,9 +895,9 @@ def create_post():
         if len(file_bytes) > MAX_FILE_BYTES:
             return jsonify({"detail": "File too large (max 50MB)"}), 400
         ext   = os.path.splitext(media.filename)[1] or ".bin"
-        fname = str(uuid.uuid4()) + ext
+        fname = f"posts/uploaded/{uid}/{post_id}{ext}"
         try:
-            media_url = upload_to_supabase(file_bytes, fname, ct)
+            media_url = upload_post_media_to_blob(file_bytes, fname, ct)
             if not media_url:
                 raise RuntimeError("Upload returned no URL")
             media_type = "image" if ct in ALLOWED_IMAGES else "video"
@@ -863,16 +909,6 @@ def create_post():
 
     if not content and not media_url:
         return jsonify({"detail": "Please add text or successfully uploaded media to your post"}), 400
-
-    request_key = (request.headers.get("Idempotency-Key") or "").strip()[:128]
-    post_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"jorniz:post:{uid}:{request_key}")) if request_key else str(uuid.uuid4())
-    existing = db_one("SELECT * FROM posts WHERE id=%s", (post_id,)) if request_key else None
-    if existing:
-        result = post_with_author(existing, uid)
-        result.update({"reward_earned": 0, "idempotent_replay": True})
-        if upload_warning:
-            result["warning"] = upload_warning
-        return jsonify(result), 200
 
     conn = get_db()
     try:
@@ -892,6 +928,11 @@ def create_post():
         conn.commit()
     except Exception:
         conn.rollback()
+        if media_url:
+            try:
+                delete_post_media_blob(media_url)
+            except Exception as cleanup_error:
+                print(f"[WARN] Could not remove orphaned post media: {cleanup_error}")
         raise
     finally:
         conn.close()
@@ -1033,17 +1074,97 @@ def add_comment(post_id):
     return jsonify(comment), 201
 
 
+@app.route("/api/posts/<post_id>", methods=["PUT"])
+@require_auth
+def update_post(post_id):
+    uid = str(request.current_user["id"])
+    post = db_one("SELECT * FROM posts WHERE id=%s", (post_id,))
+    if not post:
+        return jsonify({"detail": "Post not found"}), 404
+    if str(post["user_id"]) != uid:
+        return jsonify({"detail": "You can only edit your own posts"}), 403
+
+    content = (request.form.get("content", post.get("content") or "") or "").strip()
+    category = request.form.get("category", post.get("category") or "General Wellness")
+    media = request.files.get("media")
+    remove_media = (request.form.get("remove_media") or "").lower() in {"1", "true", "yes"}
+    old_media_url = post.get("media_url") or ""
+    media_url = old_media_url
+    media_type = post.get("media_type") or ""
+    uploaded_url = ""
+
+    if media and media.filename:
+        content_type = media.content_type or ""
+        if content_type not in (ALLOWED_IMAGES | ALLOWED_VIDEOS):
+            return jsonify({"detail": "Only images and videos are allowed"}), 400
+        file_bytes = media.read()
+        if len(file_bytes) > MAX_FILE_BYTES:
+            return jsonify({"detail": "File too large (max 50MB)"}), 400
+        extension = os.path.splitext(media.filename)[1] or ".bin"
+        pathname = f"posts/uploaded/{uid}/{post_id}/{uuid.uuid4()}{extension}"
+        try:
+            uploaded_url = upload_post_media_to_blob(file_bytes, pathname, content_type)
+        except Exception as exc:
+            return jsonify({"detail": f"Could not upload replacement media: {exc}"}), 502
+        media_url = uploaded_url
+        media_type = "image" if content_type in ALLOWED_IMAGES else "video"
+    elif remove_media:
+        media_url = ""
+        media_type = ""
+
+    if not content and not media_url:
+        if uploaded_url:
+            try:
+                delete_post_media_blob(uploaded_url)
+            except Exception as cleanup_error:
+                print(f"[WARN] Could not remove rejected post media: {cleanup_error}")
+        return jsonify({"detail": "A post must contain text or media"}), 400
+
+    try:
+        db_run(
+            "UPDATE posts SET content=%s,category=%s,media_url=%s,media_type=%s WHERE id=%s",
+            (content, category, media_url, media_type, post_id),
+        )
+    except Exception:
+        if uploaded_url:
+            try:
+                delete_post_media_blob(uploaded_url)
+            except Exception as cleanup_error:
+                print(f"[WARN] Could not remove uncommitted post media: {cleanup_error}")
+        raise
+
+    warning = ""
+    if old_media_url and old_media_url != media_url:
+        try:
+            delete_post_media_blob(old_media_url)
+        except Exception as cleanup_error:
+            print(f"[WARN] Could not remove replaced post media: {cleanup_error}")
+            warning = "Post updated, but the previous media could not be removed."
+
+    result = post_with_author(db_one("SELECT * FROM posts WHERE id=%s", (post_id,)), uid)
+    if warning:
+        result["warning"] = warning
+    return jsonify(result)
+
+
 @app.route("/api/posts/<post_id>", methods=["DELETE"])
 @require_auth
 def delete_post(post_id):
     uid  = str(request.current_user["id"])
-    post = db_one("SELECT id,user_id FROM posts WHERE id=%s", (post_id,))
+    post = db_one("SELECT id,user_id,media_url FROM posts WHERE id=%s", (post_id,))
     if not post:
         return jsonify({"detail": "Post not found"}), 404
     if str(post["user_id"]) != uid:
         return jsonify({"detail": "You can only delete your own posts"}), 403
     db_run("DELETE FROM posts WHERE id=%s", (post_id,))
-    return jsonify({"message": "Post deleted"})
+    response = {"message": "Post deleted", "media_deleted": False}
+    if post.get("media_url"):
+        try:
+            response["media_deleted"] = delete_post_media_blob(post["media_url"])
+        except Exception as cleanup_error:
+            print(f"[WARN] Could not remove deleted post media: {cleanup_error}")
+            response["warning"] = "Post deleted, but its media could not be removed."
+    return jsonify(response)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

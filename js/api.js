@@ -484,10 +484,14 @@ function buildPostCard(post) {
   var isOwner =
     currentUser &&
     (currentUser.id === author.id || currentUser.name === author.name);
-  var deleteBtn = isOwner
-    ? "<button onclick=\"deletePost('" +
+  var ownerButtons = isOwner
+    ? '<div style="display:flex;gap:8px;margin-left:auto;">' +
+      "<button onclick=\"editPost('" +
       post.id +
-      '\', this)" style="background:none;border:none;color:#e11d48;font-size:13px;cursor:pointer;margin-left:auto;">🗑️ Delete</button>'
+      '\', this)" style="background:none;border:none;color:#2563eb;font-size:13px;cursor:pointer;">✏️ Edit</button>' +
+      "<button onclick=\"deletePost('" +
+      post.id +
+      '\', this)" style="background:none;border:none;color:#e11d48;font-size:13px;cursor:pointer;">🗑️ Delete</button></div>'
     : "";
 
   var liked = !!post.liked_by_me;
@@ -515,7 +519,7 @@ function buildPostCard(post) {
     timeAgo(post.created_at) +
     "</div>" +
     "</div>" +
-    deleteBtn +
+    ownerButtons +
     "</div>" +
     '<div class="post-body"><p>' +
     (post.content || "") +
@@ -658,18 +662,81 @@ async function submitRealComment(postId) {
   }
 }
 
+function choosePostMediaFile() {
+  return new Promise(function (resolve) {
+    var input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime";
+    input.onchange = function () {
+      resolve(input.files && input.files[0] ? input.files[0] : null);
+    };
+    input.click();
+  });
+}
+
+async function editPost(postId, btn) {
+  var card = btn.closest(".post-card");
+  if (!card) return;
+  var body = card.querySelector(".post-body p");
+  var content = prompt("Edit post text:", body ? body.textContent : "");
+  if (content === null) return;
+
+  var hasMedia = !!card.querySelector(".post-body img, .post-body video");
+  var mediaAction = prompt(
+    "Media action: type keep, replace, or remove",
+    hasMedia ? "keep" : "keep",
+  );
+  if (mediaAction === null) return;
+  mediaAction = mediaAction.trim().toLowerCase();
+  if (["keep", "replace", "remove"].indexOf(mediaAction) === -1) {
+    showToast("❌ Media action must be keep, replace, or remove");
+    return;
+  }
+
+  var form = new FormData();
+  form.append("content", content.trim());
+  if (mediaAction === "remove") form.append("remove_media", "true");
+  if (mediaAction === "replace") {
+    var file = await choosePostMediaFile();
+    if (!file) {
+      showToast("No replacement file selected");
+      return;
+    }
+    form.append("media", file);
+  }
+
+  try {
+    var res = await huFetch("/api/posts/" + postId, {
+      method: "PUT",
+      body: form,
+    });
+    if (!res) return;
+    var data = await res.json();
+    if (!res.ok) {
+      showToast("❌ " + (data.detail || "Could not update post"));
+      return;
+    }
+    card.outerHTML = buildPostCard(data);
+    showToast(data.warning || "✅ Post updated!");
+  } catch (e) {
+    showToast("❌ Error updating post");
+  }
+}
+
 async function deletePost(postId, btn) {
   if (!confirm("Delete this post?")) return;
   try {
     var res = await huFetch("/api/posts/" + postId, { method: "DELETE" });
-    if (!res || !res.ok) {
-      showToast("❌ Could not delete post");
+    if (!res) return;
+    var data = await res.json();
+    if (!res.ok) {
+      showToast("❌ " + (data.detail || "Could not delete post"));
       return;
     }
     // Remove post card from DOM
     var card = btn.closest(".post-card");
     if (card) card.remove();
-    showToast("🗑️ Post deleted!");
+    showToast(data.warning || "🗑️ Post deleted!");
   } catch (e) {
     showToast("❌ Error deleting post");
   }
