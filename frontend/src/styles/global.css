@@ -1,0 +1,82 @@
+:root {
+  font-family: "Avenir Next", "Gill Sans", sans-serif;
+  color: #142033;
+  background: #eef4ff;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --ink: #142033;
+  --muted: #65728a;
+  --surface: #ffffff;
+  --brand: #176bff;
+  --brand-deep: #0750c9;
+  --line: #dbe5f3;
+  --danger: #c93838;
+  --shadow: 0 24px 70px rgba(27, 58, 105, 0.16);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at 14% 12%, rgba(23, 107, 255, 0.18), transparent 32rem),
+    linear-gradient(145deg, #f8fbff 0%, #e8f0fc 100%);
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: var(--brand-deep);
+}
+
+#root,
+.app-shell {
+  min-height: 100vh;
+}
+
+.app-shell {
+  display: grid;
+  place-items: center;
+  padding: clamp(1rem, 4vw, 3rem);
+}
+
+@media (max-width: 640px) {
+  .app-shell {
+    align-items: stretch;
+    padding: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

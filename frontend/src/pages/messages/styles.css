@@ -1,0 +1,69 @@
+.dm-page { color:#132238; display:grid; gap:18px; }
+.dm-page button,.dm-page input,.dm-page textarea { font:inherit; }
+.dm-page-heading { align-items:end; display:flex; justify-content:space-between; }
+.dm-page-heading span { color:#28775f; font-size:.78rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+.dm-page-heading h1 { font-family:Georgia,serif; font-size:clamp(2rem,5vw,3.2rem); margin:4px 0 0; }
+.dm-primary-button,.dm-secondary-button,.dm-member-search>button { border:0; border-radius:999px; cursor:pointer; font-weight:800; padding:10px 18px; }
+.dm-primary-button,.dm-member-search>button { background:#176b52; color:white; }
+.dm-secondary-button { background:#eef4f1; color:#284239; }
+.dm-primary-button:disabled { cursor:not-allowed; opacity:.55; }
+.dm-error { background:#fff0ec; border:1px solid #f2b8ab; border-radius:12px; color:#8d2d1e; padding:12px 14px; }
+.dm-member-search { align-items:center; background:#f5f8f6; border:1px solid #dbe7e1; border-radius:16px; display:flex; flex-wrap:wrap; gap:10px; padding:14px; }
+.dm-member-search input,.dm-sidebar>input,.dm-thread-header input { background:white; border:1px solid #cbd9d2; border-radius:10px; min-width:180px; padding:10px 12px; }
+.dm-member-search p { color:#8d2d1e; margin:0; width:100%; }
+.dm-member-results { display:flex; flex-wrap:wrap; gap:8px; width:100%; }
+.dm-member-results button { background:white; border:1px solid #dbe7e1; border-radius:12px; cursor:pointer; display:grid; padding:10px 12px; text-align:left; }
+.dm-member-results span { color:#65776f; font-size:.8rem; }
+.dm-workspace { background:white; border:1px solid #dbe7e1; border-radius:20px; display:grid; grid-template-columns:minmax(250px,320px) minmax(0,1fr); min-height:620px; overflow:hidden; }
+.dm-sidebar { border-right:1px solid #dbe7e1; display:flex; flex-direction:column; gap:12px; padding:16px; }
+.dm-conversation-list { display:grid; gap:8px; overflow:auto; }
+.dm-conversation-row { border:1px solid transparent; border-radius:14px; display:grid; grid-template-columns:1fr auto; overflow:hidden; }
+.dm-conversation-row.is-active { background:#edf7f3; border-color:#b9dbce; }
+.dm-conversation-main { align-items:center; background:transparent; border:0; cursor:pointer; display:grid; gap:10px; grid-template-columns:42px 1fr auto; min-width:0; padding:10px; text-align:left; }
+.dm-avatar { align-items:center; background:#d7eee5; border-radius:50%; color:#176b52; display:flex; font-weight:900; height:42px; justify-content:center; width:42px; }
+.dm-conversation-copy,.dm-conversation-name { display:flex; min-width:0; }
+.dm-conversation-copy { flex-direction:column; }
+.dm-conversation-name { align-items:center; gap:7px; justify-content:space-between; }
+.dm-conversation-name small { color:#218663; font-size:.66rem; }
+.dm-conversation-preview { color:#6a7a74; font-size:.82rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dm-unread-count { background:#d44f35; border-radius:999px; color:white; font-size:.72rem; padding:2px 7px; }
+.dm-pin-button { align-self:center; background:transparent; border:0; color:#567169; cursor:pointer; font-size:.72rem; padding:8px; }
+.dm-pin-button:disabled { opacity:.5; }
+.dm-empty-list,.dm-no-selection,.dm-thread-empty { align-items:center; color:#6a7a74; display:flex; flex-direction:column; gap:5px; justify-content:center; padding:38px 18px; text-align:center; }
+.dm-main { display:flex; flex-direction:column; min-width:0; }
+.dm-thread { display:flex; flex:1; flex-direction:column; min-height:0; }
+.dm-thread-header { align-items:center; border-bottom:1px solid #dbe7e1; display:flex; gap:12px; justify-content:space-between; padding:14px 18px; }
+.dm-thread-header>div { display:grid; }
+.dm-thread-header span { color:#6a7a74; font-size:.78rem; }
+.dm-message-scroll { display:flex; flex:1; flex-direction:column; gap:10px; max-height:420px; overflow:auto; padding:18px; }
+.dm-message { display:flex; flex-direction:column; max-width:min(72%,620px); }
+.dm-message.is-mine { align-self:flex-end; }
+.dm-message.is-theirs { align-self:flex-start; }
+.dm-message-bubble { background:#eef3f1; border-radius:16px 16px 16px 4px; padding:10px 13px; }
+.dm-message.is-mine .dm-message-bubble { background:#176b52; border-radius:16px 16px 4px 16px; color:white; }
+.dm-message.is-highlighted .dm-message-bubble { box-shadow:0 0 0 3px #f4b942; }
+.dm-message p,.dm-message blockquote { margin:0; }
+.dm-message blockquote { border-left:3px solid currentColor; margin-bottom:7px; opacity:.72; padding-left:8px; }
+.dm-message footer { align-items:center; color:#718079; display:flex; font-size:.68rem; gap:8px; padding:4px 5px; }
+.dm-message footer button { background:none; border:0; color:#176b52; cursor:pointer; padding:0; }
+.dm-composer { border-top:1px solid #dbe7e1; padding:12px 16px; }
+.dm-composer-row { align-items:end; display:flex; gap:10px; }
+.dm-composer textarea { border:1px solid #cbd9d2; border-radius:14px; flex:1; padding:10px 12px; resize:none; }
+.dm-attach-button { background:#eef4f1; border-radius:999px; color:#284239; cursor:pointer; font-size:.78rem; font-weight:800; padding:10px 12px; }
+.dm-attach-button input { display:none; }
+.dm-attachment-preview { align-items:center; background:#f5f8f6; border-radius:10px; display:flex; justify-content:space-between; margin-bottom:8px; padding:8px 10px; }
+.dm-attachment-preview div { display:grid; }
+.dm-attachment-preview span { color:#6a7a74; font-size:.72rem; }
+.dm-attachment-preview button { background:none; border:0; color:#a33a28; cursor:pointer; }
+.dm-inline-notice,.dm-status { color:#6a7a74; font-size:.82rem; margin:0 0 8px; }
+.dm-call-unavailable { background:#fff7de; border-top:1px solid #ecd99a; color:#6b5719; display:grid; font-size:.78rem; gap:2px; padding:9px 16px; }
+@media (max-width:760px) {
+  .dm-page-heading { align-items:flex-start; gap:12px; }
+  .dm-workspace { grid-template-columns:1fr; }
+  .dm-sidebar { border-bottom:1px solid #dbe7e1; border-right:0; max-height:300px; }
+  .dm-thread-header { align-items:flex-start; flex-wrap:wrap; }
+  .dm-thread-header input { order:3; width:100%; }
+  .dm-message { max-width:88%; }
+  .dm-composer-row { flex-wrap:wrap; }
+  .dm-composer textarea { min-width:65%; }
+}

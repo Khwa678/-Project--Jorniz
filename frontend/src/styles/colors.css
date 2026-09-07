@@ -1,0 +1,12 @@
+:root {
+  --jorniz-primary: #2367f2;
+  --jorniz-primary-soft: #e9f0ff;
+  --jorniz-accent: #0b9b69;
+  --jorniz-canvas: #f2f5f8;
+  --jorniz-surface: #ffffff;
+  --jorniz-ink: #111827;
+  --jorniz-muted: #687386;
+  --jorniz-line: #dce2ea;
+  --jorniz-danger: #c33d45;
+  --jorniz-shadow: 0 14px 36px rgba(27, 43, 68, 0.1);
+}

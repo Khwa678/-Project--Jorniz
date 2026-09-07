@@ -1,0 +1,2 @@
+export interface ActivityNotification { id: string; name?: string; actor_name?: string; avatar?: string; actor_avatar?: string; action?: string; message?: string; quote?: string | null; time?: string; created_at?: string; iconType?: string; type?: string; unread?: boolean; is_read?: boolean; post_id?: string | null; }
+export function notificationIsUnread(notification: ActivityNotification) { return notification.unread ?? notification.is_read !== true; }

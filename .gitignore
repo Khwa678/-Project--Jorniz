@@ -1,6 +1,26 @@
+# Environment files and secrets
 .env
-backend/.env
+.env.*
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+
+# Python
+.venv/
+venv/
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
 *.db
+*.sqlite
+*.sqlite3
 backend/uploads/
+
+# Node and Vite
+node_modules/
+dist/
+.vite/
+
+# Logs and operating-system files
+*.log
+.DS_Store

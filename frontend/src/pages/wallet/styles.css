@@ -1,0 +1,165 @@
+.rewards-wallet-page {
+  display: grid;
+  gap: 24px;
+  color: #112033;
+}
+
+.wallet-page-heading,
+.reward-redemption-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.wallet-page-heading h1,
+.reward-redemption-card h2,
+.reward-ledger-card h2 {
+  margin: 4px 0 8px;
+}
+
+.wallet-page-heading p,
+.reward-redemption-card p {
+  margin: 0;
+  color: #667085;
+}
+
+.wallet-page-heading button,
+.reward-redemption-card button,
+.wallet-error-state button {
+  border: 0;
+  border-radius: 12px;
+  padding: 11px 18px;
+  background: #176b52;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.wallet-page-heading button:disabled,
+.reward-redemption-card button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.reward-section-kicker {
+  color: #176b52;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.reward-balance-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.reward-balance-card,
+.reward-ledger-card,
+.reward-redemption-card,
+.wallet-error-state {
+  border: 1px solid #dfe7e3;
+  border-radius: 20px;
+  background: #fff;
+  padding: 22px;
+  box-shadow: 0 12px 32px rgba(17, 32, 51, 0.07);
+}
+
+.reward-balance-card {
+  display: grid;
+  gap: 7px;
+}
+
+.reward-balance-card strong {
+  font-size: 30px;
+}
+
+.reward-balance-card small,
+.reward-ledger-row small {
+  color: #7b8794;
+}
+
+.reward-balance-card-primary {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(135deg, #0c7156, #24a273);
+}
+
+.reward-balance-card-primary small {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.reward-ledger-list {
+  display: grid;
+}
+
+.reward-ledger-row {
+  display: grid;
+  grid-template-columns: 38px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid #edf1ef;
+}
+
+.reward-ledger-row:last-child {
+  border-bottom: 0;
+}
+
+.reward-ledger-row > div {
+  display: grid;
+  gap: 4px;
+}
+
+.reward-entry-direction {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 50%;
+  font-weight: 900;
+}
+
+.reward-entry-credit {
+  background: #e7f8f0;
+  color: #08734e;
+}
+
+.reward-entry-debit {
+  background: #fff0ed;
+  color: #b53b27;
+}
+
+.reward-entry-amount {
+  text-align: right;
+}
+
+.wallet-status,
+.wallet-empty-state,
+.wallet-error-state {
+  color: #667085;
+}
+
+@media (max-width: 760px) {
+  .wallet-page-heading,
+  .reward-redemption-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .reward-balance-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reward-ledger-row {
+    grid-template-columns: 34px 1fr;
+  }
+
+  .reward-entry-amount {
+    grid-column: 2;
+    text-align: left;
+  }
+}

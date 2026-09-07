@@ -1,0 +1,17 @@
+@media (max-width: 1080px) {
+  .workspace-content-grid {
+    padding-left: 5.5rem;
+    grid-template-columns: minmax(0, 1fr) minmax(15rem, 19rem);
+  }
+}
+
+@media (max-width: 760px) {
+  .workspace-content-grid {
+    width: 100%;
+    padding: 4.75rem 1rem 6rem;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .workspace-route-content { order: 1; }
+  .health-overview-panel { order: 2; position: static; width: 100%; }
+}

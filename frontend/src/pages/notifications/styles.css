@@ -1,0 +1,21 @@
+.notifications-page { width: min(820px,100%); margin: 0 auto; color: #142033; }
+.notifications-page > header { display: flex; justify-content: space-between; align-items: end; gap: 18px; margin-bottom: 18px; }
+.notifications-page header p, .notifications-page header h1 { margin: 0; }
+.notifications-page header p { color: #087b53; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.notifications-page header h1 { display: flex; align-items: center; gap: 9px; margin-top: 4px; font-size: clamp(28px,5vw,42px); }
+.notifications-page header > button, .notification-actions button, .notifications-state button { border: 1px solid #cfdcd6; border-radius: 10px; padding: 9px 12px; background: white; color: #08744e; font: inherit; font-weight: 800; cursor: pointer; }
+.notifications-page button:disabled { cursor: default; opacity: .55; }
+.unread-notification-count { min-width: 27px; border-radius: 999px; padding: 4px 7px; background: #e34d43; color: white; font-size: 13px; text-align: center; }
+.notification-list { overflow: hidden; border: 1px solid #dce5e1; border-radius: 17px; background: white; box-shadow: 0 7px 24px rgba(33,53,45,.06); }
+.notification-row { display: grid; grid-template-columns: 46px minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 16px; border-bottom: 1px solid #e8eeeb; }
+.notification-row:last-child { border-bottom: 0; }
+.notification-row.unread { background: #f0fbf5; }
+.notification-avatar img, .notification-avatar span { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; display: grid; place-items: center; background: #087b53; color: white; font-weight: 800; }
+.notification-row p { margin: 0; line-height: 1.45; }
+.notification-row blockquote { margin: 6px 0; color: #53645c; }
+.notification-row small { color: #7b8882; }
+.notification-actions { display: flex; gap: 7px; align-items: center; }
+.notification-actions span { color: #7b8882; font-size: 13px; }
+.notifications-state { border: 1px dashed #cbd8d2; border-radius: 15px; padding: 30px 18px; background: #f8fbf9; color: #65736c; text-align: center; }
+.notifications-error { border-color: #efc5c1; background: #fff3f2; color: #a62d28; }
+@media (max-width: 620px) { .notifications-page > header { align-items: center; } .notification-row { grid-template-columns: 42px minmax(0,1fr); } .notification-actions { grid-column: 2; flex-wrap: wrap; } }

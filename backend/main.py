@@ -12,6 +12,7 @@ except ImportError:
     psycopg2 = None
 from flask_socketio import SocketIO, emit, join_room
 from auth_policy import is_active_account, permission_decision, professional_approval_state
+from app.modules.auth import AuthDependencies, create_auth_blueprint
 
 load_dotenv()
 
@@ -102,14 +103,24 @@ if not SECRET_KEY:
     print("[WARN] SECRET_KEY not set; using development fallback")
 
 ALLOWED_ORIGINS = _as_list_csv(os.getenv("ALLOWED_ORIGINS", ""))
+LOCAL_DEVELOPMENT_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
 if not ALLOWED_ORIGINS:
     if IS_PRODUCTION:
         raise RuntimeError("SECURITY ERROR: ALLOWED_ORIGINS is required in production")
-    ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:8000", "http://127.0.0.1:8000"]
+    ALLOWED_ORIGINS = LOCAL_DEVELOPMENT_ORIGINS.copy()
 elif "*" in ALLOWED_ORIGINS:
     if IS_PRODUCTION:
         raise RuntimeError("SECURITY ERROR: ALLOWED_ORIGINS cannot be wildcard (*) in production")
     ALLOWED_ORIGINS = [x for x in ALLOWED_ORIGINS if x != "*"] or ["http://localhost:3000"]
+if not IS_PRODUCTION:
+    ALLOWED_ORIGINS = list(dict.fromkeys(ALLOWED_ORIGINS + LOCAL_DEVELOPMENT_ORIGINS))
 
 TOKEN_EXPIRE_DAYS = int(_get_required("TOKEN_EXPIRE_DAYS", "1"))
 UPLOAD_DIR        = os.path.join(os.path.dirname(__file__), "uploads")
@@ -511,154 +522,24 @@ def upload_generic_image():
     return jsonify({"url": url})
 
 
+auth_dependencies = AuthDependencies(
+    db_one=db_one,
+    get_db=get_db,
+    db_exec=db_exec,
+    create_session=create_session,
+    make_token=make_token,
+    user_payload=user_payload,
+    normalize_user_type=normalize_user_type,
+    upload_verification_document=upload_to_supabase,
+    allowed_user_types=USER_TYPES,
+    allowed_docs=ALLOWED_DOCS,
+    max_file_bytes=MAX_FILE_BYTES,
+)
+app.register_blueprint(create_auth_blueprint(auth_dependencies))
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  AUTH ROUTES
 # ══════════════════════════════════════════════════════════════════════════════
-
-@app.route("/api/auth/signup", methods=["POST"])
-def signup():
-    """
-    Signup now accepts multipart/form-data (so a verification document can be
-    attached in the same request). Professional roles (doctor, nurse, dentist,
-    etc.) MUST attach a degree / registration / license document — the account
-    is only created after that document has been received and uploaded.
-    Patients / general users don't need to attach anything.
-    """
-    is_multipart = request.content_type and "multipart/form-data" in request.content_type
-    if is_multipart:
-        data = request.form
-        doc_file = request.files.get("verification_doc")
-    else:
-        data = request.get_json(force=True, silent=True) or {}
-        doc_file = None
-
-    name      = (data.get("name")      or "").strip()
-    email     = (data.get("email")     or "").strip().lower()
-    password  =  data.get("password")  or ""
-    requested_type = data.get("user_type") or data.get("role") or "general_user"
-    user_type = normalize_user_type(requested_type)
-    specialty = (data.get("specialty") or "General Medicine").strip()
-    hospital  =  data.get("hospital")  or ""
-
-    if not name:
-        return jsonify({"detail": "Full name is required"}), 400
-    if not email or "@" not in email:
-        return jsonify({"detail": "Valid email address is required"}), 400
-    if len(password) < 6:
-        return jsonify({"detail": "Password must be at least 6 characters"}), 400
-    if not user_type:
-        return jsonify({"detail": "Invalid user_type", "allowed_user_types": sorted(USER_TYPES)}), 400
-
-    if db_one("SELECT id FROM users WHERE email=%s", (email,)):
-        return jsonify({"detail": "This email is already registered. Please log in."}), 400
-
-    # ── Professional verification gate ──────────────────────────────────────
-    needs_verification = user_type in {"doctor", "pharmacy_partner", "diagnostic_partner"}
-    verification_doc_url = ""
-    verification_status = "not_required"
-
-    if needs_verification:
-        if not doc_file or not doc_file.filename:
-            return jsonify({
-                "detail": f"Please upload the required professional certificate to sign up as {user_type}."
-            }), 400
-        ct = doc_file.content_type or ""
-        if ct not in ALLOWED_DOCS:
-            return jsonify({"detail": "Verification document must be a PDF, JPG, PNG, or WEBP file"}), 400
-        file_bytes = doc_file.read()
-        if len(file_bytes) > MAX_FILE_BYTES:
-            return jsonify({"detail": "Verification document is too large"}), 400
-        ext   = os.path.splitext(doc_file.filename)[1] or ".pdf"
-        fname = "verification/" + str(uuid.uuid4()) + ext
-        try:
-            verification_doc_url = upload_to_supabase(file_bytes, fname, ct)
-        except Exception as e:
-            return jsonify({"detail": f"Could not upload verification document: {e}"}), 500
-        # Document received → account is created, but flagged as pending admin review.
-        verification_status = "pending"
-
-    uid    = str(uuid.uuid4())
-    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-
-    conn = get_db()
-    try:
-        db_exec(conn,
-            """INSERT INTO users (id,name,email,password,user_type,system_role,hu_coins)
-               VALUES (%s,%s,%s,%s,%s,%s,0)""",
-            (uid, name, email, hashed, user_type, "member"))
-        profile_id = str(uuid.uuid4())
-        if user_type == "doctor":
-            db_exec(conn, """INSERT INTO doctors
-                (id,user_id,name,specialty,hospital,bio,verification_document_url,verification_status)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s)""",
-                (profile_id, uid, name, specialty, hospital, data.get("bio") or "",
-                 verification_doc_url, verification_status))
-        elif user_type == "job_seeker":
-            db_exec(conn, "INSERT INTO candidate_profiles (id,user_id,title) VALUES (%s,%s,%s)",
-                    (profile_id, uid, data.get("title") or ""))
-        elif user_type == "recruiter":
-            db_exec(conn, "INSERT INTO company_profiles (id,user_id,company_name) VALUES (%s,%s,%s)",
-                    (profile_id, uid, data.get("company_name") or hospital or name))
-        elif user_type == "seller":
-            db_exec(conn, "INSERT INTO seller_profiles (id,user_id,store_name) VALUES (%s,%s,%s)",
-                    (profile_id, uid, data.get("store_name") or name))
-        elif user_type == "advertiser":
-            db_exec(conn, "INSERT INTO advertisers (id,user_id,company_name) VALUES (%s,%s,%s)",
-                    (profile_id, uid, data.get("company_name") or name))
-        elif user_type in {"pharmacy_partner", "diagnostic_partner"}:
-            db_exec(conn, """INSERT INTO creator_verifications
-                (id,user_id,category,document_url,status) VALUES (%s,%s,%s,%s,%s)""",
-                (profile_id, uid, user_type, verification_doc_url, "Pending"))
-        session_id, refresh_token = create_session(uid, conn)
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
-
-    user  = user_payload(db_one("SELECT * FROM users WHERE id=%s", (uid,)))
-    token = make_token(uid, session_id)
-    msg = f"Welcome to Healthy Universe, {name}! 🎉"
-    if needs_verification:
-        msg += " Your professional documents are under review — you'll be marked verified once approved."
-    return jsonify({
-        "access_token": token,
-        "refresh_token": refresh_token,
-        "token_type":   "bearer",
-        "user":         user,
-        "message":      msg
-    }), 201
-
-
-@app.route("/api/auth/login", methods=["POST"])
-def login():
-    data     = request.get_json(force=True, silent=True) or {}
-    email    = (data.get("email") or data.get("username") or "").strip().lower()
-    password =  data.get("password") or ""
-
-    if not email or not password:
-        return jsonify({"detail": "Email and password are required"}), 400
-
-    user = db_one("SELECT * FROM users WHERE email=%s", (email,))
-    if not user:
-        return jsonify({"detail": "No account found with this email. Please sign up."}), 401
-    if not bcrypt.checkpw(password.encode(), user["password"].encode()):
-        return jsonify({"detail": "Incorrect password. Please try again."}), 401
-
-    if user.get("is_banned"):
-        return jsonify({"detail": "Your account has been suspended. Contact support."}), 403
-
-    u = user_payload(user)
-    session_id, refresh_token = create_session(u["id"])
-    token = make_token(u["id"], session_id)
-    return jsonify({
-        "access_token": token,
-        "refresh_token": refresh_token,
-        "token_type":   "bearer",
-        "user":         u,
-        "message":      f"Welcome back, {u['name']}! 👋"
-    })
 
 
 @app.route("/api/auth/me")

@@ -1,0 +1,52 @@
+.health-marketplace-page { width: min(1120px,100%); margin: 0 auto; color: #152033; }
+.marketplace-page-header { display: flex; justify-content: space-between; gap: 24px; align-items: end; margin-bottom: 24px; }
+.marketplace-page-header p, .marketplace-page-header h1 { margin: 0; }
+.marketplace-page-header p, .product-catalogue header p, .marketplace-checkout header p, .my-orders header p { color: #087b53; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.marketplace-page-header h1 { margin: 4px 0; font-size: clamp(30px,5vw,48px); }
+.marketplace-page-header span { color: #69766f; }
+.marketplace-page-header nav { display: flex; gap: 6px; padding: 5px; border-radius: 13px; background: #eaf0ed; }
+.marketplace-page-header nav button, .product-category-tabs button, .marketplace-back { border: 0; border-radius: 9px; padding: 9px 12px; background: transparent; color: #52625a; font: inherit; font-weight: 700; cursor: pointer; }
+.marketplace-page-header nav button.active, .product-category-tabs button.active { background: white; color: #08744e; box-shadow: 0 2px 9px rgba(31,54,44,.1); }
+.product-catalogue header h2, .marketplace-checkout header h2, .my-orders header h2, .shopping-cart header h2 { margin: 3px 0 14px; }
+.product-search { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; }
+.product-search input, .marketplace-checkout textarea { box-sizing: border-box; width: 100%; border: 1px solid #cbd8d2; border-radius: 11px; padding: 12px; font: inherit; }
+.product-search button, .product-card button:last-child, .product-details-main button, .cart-summary button, .marketplace-checkout form > button { border: 0; border-radius: 10px; padding: 11px 15px; background: #087b53; color: white; font: inherit; font-weight: 800; cursor: pointer; }
+.product-category-tabs { display: flex; gap: 7px; overflow-x: auto; padding: 14px 0; }
+.product-category-tabs button { flex: 0 0 auto; border: 1px solid #d6e0dc; background: white; }
+.product-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 15px; }
+.product-card { overflow: hidden; border: 1px solid #dce5e1; border-radius: 17px; background: white; box-shadow: 0 7px 24px rgba(33,53,45,.06); }
+.product-card-image { width: 100%; height: 190px; border: 0; background: #eef3f0; cursor: pointer; }
+.product-card-image img { width: 100%; height: 100%; object-fit: cover; }
+.product-card > div { display: grid; gap: 7px; padding: 15px; }
+.product-card p, .product-card small { margin: 0; color: #6b7871; font-size: 12px; }
+.product-name { border: 0; padding: 0; background: transparent; color: #152033; font: inherit; font-weight: 800; text-align: left; cursor: pointer; }
+.marketplace-state { border: 1px dashed #cbd8d2; border-radius: 15px; padding: 28px 18px; background: #f8fbf9; color: #65736c; text-align: center; }
+.marketplace-error { border-color: #efc5c1; background: #fff3f2; color: #a62d28; }
+.marketplace-confirmation { border: 1px solid #bde3cc; border-radius: 10px; padding: 10px 12px; background: #eaf8f0; color: #08744e; }
+.marketplace-note { border-left: 3px solid #d89520; padding: 9px 12px; background: #fff8e8; color: #725416; font-size: 13px; }
+.product-details-main { display: grid; grid-template-columns: minmax(260px,1fr) 1fr; gap: 28px; margin-top: 18px; padding: 22px; border: 1px solid #dce5e1; border-radius: 18px; background: white; }
+.product-details-image { min-height: 350px; display: grid; place-items: center; border-radius: 14px; background: #edf2ef; }
+.product-details-image img { width: 100%; height: 100%; max-height: 480px; object-fit: contain; }
+.product-details-price { display: block; margin: 18px 0; font-size: 28px; }
+.related-products { margin-top: 20px; }
+.related-products button { display: inline-grid; gap: 5px; margin: 0 8px 8px 0; border: 1px solid #dce5e1; border-radius: 10px; padding: 10px; background: white; }
+.shopping-cart > header { display: flex; justify-content: space-between; align-items: center; }
+.cart-items { display: grid; gap: 10px; }
+.cart-items article { display: grid; grid-template-columns: 80px minmax(0,1fr) auto; gap: 14px; padding: 14px; border: 1px solid #dce5e1; border-radius: 14px; background: white; }
+.cart-items article img { width: 80px; height: 80px; object-fit: cover; border-radius: 10px; }
+.cart-items h3, .cart-items p { margin: 0 0 6px; }
+.cart-quantity { display: flex; gap: 9px; align-items: center; }
+.cart-remove { margin-top: 8px; border: 0; background: transparent; color: #a62d28; cursor: pointer; }
+.cart-summary, .order-details, .checkout-result { margin-top: 18px; border: 1px solid #dce5e1; border-radius: 15px; padding: 18px; background: white; }
+.cart-summary p, .checkout-review p { display: flex; justify-content: space-between; gap: 18px; }
+.marketplace-checkout form { display: grid; gap: 15px; max-width: 680px; }
+.marketplace-checkout form > label:first-child { display: grid; gap: 7px; font-weight: 800; }
+.reward-redemption-choice { display: flex; gap: 10px; align-items: start; }
+.checkout-result dl { display: grid; gap: 9px; }
+.checkout-result dl div { display: flex; justify-content: space-between; gap: 20px; }
+.order-list { display: grid; gap: 11px; }
+.order-list article { display: flex; justify-content: space-between; gap: 20px; padding: 16px; border: 1px solid #dce5e1; border-radius: 14px; background: white; }
+.order-list article h3, .order-list article p { margin: 4px 0; }
+.order-list article > div:last-child { display: flex; flex-direction: column; gap: 7px; align-items: end; }
+.order-list button, .shopping-cart header button { border: 1px solid #d5e0db; border-radius: 9px; padding: 8px 10px; background: white; color: #315044; cursor: pointer; }
+@media (max-width: 700px) { .marketplace-page-header { align-items: stretch; flex-direction: column; } .marketplace-page-header nav { width: 100%; } .marketplace-page-header nav button { flex: 1; } .product-details-main { grid-template-columns: 1fr; } .product-details-image { min-height: 240px; } .cart-items article { grid-template-columns: 64px minmax(0,1fr); } .cart-items article > strong { grid-column: 2; } .order-list article { flex-direction: column; } .order-list article > div:last-child { align-items: stretch; } }

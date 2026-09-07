@@ -1,0 +1,163 @@
+import { useCallback, useEffect, useState } from "react";
+import type { SignedInAccount } from "../../lib/auth/accountTypes";
+import { AccountDataControls } from "./components/AccountDataControls";
+import { AppearanceSettings } from "./components/AppearanceSettings";
+import { NotificationSettings } from "./components/NotificationSettings";
+import { PrivacySettings } from "./components/PrivacySettings";
+import { ProfileSettings } from "./components/ProfileSettings";
+import {
+  deactivateAccount,
+  exportAccountData,
+  loadSignedInSessions,
+  saveProfileSettings,
+  type ProfileSettingsInput,
+  type SignedInSession,
+} from "./api/requests";
+import "./styles.css";
+
+type SettingsSection = "profile" | "notifications" | "privacy" | "appearance" | "account-data";
+
+export interface AccountSettingsPageProps {
+  account: SignedInAccount;
+  onAccountUpdated: (account: SignedInAccount) => void;
+  onAccountDeactivated?: () => void;
+}
+
+export function AccountSettingsPage({
+  account,
+  onAccountUpdated,
+  onAccountDeactivated,
+}: AccountSettingsPageProps) {
+  const [section, setSection] = useState<SettingsSection>("profile");
+  const [sessions, setSessions] = useState<SignedInSession[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [busyAction, setBusyAction] = useState<"export" | "delete" | null>(null);
+  const [failure, setFailure] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+
+  const refreshSignedInSessions = useCallback(async () => {
+    setSessionsLoading(true);
+    setFailure("");
+    try {
+      setSessions(await loadSignedInSessions());
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : "Signed-in sessions could not be loaded.");
+    } finally {
+      setSessionsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (section === "account-data" && sessions.length === 0) {
+      void refreshSignedInSessions();
+    }
+  }, [refreshSignedInSessions, section, sessions.length]);
+
+  async function persistProfile(input: ProfileSettingsInput) {
+    setSavingProfile(true);
+    setFailure("");
+    setConfirmation("");
+    try {
+      const updatedAccount = await saveProfileSettings(input);
+      onAccountUpdated(updatedAccount);
+      setConfirmation("Profile saved by the Jorniz backend.");
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : "The profile was not saved.");
+    } finally {
+      setSavingProfile(false);
+    }
+  }
+
+  async function downloadAccountExport() {
+    setBusyAction("export");
+    setFailure("");
+    try {
+      const accountExport = await exportAccountData();
+      const file = new Blob([JSON.stringify(accountExport, null, 2)], { type: "application/json" });
+      const address = URL.createObjectURL(file);
+      const link = document.createElement("a");
+      link.href = address;
+      link.download = "jorniz-account-export.json";
+      link.click();
+      URL.revokeObjectURL(address);
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : "Account data could not be exported.");
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  async function submitAccountDeactivation() {
+    setBusyAction("delete");
+    setFailure("");
+    try {
+      await deactivateAccount();
+      onAccountDeactivated?.();
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : "The account was not deactivated.");
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  return (
+    <main className="account-settings-page">
+      <header>
+        <span className="settings-page-kicker">Account control</span>
+        <h1>Settings</h1>
+        <p>Only settings supported by a real backend endpoint can be saved.</p>
+      </header>
+      <div className="account-settings-layout">
+        <nav className="account-settings-navigation" aria-label="Settings sections">
+          {([
+            ["profile", "Profile"],
+            ["notifications", "Notifications"],
+            ["privacy", "Privacy"],
+            ["appearance", "Appearance"],
+            ["account-data", "Sessions and data"],
+          ] as Array<[SettingsSection, string]>).map(([id, label]) => (
+            <button
+              type="button"
+              className={section === id ? "active" : ""}
+              aria-current={section === id ? "page" : undefined}
+              onClick={() => {
+                setFailure("");
+                setConfirmation("");
+                setSection(id);
+              }}
+              key={id}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+        <div>
+          {section === "profile" && (
+            <ProfileSettings
+              account={account}
+              saving={savingProfile}
+              failure={failure}
+              confirmation={confirmation}
+              onSave={persistProfile}
+            />
+          )}
+          {section === "notifications" && <NotificationSettings />}
+          {section === "privacy" && <PrivacySettings />}
+          {section === "appearance" && <AppearanceSettings />}
+          {section === "account-data" && (
+            <AccountDataControls
+              sessions={sessions}
+              sessionsLoading={sessionsLoading}
+              busyAction={busyAction}
+              failure={failure}
+              onRefreshSessions={refreshSignedInSessions}
+              onExportAccount={downloadAccountExport}
+              onDeactivateAccount={submitAccountDeactivation}
+            />
+          )}
+        </div>
+      </div>
+    </main>
+  );
+}

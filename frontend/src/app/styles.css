@@ -1,0 +1,42 @@
+.application-session-check {
+  min-height: 100vh;
+  display: grid;
+  place-content: center;
+  gap: 0.5rem;
+  text-align: center;
+  color: var(--jorniz-ink);
+  background: var(--jorniz-canvas);
+}
+
+.application-session-check span { color: var(--jorniz-muted); }
+
+.signed-in-workspace {
+  min-height: 100vh;
+  background: var(--jorniz-canvas);
+}
+
+.workspace-content-grid {
+  width: min(100% - 2rem, 1280px);
+  margin: 0 auto;
+  padding: 1.5rem 0 4rem 17rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(17rem, 22rem);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.workspace-route-content { min-width: 0; }
+.workspace-action-error { color: var(--jorniz-danger); }
+.settings-route { display: grid; gap: 1rem; }
+
+.workspace-sign-out {
+  justify-self: start;
+  border: 1px solid var(--jorniz-danger);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1.1rem;
+  color: var(--jorniz-danger);
+  background: var(--jorniz-surface);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
