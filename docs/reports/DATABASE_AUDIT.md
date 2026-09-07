@@ -1,6 +1,6 @@
 # 🗄️ JORNIZ — Database Audit & Schema Inventory
 
-**Project:** Jorniz (Healthcare Social Network + Creator Economy + Wallet + Doctor Consultations + Marketplace)  
+**Project:** Jorniz (AI-Native Social & Participation Platform + Creator Economy + Wallet + Doctor Consultations + Marketplace)  
 **Target Engine:** SQLite (Local Development) / PostgreSQL 15+ (Staging & Production)  
 
 ---

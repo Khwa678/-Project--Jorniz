@@ -1,6 +1,6 @@
 # 🗺️ JORNIZ — Working vs. Fake Flows Audit Map (Week 1 Exit Evidence)
 
-**Project:** Jorniz (Healthcare Social Network + Creator Economy + Wallet + Doctor Consultation + Marketplace)  
+**Project:** Jorniz (AI-Native Social & Participation Platform + Creator Economy + Wallet + Doctor Consultation + Marketplace)  
 **Project Owner:** Kshitiz Srivastava  
 **Principle Enforced:** *"Backend before claims — No visible button, balance, earnings figure, booking confirmation, job application or payment success screen may exist unless the backend transaction genuinely succeeds."* (SOW Section 2)  
 

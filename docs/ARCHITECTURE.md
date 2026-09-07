@@ -1,6 +1,6 @@
 # 🏗️ JORNIZ — Platform Architecture & System Specification
 
-**Project:** Jorniz (Healthcare Social Network + Creator Economy + Wallet + Doctor Consultations + Marketplace)  
+**Project:** Jorniz (AI-Native Social & Participation Platform + Creator Economy + Wallet + Doctor Consultations + Marketplace)  
 **Author:** Jorniz Senior Engineering Team  
 **Milestone:** Week 1 — Architecture & System Specification  
 

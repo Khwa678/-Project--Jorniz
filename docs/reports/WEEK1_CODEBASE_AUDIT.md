@@ -1,6 +1,6 @@
 # 🔍 JORNIZ — Week 1 Codebase Audit Report
 
-**Project:** Jorniz (Healthcare Social Network + Creator Economy + Wallet + Doctor Consultations + Marketplace)  
+**Project:** Jorniz (AI-Native Social & Participation Platform + Creator Economy + Wallet + Doctor Consultations + Marketplace)  
 **Author:** Senior Lead Engineering Team  
 **Date:** August 2026  
 

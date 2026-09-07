@@ -1,6 +1,6 @@
 # 📋 JORNIZ — Approved Sprint Backlog & Architecture (Week 1 Exit Evidence)
 
-**Project:** Jorniz (Healthcare Social Network + Creator Economy + Jobs + Consultations + Marketplace)  
+**Project:** Jorniz (AI-Native Social & Participation Platform + Creator Economy + Jobs + Consultations + Marketplace)  
 **Project Owner:** Kshitiz Srivastava  
 **Target Delivery Window:** 10 Weeks / 2.5 Months (Accelerated Execution)  
 **Milestone Approval Status:** Approved for Week 1 Handover  

@@ -1,6 +1,6 @@
 # 🚀 JORNIZ — Staging & Local Deployment Guide (Week 1 Exit Evidence)
 
-**Project:** Jorniz (Healthcare Social Network + Creator Economy + Wallet + Consultations + Marketplace)  
+**Project:** Jorniz (AI-Native Social & Participation Platform + Creator Economy + Wallet + Consultations + Marketplace)  
 **Project Owner:** Kshitiz Srivastava  
 **Target Milestone:** Week 1 — Takeover, Audit & Security Deployment  
 

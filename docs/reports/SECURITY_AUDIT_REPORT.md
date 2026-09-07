@@ -1,6 +1,6 @@
 # 🛡️ JORNIZ — Security Audit Report (Week 1 Exit Evidence)
 
-**Project:** Jorniz (Healthcare Social Network + Creator Economy + Wallet + Doctor Consultation + Marketplace)  
+**Project:** Jorniz (AI-Native Social & Participation Platform + Creator Economy + Wallet + Doctor Consultation + Marketplace)  
 **Project Owner:** Kshitiz Srivastava  
 **Target Milestone:** Week 1 — Takeover, Audit & Security  
 **Audit Date:** August 2026  

@@ -1,6 +1,6 @@
 # 🔑 JORNIZ — Asset & Credential Register (Week 1 Exit Evidence)
 
-**Project:** Jorniz (Healthcare Social Network + Creator Economy + Wallet + Doctor Consultation + Marketplace)  
+**Project:** Jorniz (AI-Native Social & Participation Platform + Creator Economy + Wallet + Doctor Consultation + Marketplace)  
 **Founder / Owner:** Kshitiz Srivastava (`kshitizsrivastava90@gmail.com`)  
 **Target Milestone:** Week 1 — Takeover, Audit & Security  
 **Version:** 1.0 (Founder-Controlled Ownership Protocol)  
