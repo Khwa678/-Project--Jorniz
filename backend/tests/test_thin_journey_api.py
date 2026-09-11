@@ -1,3 +1,4 @@
+import io
 import os
 import sqlite3
 import sys
@@ -17,13 +18,16 @@ import main  # noqa: E402
 SCHEMA = """
 CREATE TABLE users (
  id TEXT PRIMARY KEY,name TEXT NOT NULL,email TEXT UNIQUE NOT NULL,password TEXT NOT NULL,
- user_type TEXT NOT NULL,system_role TEXT NOT NULL,avatar_url TEXT,bio TEXT,hu_coins INTEGER DEFAULT 0,
+ user_type TEXT NOT NULL,system_role TEXT NOT NULL,avatar_url TEXT,bio TEXT,hu_coins INTEGER DEFAULT 0,coins INTEGER DEFAULT 0,
  is_banned INTEGER DEFAULT 0,account_status TEXT DEFAULT 'active',created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE user_sessions (id TEXT PRIMARY KEY,user_id TEXT,device_info TEXT,ip_address TEXT,refresh_token TEXT UNIQUE,is_revoked INTEGER DEFAULT 0,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE posts (id TEXT PRIMARY KEY,user_id TEXT,content TEXT,category TEXT,media_url TEXT,media_type TEXT,likes INTEGER DEFAULT 0,likes_count INTEGER DEFAULT 0,views INTEGER DEFAULT 0,shares INTEGER DEFAULT 0,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE post_comments (id TEXT PRIMARY KEY,post_id TEXT,user_id TEXT,content TEXT,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE post_likes (id TEXT PRIMARY KEY,post_id TEXT,user_id TEXT,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE post_views (id TEXT PRIMARY KEY,post_id TEXT,user_id TEXT,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE post_reactions (id TEXT PRIMARY KEY,post_id TEXT,user_id TEXT,reaction_type TEXT,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE creator_analytics (id TEXT PRIMARY KEY,user_id TEXT,post_id TEXT,engagement_count INTEGER DEFAULT 0);
 CREATE TABLE notifications (id TEXT PRIMARY KEY,user_id TEXT,actor_id TEXT,type TEXT,post_id TEXT,message TEXT,is_read INTEGER DEFAULT 0,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE wallet_ledger (id TEXT PRIMARY KEY,user_id TEXT,credit_debit TEXT,value_type TEXT,amount NUMERIC,currency TEXT,source_type TEXT,source_id TEXT,idempotency_key TEXT UNIQUE,balance_before NUMERIC,balance_after NUMERIC,status TEXT,action TEXT,reversal_of_id TEXT,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 CREATE UNIQUE INDEX uq_wallet_counter ON wallet_ledger(reversal_of_id,action) WHERE reversal_of_id IS NOT NULL;
@@ -52,6 +56,10 @@ class ThinJourneyApiTest(unittest.TestCase):
 
         self.original_get_db = main.get_db
         main.get_db = get_test_db
+        from services.hardened_rewards import install_hardened_rewards
+        dependencies = vars(main).copy()
+        dependencies["get_db"] = get_test_db
+        install_hardened_rewards(dependencies)
         main.app.config.update(TESTING=True)
         self.client = main.app.test_client()
 
@@ -69,6 +77,79 @@ class ThinJourneyApiTest(unittest.TestCase):
     @staticmethod
     def auth(token, **headers):
         return {"Authorization": "Bearer " + token, **headers}
+
+    def test_post_image_create_replace_and_delete(self):
+        class BlobResult:
+            def __init__(self, url):
+                self.url = url
+
+        class FakeBlobClient:
+            upload_number = 0
+            deleted_urls = []
+
+            def __init__(self, token):
+                self.token = token
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def put(self, pathname, _data, **_options):
+                FakeBlobClient.upload_number += 1
+                url = f"https://test.public.blob.vercel-storage.com/{pathname}-{FakeBlobClient.upload_number}"
+                return BlobResult(url)
+
+            def delete(self, url):
+                FakeBlobClient.deleted_urls.append(url)
+
+        original_token = main.BLOB_READ_WRITE_TOKEN
+        original_client = main.BlobClient
+        main.BLOB_READ_WRITE_TOKEN = "test-blob-token"
+        main.BlobClient = FakeBlobClient
+        try:
+            user_id = "image-author"
+            session_id = "image-author-session"
+            connection = sqlite3.connect(self.db_path)
+            connection.execute(
+                "INSERT INTO users (id,name,email,password,user_type,system_role,account_status) VALUES (?,?,?,?,?,?,?)",
+                (user_id, "Image Author", "image-author@example.com", "unused", "general_user", "member", "active"),
+            )
+            connection.execute(
+                "INSERT INTO user_sessions (id,user_id,is_revoked) VALUES (?,?,0)",
+                (session_id, user_id),
+            )
+            connection.commit()
+            connection.close()
+            headers = self.auth(main.make_token(user_id, session_id))
+            created = self.client.post(
+                "/api/posts/create",
+                data={"content": "Image post", "media": (io.BytesIO(b"first-image"), "first.png")},
+                headers=headers,
+            )
+            self.assertEqual(201, created.status_code, created.get_json())
+            first_url = created.get_json()["media_url"]
+            self.assertTrue(first_url.startswith("https://test.public.blob.vercel-storage.com/"))
+
+            post_id = created.get_json()["id"]
+            updated = self.client.put(
+                f"/api/posts/{post_id}",
+                data={"content": "Updated image post", "media": (io.BytesIO(b"second-image"), "second.png")},
+                headers=headers,
+            )
+            self.assertEqual(200, updated.status_code, updated.get_json())
+            second_url = updated.get_json()["media_url"]
+            self.assertNotEqual(first_url, second_url)
+            self.assertIn(first_url, FakeBlobClient.deleted_urls)
+
+            deleted = self.client.delete(f"/api/posts/{post_id}", headers=headers)
+            self.assertEqual(200, deleted.status_code, deleted.get_json())
+            self.assertTrue(deleted.get_json()["media_deleted"])
+            self.assertIn(second_url, FakeBlobClient.deleted_urls)
+        finally:
+            main.BLOB_READ_WRITE_TOKEN = original_token
+            main.BlobClient = original_client
 
     def test_signup_post_connection_checkout_cancel_journey(self):
         first = self.signup("First User", "first@example.com")

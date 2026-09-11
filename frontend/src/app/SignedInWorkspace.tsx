@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { HealthAssistant } from "../components/health-assistant/HealthAssistant";
 import { HealthOverviewPanel } from "../components/health-overview/HealthOverviewPanel";
-import { PostEditorDialog, type EditablePost } from "../components/post-editor";
+import { PostEditorDialog, type EditablePost, type PostWriteResult } from "../components/post-editor";
 import { loadRewardBalance } from "../pages/wallet/api/requests";
 import type { SignedInAccount } from "../lib/auth/accountTypes";
 import {
@@ -32,6 +32,7 @@ export function SignedInWorkspace({ account, onAccountUpdated, onSignOut }: Sign
   const [postEditorOpen, setPostEditorOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<EditablePost | null>(null);
   const [postRevision, setPostRevision] = useState(0);
+  const [postNotice, setPostNotice] = useState("");
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
 
@@ -66,9 +67,16 @@ export function SignedInWorkspace({ account, onAccountUpdated, onSignOut }: Sign
     setPostEditorOpen(true);
   }
 
-  function acceptPostChange() {
+  useEffect(() => {
+    if (!postNotice) return;
+    const timeout = window.setTimeout(() => setPostNotice(""), 6000);
+    return () => window.clearTimeout(timeout);
+  }, [postNotice]);
+
+  function acceptPostChange(result: PostWriteResult) {
     setPostEditorOpen(false);
     setEditingPost(null);
+    setPostNotice(result.warning ?? "");
     setPostRevision((value) => value + 1);
     if (destination.id !== "home") navigateById("home");
   }
@@ -113,6 +121,7 @@ export function SignedInWorkspace({ account, onAccountUpdated, onSignOut }: Sign
           onToggleCollapsed={() => setRightSidebarCollapsed((collapsed) => !collapsed)}
         />
       </div>
+      {postNotice ? <button type="button" className="workspace-notice" aria-live="polite" onClick={() => setPostNotice("")}>{postNotice}</button> : null}
       <HealthAssistant />
       <PostEditorDialog
         open={postEditorOpen}

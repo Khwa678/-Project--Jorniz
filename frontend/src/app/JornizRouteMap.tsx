@@ -55,7 +55,8 @@ export function JornizRouteMap({
     if (!window.confirm("Delete this post and its stored media?")) return;
     setPostActionError("");
     try {
-      await deletePost(String(post.id));
+      const result = await deletePost(String(post.id));
+      setPostActionError(result.warning ?? "");
       onPostDeleted();
     } catch (error) {
       setPostActionError(error instanceof Error ? error.message : "The post could not be deleted.");

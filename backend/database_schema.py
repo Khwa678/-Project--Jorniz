@@ -268,12 +268,12 @@ def init_db(db_path="healthy_universe.db"):
         user_id TEXT NOT NULL,
         content TEXT NOT NULL,
         category TEXT DEFAULT 'General Wellness',
-        media_url TEXT,
-        media_type TEXT,
-        likes_count INTEGER DEFAULT 0,
-        comments_count INTEGER DEFAULT 0,
+        media_url TEXT DEFAULT '',
+        media_type TEXT DEFAULT '',
+        likes INTEGER DEFAULT 0,
+        views INTEGER DEFAULT 0,
         shares INTEGER DEFAULT 0,
-        trusted_flag INTEGER DEFAULT 1,
+        revenue REAL DEFAULT 0.0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id)
     );

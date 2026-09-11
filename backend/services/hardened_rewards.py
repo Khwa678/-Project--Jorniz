@@ -32,7 +32,8 @@ def install_hardened_rewards(ns):
     post_with_author = ns["post_with_author"]
     create_notification = ns["create_notification"]
     broadcast_new_post_notification = ns["broadcast_new_post_notification"]
-    upload_to_supabase = ns["upload_to_supabase"]
+    upload_post_media = ns["upload_post_media_to_blob"]
+    delete_post_media = ns["delete_post_media_blob"]
     allowed_media = ns["ALLOWED_IMAGES"] | ns["ALLOWED_VIDEOS"]
     max_file_bytes = ns["MAX_FILE_BYTES"]
     impression_reward = ns["COIN_REWARD_PER_IMPRESSION"]
@@ -89,6 +90,7 @@ def install_hardened_rewards(ns):
 
         media_url = ""
         media_type = ""
+        upload_warning = ""
         if media and media.filename:
             content_type = media.content_type or ""
             if content_type not in allowed_media:
@@ -97,8 +99,16 @@ def install_hardened_rewards(ns):
             if len(file_bytes) > max_file_bytes:
                 return jsonify({"detail": "File is too large"}), 400
             extension = ns["os"].path.splitext(media.filename)[1] or ".bin"
-            media_url = upload_to_supabase(file_bytes, str(uuid.uuid4()) + extension, content_type)
-            media_type = "image" if content_type in ns["ALLOWED_IMAGES"] else "video"
+            pathname = f"posts/uploaded/{uid}/{post_id}/{uuid.uuid4()}{extension}"
+            try:
+                media_url = upload_post_media(file_bytes, pathname, content_type)
+                media_type = "image" if content_type in ns["ALLOWED_IMAGES"] else "video"
+            except Exception as exc:
+                print(f"[WARN] Post media upload failed: {exc}")
+                upload_warning = "Media upload failed. Your post was created without media."
+
+        if not content and not media_url:
+            return jsonify({"detail": "Please add text or successfully uploaded media to your post"}), 400
 
         conn = get_db()
         try:
@@ -114,6 +124,11 @@ def install_hardened_rewards(ns):
             conn.commit()
         except Exception:
             conn.rollback()
+            if media_url:
+                try:
+                    delete_post_media(media_url)
+                except Exception as cleanup_error:
+                    print(f"[WARN] Could not remove orphaned post media: {cleanup_error}")
             raise
         finally:
             conn.close()
@@ -126,6 +141,8 @@ def install_hardened_rewards(ns):
             print(f"[WARN] Post notification failed: {exc}")
         result = post_with_author(post, uid)
         result.update({"reward_earned": 10 if rewarded else 0, "new_hu_coins": balance})
+        if upload_warning:
+            result["warning"] = upload_warning
         return jsonify(result), 201
 
     def like_post(post_id):
@@ -265,15 +282,18 @@ def install_hardened_rewards(ns):
 
     def delete_post(post_id):
         uid = str(request.current_user["id"])
+        media_url = ""
+        reversed_amount = 0
         conn = get_db()
         try:
-            post = one(conn, "SELECT id,user_id FROM posts WHERE id=%s" + lock_suffix(conn), (post_id,))
+            post = one(conn, "SELECT id,user_id,media_url FROM posts WHERE id=%s" + lock_suffix(conn), (post_id,))
             if not post:
                 conn.rollback()
                 return jsonify({"detail": "Post not found"}), 404
             if str(post["user_id"]) != uid:
                 conn.rollback()
                 return jsonify({"detail": "You can only delete your own posts"}), 403
+            media_url = post.get("media_url") or ""
             net = one(
                 conn,
                 """SELECT COALESCE(SUM(CASE WHEN credit_debit='CREDIT' THEN amount ELSE -amount END),0) AS amount
@@ -289,7 +309,6 @@ def install_hardened_rewards(ns):
             execute(conn, "DELETE FROM creator_analytics WHERE post_id=%s", (post_id,))
             execute(conn, "DELETE FROM posts WHERE id=%s", (post_id,))
             conn.commit()
-            return jsonify({"message": "Post deleted", "reward_reversed": reversed_amount})
         except ValueError as exc:
             conn.rollback()
             return jsonify({"detail": str(exc)}), 409
@@ -298,6 +317,15 @@ def install_hardened_rewards(ns):
             raise
         finally:
             conn.close()
+
+        response = {"message": "Post deleted", "reward_reversed": reversed_amount, "media_deleted": False}
+        if media_url:
+            try:
+                response["media_deleted"] = delete_post_media(media_url)
+            except Exception as cleanup_error:
+                print(f"[WARN] Could not remove deleted post media: {cleanup_error}")
+                response["warning"] = "Post deleted, but its media could not be removed."
+        return jsonify(response)
 
     def rewards_summary():
         uid = str(request.current_user["id"])
