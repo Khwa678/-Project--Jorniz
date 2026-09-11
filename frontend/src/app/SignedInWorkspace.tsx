@@ -32,6 +32,8 @@ export function SignedInWorkspace({ account, onAccountUpdated, onSignOut }: Sign
   const [postEditorOpen, setPostEditorOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<EditablePost | null>(null);
   const [postRevision, setPostRevision] = useState(0);
+  const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
+  const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     const showBrowserDestination = () => setDestination(destinationForPath(window.location.pathname));
@@ -72,7 +74,7 @@ export function SignedInWorkspace({ account, onAccountUpdated, onSignOut }: Sign
   }
 
   return (
-    <div className="signed-in-workspace">
+    <div className={`signed-in-workspace${leftSidebarCollapsed ? " left-sidebar-collapsed" : ""}${rightSidebarCollapsed ? " right-sidebar-collapsed" : ""}`}>
       <WorkspaceNavigation
         account={account}
         activeDestination={destination.id}
@@ -82,6 +84,8 @@ export function SignedInWorkspace({ account, onAccountUpdated, onSignOut }: Sign
         onCreatePost={() => openPostEditor()}
         onOpenAccountOptions={() => navigateById("settings")}
         onSignOut={onSignOut}
+        collapsed={leftSidebarCollapsed}
+        onToggleCollapsed={() => setLeftSidebarCollapsed((collapsed) => !collapsed)}
       />
       <div className="workspace-content-grid">
         <section className="workspace-route-content">
@@ -105,6 +109,8 @@ export function SignedInWorkspace({ account, onAccountUpdated, onSignOut }: Sign
           onOpenWallet={() => navigateById("wallet")}
           onOpenAllSuggestions={() => navigateById("network")}
           onOpenTrendingTopic={() => navigateById("explore")}
+          collapsed={rightSidebarCollapsed}
+          onToggleCollapsed={() => setRightSidebarCollapsed((collapsed) => !collapsed)}
         />
       </div>
       <HealthAssistant />

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { SidebarCollapseButton } from "../sidebar-collapse-button/SidebarCollapseButton";
 import type { SignedInAccount } from "../../lib/auth/accountTypes";
 import { MobileNavigationDrawer } from "./components/MobileNavigationDrawer";
 import {
@@ -19,6 +20,8 @@ export interface WorkspaceNavigationProps {
   onCreatePost: () => void;
   onOpenAccountOptions?: () => void;
   onSignOut: () => void;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
 }
 
 export function WorkspaceNavigation({
@@ -30,6 +33,8 @@ export function WorkspaceNavigation({
   onCreatePost,
   onOpenAccountOptions,
   onSignOut,
+  collapsed,
+  onToggleCollapsed,
 }: WorkspaceNavigationProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -89,12 +94,14 @@ export function WorkspaceNavigation({
         </button>
       )}
 
-      <aside className="desktop-workspace-navigation">
+      <aside className={`desktop-workspace-navigation${collapsed ? " collapsed" : ""}`}>
+        <SidebarCollapseButton panel="left" collapsed={collapsed} onToggle={onToggleCollapsed} />
         <header><strong>Jorniz</strong><small>AI-Native Social & Participation Platform</small></header>
         <NavigationDestinations
           activeDestination={activeDestination}
           onNavigate={onNavigate}
           onCreatePost={onCreatePost}
+          compact={collapsed}
         />
         <NavigationRewardBalance
           confirmedCoins={confirmedCoins}

@@ -1,13 +1,17 @@
 @media (max-width: 1080px) {
+  .sidebar-collapse-button-right { display: none; }
+
   .workspace-content-grid {
-    width: calc(100% - 260px);
-    margin-left: 260px;
+    width: calc(100% - var(--left-sidebar-width));
+    margin-left: var(--left-sidebar-width);
     padding: 1.25rem 1rem 4rem;
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (max-width: 760px) {
+  .sidebar-collapse-button-left { display: none; }
+
   .workspace-content-grid {
     width: 100%;
     margin-left: 0;
@@ -16,5 +20,5 @@
   }
 
   .workspace-route-content { order: 1; }
-  .health-overview-panel { order: 2; position: static; width: 100%; }
+  .right-overview-panel { order: 2; position: static; width: 100%; }
 }

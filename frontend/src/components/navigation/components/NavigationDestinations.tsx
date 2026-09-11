@@ -69,12 +69,14 @@ export interface NavigationDestinationsProps {
   activeDestination: WorkspaceDestinationId;
   onNavigate: (destination: WorkspaceDestination) => void;
   onCreatePost: () => void;
+  compact?: boolean;
 }
 
 export function NavigationDestinations({
   activeDestination,
   onNavigate,
   onCreatePost,
+  compact = false,
 }: NavigationDestinationsProps) {
   return (
     <nav className="workspace-destination-list" aria-label="Jorniz sections">
@@ -83,10 +85,11 @@ export function NavigationDestinations({
           destination={destination}
           active={activeDestination === destination.id}
           onNavigate={onNavigate}
+          compact={compact}
           key={destination.id}
         />
       ))}
-      <button type="button" className="workspace-create-post" onClick={onCreatePost}>
+      <button type="button" className="workspace-create-post" title={compact ? "Create post" : undefined} onClick={onCreatePost}>
         <span aria-hidden="true"><SquarePlus /></span>
         Create post
       </button>
@@ -95,6 +98,7 @@ export function NavigationDestinations({
           destination={destination}
           active={activeDestination === destination.id}
           onNavigate={onNavigate}
+          compact={compact}
           key={destination.id}
         />
       ))}
@@ -106,9 +110,10 @@ interface DestinationButtonProps {
   destination: WorkspaceDestination;
   active: boolean;
   onNavigate: (destination: WorkspaceDestination) => void;
+  compact: boolean;
 }
 
-function DestinationButton({ destination, active, onNavigate }: DestinationButtonProps) {
+function DestinationButton({ destination, active, onNavigate, compact }: DestinationButtonProps) {
   const DestinationIcon = destinationIcons[destination.id];
 
   return (
@@ -116,6 +121,7 @@ function DestinationButton({ destination, active, onNavigate }: DestinationButto
       type="button"
       className={active ? "workspace-destination active" : "workspace-destination"}
       aria-current={active ? "page" : undefined}
+      title={compact ? destination.label : undefined}
       onClick={() => onNavigate(destination)}
     >
       <span className="destination-marker" aria-hidden="true"><DestinationIcon /></span>

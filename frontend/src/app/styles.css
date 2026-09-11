@@ -11,21 +11,93 @@
 .application-session-check span { color: var(--jorniz-muted); }
 
 .signed-in-workspace {
+  --left-sidebar-width: 260px;
+  --right-sidebar-width: 18rem;
   min-height: 100vh;
   background: var(--jorniz-canvas);
 }
 
+.signed-in-workspace.left-sidebar-collapsed { --left-sidebar-width: 72px; }
+.signed-in-workspace.right-sidebar-collapsed { --right-sidebar-width: 0px; }
+
 .workspace-content-grid {
-  width: calc(100% - 260px - 18rem);
-  margin-left: 260px;
+  width: calc(100% - var(--left-sidebar-width) - var(--right-sidebar-width));
+  margin-left: var(--left-sidebar-width);
   padding: 1.5rem 1.5rem 4rem;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
   align-items: start;
+  transition: width .2s ease, margin-left .2s ease;
 }
 
 .workspace-route-content { min-width: 0; }
+.sidebar-collapse-button {
+  position: fixed;
+  top: 83%;
+  z-index: 110;
+  display: grid;
+  width: 20px;
+  height: 40px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #667181;
+  transform: translateY(-50%);
+  cursor: pointer;
+  transition: color .15s ease;
+}
+.sidebar-collapse-button:hover { color: #2367f2; }
+.sidebar-collapse-button-shape {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.sidebar-collapse-button-fill { fill: #fff; }
+.sidebar-collapse-button-outline {
+  fill: none;
+  stroke: #e3e8e6;
+  stroke-width: 1;
+  stroke-linecap: butt;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.sidebar-collapse-button-right .sidebar-collapse-button-outline { stroke: #dfe5e8; }
+.sidebar-collapse-button-icon { position: relative; z-index: 1; width: 12px; height: 12px; }
+.sidebar-collapse-button:hover .sidebar-collapse-button-outline { stroke: #2367f2; }
+.sidebar-collapse-button-left {
+  left: calc(var(--left-sidebar-width) - 20.5px);
+  transition: left .2s ease, color .15s ease;
+}
+.sidebar-collapse-button-right {
+  right: calc(var(--right-sidebar-width) - 20.5px);
+  transition: right .2s ease, color .15s ease;
+}
+.sidebar-collapse-button-right .sidebar-collapse-button-shape { transform: scaleX(-1); }
+.sidebar-collapse-button-right.sidebar-collapse-button-collapsed {
+  top: auto;
+  right: 18px;
+  bottom: 84px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #2367f2;
+  color: #fff;
+  box-shadow: 0 10px 26px rgba(35, 103, 242, .3);
+  transform: none;
+}
+.sidebar-collapse-button-right.sidebar-collapse-button-collapsed .sidebar-collapse-button-shape { display: none; }
+.sidebar-collapse-button-right.sidebar-collapse-button-collapsed .sidebar-collapse-button-icon {
+  width: 22px;
+  height: 22px;
+}
+.sidebar-collapse-button-right.sidebar-collapse-button-collapsed:hover {
+  background: #1859db;
+  color: #fff;
+}
 .workspace-action-error { color: var(--jorniz-danger); }
 .settings-route { display: grid; gap: 1rem; }
 

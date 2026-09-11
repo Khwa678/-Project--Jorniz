@@ -2,6 +2,7 @@ import { HealthScoreCard } from "./components/HealthScoreCard";
 import { RewardBalanceCard } from "./components/RewardBalanceCard";
 import { SuggestedMembersCard, type SuggestedMember } from "./components/SuggestedMembersCard";
 import { TrendingTopicsCard, type TrendingHealthTopic } from "./components/TrendingTopicsCard";
+import { SidebarCollapseButton } from "../sidebar-collapse-button/SidebarCollapseButton";
 import "./styles.css";
 
 export interface HealthOverviewPanelProps {
@@ -13,6 +14,8 @@ export interface HealthOverviewPanelProps {
   onOpenAllSuggestions?: () => void;
   onFollowSuggestedMember?: (memberId: string) => Promise<void>;
   onOpenTrendingTopic?: (topic: TrendingHealthTopic) => void;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
 }
 
 export function HealthOverviewPanel({
@@ -24,9 +27,12 @@ export function HealthOverviewPanel({
   onOpenAllSuggestions,
   onFollowSuggestedMember,
   onOpenTrendingTopic,
+  collapsed,
+  onToggleCollapsed,
 }: HealthOverviewPanelProps) {
   return (
-    <aside className="health-overview-panel" aria-label="Health and participation overview">
+    <aside className={`right-overview-panel${collapsed ? " collapsed" : ""}`} aria-label="Health and participation overview">
+      <SidebarCollapseButton panel="right" collapsed={collapsed} onToggle={onToggleCollapsed} />
       <HealthScoreCard />
       <RewardBalanceCard
         confirmedCoins={confirmedCoins}
