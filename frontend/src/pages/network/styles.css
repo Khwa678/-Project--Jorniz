@@ -1,7 +1,7 @@
 .pn-page { color:#142235; display:grid; gap:16px; }
 .pn-page button { font:inherit; }
 .pn-page-heading { align-items:end; display:flex; justify-content:space-between; }
-.pn-page-heading span,.pn-panel header span,.pn-dialog header span { color:#206a89; font-size:.75rem; font-weight:900; letter-spacing:.09em; text-transform:uppercase; }
+.pn-page-heading span,.pn-panel header span,.pn-dialog header span { color:#2367f2; font-size:.75rem; font-weight:900; letter-spacing:.09em; text-transform:uppercase; }
 .pn-page-heading h1 { font-family:Georgia,serif; font-size:clamp(2rem,5vw,3.2rem); margin:4px 0; }
 .pn-page-heading p { color:#687587; margin:0; }
 .pn-page-heading>strong { background:#dcedf4; border-radius:999px; color:#175671; padding:9px 14px; }

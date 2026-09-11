@@ -9,33 +9,33 @@ export interface HealthGuidanceFlowProps {
   onSelectTopic: (topic: HealthGuidanceTopic) => void;
 }
 
-export function HealthGuidanceFlow({
-  selectedTopicId,
-  onSelectTopic,
-}: HealthGuidanceFlowProps) {
-  const selectedTopic = healthGuidanceTopics.find((topic) => topic.id === selectedTopicId);
+const topicIcons: Record<HealthGuidanceTopicId, string> = {
+  "check-symptoms": "🩺",
+  "heart-health": "❤️",
+  "mental-wellness": "🧠",
+  nutrition: "🥗",
+  medications: "💊",
+  "find-doctor": "🧑‍⚕️",
+  emergency: "🚨",
+};
 
+export function HealthGuidanceFlow({ selectedTopicId, onSelectTopic }: HealthGuidanceFlowProps) {
   return (
-    <section className="health-guidance-flow">
-      <div className="health-guidance-topic-list">
-        {healthGuidanceTopics.map((topic) => (
+    <div className="health-guidance-topic-list" aria-label="Health guidance topics">
+      {healthGuidanceTopics.map((topic) => {
+        return (
           <button
             type="button"
             className={selectedTopicId === topic.id ? "active" : ""}
+            aria-pressed={selectedTopicId === topic.id}
             onClick={() => onSelectTopic(topic)}
             key={topic.id}
           >
-            <strong>{topic.title}</strong>
-            <span>{topic.summary}</span>
+            <span className="health-guidance-topic-icon" aria-hidden="true">{topicIcons[topic.id]}</span>
+            <span>{topic.title}</span>
           </button>
-        ))}
-      </div>
-      {selectedTopic && (
-        <article className="selected-health-guidance">
-          <h3>{selectedTopic.title}</h3>
-          {selectedTopic.guidance.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
-        </article>
-      )}
-    </section>
+        );
+      })}
+    </div>
   );
 }

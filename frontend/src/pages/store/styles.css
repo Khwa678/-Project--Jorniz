@@ -1,16 +1,16 @@
 .health-marketplace-page { width: min(1120px,100%); margin: 0 auto; color: #152033; }
 .marketplace-page-header { display: flex; justify-content: space-between; gap: 24px; align-items: end; margin-bottom: 24px; }
 .marketplace-page-header p, .marketplace-page-header h1 { margin: 0; }
-.marketplace-page-header p, .product-catalogue header p, .marketplace-checkout header p, .my-orders header p { color: #087b53; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.marketplace-page-header p, .product-catalogue header p, .marketplace-checkout header p, .my-orders header p { color: #2367f2; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .marketplace-page-header h1 { margin: 4px 0; font-size: clamp(30px,5vw,48px); }
 .marketplace-page-header span { color: #69766f; }
 .marketplace-page-header nav { display: flex; gap: 6px; padding: 5px; border-radius: 13px; background: #eaf0ed; }
 .marketplace-page-header nav button, .product-category-tabs button, .marketplace-back { border: 0; border-radius: 9px; padding: 9px 12px; background: transparent; color: #52625a; font: inherit; font-weight: 700; cursor: pointer; }
-.marketplace-page-header nav button.active, .product-category-tabs button.active { background: white; color: #08744e; box-shadow: 0 2px 9px rgba(31,54,44,.1); }
+.marketplace-page-header nav button.active, .product-category-tabs button.active { background: white; color: #1d5bd8; box-shadow: 0 2px 9px rgba(31,54,44,.1); }
 .product-catalogue header h2, .marketplace-checkout header h2, .my-orders header h2, .shopping-cart header h2 { margin: 3px 0 14px; }
 .product-search { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; }
 .product-search input, .marketplace-checkout textarea { box-sizing: border-box; width: 100%; border: 1px solid #cbd8d2; border-radius: 11px; padding: 12px; font: inherit; }
-.product-search button, .product-card button:last-child, .product-details-main button, .cart-summary button, .marketplace-checkout form > button { border: 0; border-radius: 10px; padding: 11px 15px; background: #087b53; color: white; font: inherit; font-weight: 800; cursor: pointer; }
+.product-search button, .product-card button:last-child, .product-details-main button, .cart-summary button, .marketplace-checkout form > button { border: 0; border-radius: 10px; padding: 11px 15px; background: #2367f2; color: white; font: inherit; font-weight: 800; cursor: pointer; }
 .product-category-tabs { display: flex; gap: 7px; overflow-x: auto; padding: 14px 0; }
 .product-category-tabs button { flex: 0 0 auto; border: 1px solid #d6e0dc; background: white; }
 .product-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 15px; }

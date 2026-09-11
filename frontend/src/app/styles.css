@@ -16,11 +16,11 @@
 }
 
 .workspace-content-grid {
-  width: min(100% - 2rem, 1280px);
-  margin: 0 auto;
-  padding: 1.5rem 0 4rem 17rem;
+  width: calc(100% - 260px - 18rem);
+  margin-left: 260px;
+  padding: 1.5rem 1.5rem 4rem;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(17rem, 22rem);
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
   align-items: start;
 }

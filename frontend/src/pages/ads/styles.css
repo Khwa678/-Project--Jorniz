@@ -2,7 +2,7 @@
 .advertising-page-heading { display:flex; justify-content:space-between; align-items:center; gap:18px; }
 .advertising-page-heading h1,.campaign-creation-panel h2,.advertising-campaign-card h2 { margin:4px 0 8px; }
 .advertising-page-heading p,.advertising-campaign-card p { margin:0; color:#687386; }
-.campaign-kicker { color:#9c4b15; font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+.campaign-kicker { color:#1d5bd8; font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
 .advertising-page-heading button,.campaign-creation-panel button,.campaign-error-state button,.campaign-card-actions button,.sponsored-post-card button { border:0; border-radius:11px; padding:10px 16px; background:#c15d18; color:#fff; font:inherit; font-weight:750; cursor:pointer; }
 .campaign-performance { display:grid; grid-template-columns:repeat(4,1fr); overflow:hidden; border:1px solid #eadfd7; border-radius:18px; background:#fff; }
 .campaign-performance div { display:grid; gap:4px; padding:18px; border-right:1px solid #eee5df; }
@@ -21,8 +21,8 @@
 .advertising-campaign-card { display:grid; grid-template-columns:90px 1fr minmax(130px,auto) auto; align-items:center; gap:18px; }
 .advertising-campaign-card>img { width:90px; height:72px; border-radius:12px; object-fit:cover; }
 .campaign-card-copy,.campaign-card-numbers { display:grid; gap:5px; }
-.campaign-card-copy>span { color:#a14d15; font-size:11px; font-weight:800; text-transform:uppercase; }
-.campaign-card-numbers progress { width:100%; accent-color:#c15d18; }
+.campaign-card-copy>span { color:#1d5bd8; font-size:11px; font-weight:800; text-transform:uppercase; }
+.campaign-card-numbers progress { width:100%; accent-color:#2367f2; }
 .sponsored-post-card { display:grid; gap:12px; }
 .sponsored-post-card img { width:100%; max-height:280px; border-radius:14px; object-fit:cover; }
 @media (max-width:760px) {

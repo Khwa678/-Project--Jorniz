@@ -5,7 +5,7 @@ import type { AccountAccessResult } from "../types";
 export interface SignInFormProps {
   onSignedIn: (result: AccountAccessResult) => void;
   onChooseCreateAccount: () => void;
-  onRequestPasswordReset?: () => void;
+  onRequestPasswordReset: () => void;
 }
 
 function describeSignInFailure(error: unknown) {
@@ -43,9 +43,8 @@ export function SignInForm({
   return (
     <form className="account-form" onSubmit={submitSignIn} noValidate>
       <header>
-        <p className="account-eyebrow">Sign in</p>
         <h1>Welcome back</h1>
-        <p>Continue to your Jorniz workspace.</p>
+        <p>Sign in to continue to Jorniz.</p>
       </header>
 
       {submissionError ? <p className="account-message account-message-error">{submissionError}</p> : null}
@@ -59,11 +58,9 @@ export function SignInForm({
         <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required />
       </label>
 
-      {onRequestPasswordReset ? (
-        <button className="account-text-action account-forgot-password" type="button" onClick={onRequestPasswordReset}>
-          Forgot password?
-        </button>
-      ) : null}
+      <button className="account-text-action account-forgot-password" type="button" onClick={onRequestPasswordReset}>
+        Forgot password?
+      </button>
       <button className="account-primary-action" type="submit" disabled={submitting}>
         {submitting ? "Signing in..." : "Sign in"}
       </button>

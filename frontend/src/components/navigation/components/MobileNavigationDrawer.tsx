@@ -15,6 +15,7 @@ export interface MobileNavigationDrawerProps {
   onCreatePost: () => void;
   onOpenWallet: () => void;
   onOpenAccountOptions?: () => void;
+  onSignOut: () => void;
 }
 
 export function MobileNavigationDrawer({
@@ -28,6 +29,7 @@ export function MobileNavigationDrawer({
   onCreatePost,
   onOpenWallet,
   onOpenAccountOptions,
+  onSignOut,
 }: MobileNavigationDrawerProps) {
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
@@ -88,7 +90,17 @@ export function MobileNavigationDrawer({
             onClose();
           }}
         />
-        <NavigationMemberSummary account={account} onOpenAccountOptions={onOpenAccountOptions} />
+        <NavigationMemberSummary
+          account={account}
+          onOpenAccountOptions={() => {
+            onOpenAccountOptions?.();
+            onClose();
+          }}
+          onSignOut={() => {
+            onClose();
+            onSignOut();
+          }}
+        />
       </aside>
     </div>
   );

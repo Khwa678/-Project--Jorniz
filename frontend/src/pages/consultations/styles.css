@@ -1,12 +1,12 @@
 .dc-page { color:#142033; display:grid; gap:20px; }
 .dc-page button,.dc-page input,.dc-page select { font:inherit; }
 .dc-page-heading { align-items:end; display:flex; gap:20px; justify-content:space-between; }
-.dc-page-heading>div:first-child>span,.dc-dialog header span { color:#9b5a18; font-size:.76rem; font-weight:900; letter-spacing:.09em; text-transform:uppercase; }
+.dc-page-heading>div:first-child>span,.dc-dialog header span { color:#1d5bd8; font-size:.76rem; font-weight:900; letter-spacing:.09em; text-transform:uppercase; }
 .dc-page-heading h1 { font-family:Georgia,serif; font-size:clamp(2rem,5vw,3.2rem); margin:4px 0 6px; }
 .dc-page-heading p { color:#667386; margin:0; }
 .dc-tabs { background:#f5efe8; border-radius:999px; display:flex; padding:4px; }
 .dc-tabs button,.dc-specialties button { background:transparent; border:0; border-radius:999px; cursor:pointer; padding:9px 14px; }
-.dc-tabs button.is-active,.dc-specialties button.is-active { background:#994f14; color:white; }
+.dc-tabs button.is-active,.dc-specialties button.is-active { background:#2367f2; color:white; }
 .dc-filters { background:#fffaf4; border:1px solid #eadbc9; border-radius:18px; display:grid; gap:12px; grid-template-columns:1fr auto; padding:15px; }
 .dc-filters input,.dc-filters select { background:white; border:1px solid #d9c5ad; border-radius:11px; padding:11px 13px; }
 .dc-specialties { display:flex; flex-wrap:wrap; gap:7px; grid-column:1/-1; }
@@ -15,9 +15,9 @@
 .dc-doctor-card { background:white; border:1px solid #e6ddd2; border-radius:18px; box-shadow:0 12px 32px rgba(78,51,24,.07); display:grid; gap:15px; padding:18px; }
 .dc-doctor-heading { align-items:center; display:grid; gap:12px; grid-template-columns:58px 1fr; }
 .dc-doctor-heading img,.dc-doctor-heading>span { border-radius:16px; height:58px; object-fit:cover; width:58px; }
-.dc-doctor-heading>span { align-items:center; background:#f1dfcc; color:#8a4816; display:flex; font-size:1.3rem; font-weight:900; justify-content:center; }
+.dc-doctor-heading>span { align-items:center; background:#f1dfcc; color:#1d5bd8; display:flex; font-size:1.3rem; font-weight:900; justify-content:center; }
 .dc-doctor-heading h2 { font-size:1.05rem; margin:0; }
-.dc-doctor-heading p { color:#994f14; margin:2px 0; }
+.dc-doctor-heading p { color:#2367f2; margin:2px 0; }
 .dc-doctor-heading small,.dc-bio,.dc-days { color:#697485; }
 .dc-bio,.dc-days { font-size:.84rem; line-height:1.5; margin:0; }
 .dc-doctor-facts { border-bottom:1px solid #eee5db; border-top:1px solid #eee5db; display:grid; grid-template-columns:repeat(3,1fr); padding:11px 0; }

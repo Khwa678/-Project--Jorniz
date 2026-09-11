@@ -52,7 +52,7 @@ export function SignedInWorkspace({ account, onAccountUpdated, onSignOut }: Sign
   function navigate(destinationToOpen: WorkspaceDestination) {
     window.history.pushState({}, "", destinationToOpen.route);
     setDestination(destinationToOpen);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: "auto" });
   }
 
   function navigateById(id: WorkspaceDestinationId) {
@@ -81,6 +81,7 @@ export function SignedInWorkspace({ account, onAccountUpdated, onSignOut }: Sign
         onNavigate={navigate}
         onCreatePost={() => openPostEditor()}
         onOpenAccountOptions={() => navigateById("settings")}
+        onSignOut={onSignOut}
       />
       <div className="workspace-content-grid">
         <section className="workspace-route-content">

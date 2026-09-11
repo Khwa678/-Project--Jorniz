@@ -1,13 +1,16 @@
 @media (max-width: 1080px) {
   .workspace-content-grid {
-    padding-left: 5.5rem;
-    grid-template-columns: minmax(0, 1fr) minmax(15rem, 19rem);
+    width: calc(100% - 260px);
+    margin-left: 260px;
+    padding: 1.25rem 1rem 4rem;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (max-width: 760px) {
   .workspace-content-grid {
     width: 100%;
+    margin-left: 0;
     padding: 4.75rem 1rem 6rem;
     grid-template-columns: minmax(0, 1fr);
   }

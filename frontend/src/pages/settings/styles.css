@@ -1,12 +1,12 @@
 .account-settings-page { display:grid; gap:22px; color:#172033; }
 .account-settings-page>header h1 { margin:4px 0 8px; }
 .account-settings-page>header p,.settings-section-heading p { margin:0; color:#697586; }
-.settings-page-kicker,.settings-section-heading>span { color:#176b52; font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+.settings-page-kicker,.settings-section-heading>span { color:#2367f2; font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
 .account-settings-layout { display:grid; grid-template-columns:220px minmax(0,1fr); gap:18px; align-items:start; }
 .account-settings-navigation,.account-settings-section { border:1px solid #dfe7e3; border-radius:18px; background:#fff; box-shadow:0 12px 30px rgba(17,32,51,.06); }
 .account-settings-navigation { display:grid; gap:4px; padding:10px; }
 .account-settings-navigation button { border:0; border-radius:10px; padding:11px 12px; background:transparent; color:#536071; font:inherit; text-align:left; cursor:pointer; }
-.account-settings-navigation button.active { background:#e8f4ef; color:#0c6d50; font-weight:750; }
+.account-settings-navigation button.active { background:#e9f0ff; color:#1d5bd8; font-weight:750; }
 .account-settings-section { padding:22px; }
 .settings-section-heading h2 { margin:4px 0 7px; }
 .profile-settings-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px; margin-top:20px; }
@@ -14,7 +14,7 @@
 .profile-settings-form input,.profile-settings-form textarea { width:100%; box-sizing:border-box; border:1px solid #d9e1dd; border-radius:10px; padding:10px 12px; font:inherit; }
 .settings-wide-field,.settings-form-actions,.settings-request-error,.settings-request-confirmation { grid-column:1/-1; }
 .settings-form-actions { display:flex; justify-content:flex-end; }
-.settings-form-actions button,.signed-in-session-heading button,.account-data-actions button { border:0; border-radius:10px; padding:10px 15px; background:#176b52; color:#fff; font:inherit; font-weight:700; cursor:pointer; }
+.settings-form-actions button,.signed-in-session-heading button,.account-data-actions button { border:0; border-radius:10px; padding:10px 15px; background:#2367f2; color:#fff; font:inherit; font-weight:700; cursor:pointer; }
 .settings-form-actions button:disabled,.account-data-actions button:disabled { cursor:not-allowed; opacity:.55; }
 .settings-request-error { color:#a9362a; }
 .settings-request-confirmation { color:#08734e; }

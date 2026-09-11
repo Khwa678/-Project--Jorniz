@@ -1,3 +1,5 @@
+import { CircleDollarSign } from "lucide-react";
+
 export interface RewardBalanceCardProps {
   confirmedCoins: number | null;
   loading?: boolean;
@@ -11,15 +13,14 @@ export function RewardBalanceCard({
 }: RewardBalanceCardProps) {
   return (
     <section className="health-overview-card overview-reward-card">
-      <span className="overview-card-status">Server-confirmed balance</span>
-      <h2>HU Coins</h2>
+      <h2><CircleDollarSign size={16} aria-hidden="true" />HU Coins</h2>
       <div>
         <strong>
           {loading ? "Loading" : confirmedCoins === null ? "Unavailable" : confirmedCoins.toLocaleString()}
         </strong>
         <button type="button" onClick={onOpenWallet} disabled={!onOpenWallet}>View wallet</button>
       </div>
-      <p>Redeem eligible rewards through consultations and the Health Marketplace.</p>
+      <p>Redeem HU Coins on consultations, medicines, and more.</p>
     </section>
   );
 }

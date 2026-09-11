@@ -1,3 +1,20 @@
+import {
+  Bell,
+  Briefcase,
+  House,
+  Megaphone,
+  MessageSquare,
+  Phone,
+  Search,
+  Settings,
+  ShoppingBag,
+  SquarePlus,
+  UserRound,
+  Users,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
+
 export type WorkspaceDestinationId =
   | "home"
   | "explore"
@@ -16,23 +33,37 @@ export interface WorkspaceDestination {
   id: WorkspaceDestinationId;
   label: string;
   route: string;
-  marker: string;
 }
 
 export const workspaceDestinations: readonly WorkspaceDestination[] = [
-  { id: "home", label: "Home", route: "/", marker: "H" },
-  { id: "explore", label: "Explore", route: "/explore", marker: "E" },
-  { id: "notifications", label: "Notifications", route: "/notifications", marker: "N" },
-  { id: "messages", label: "Messages", route: "/messages", marker: "M" },
-  { id: "consultations", label: "Consultations", route: "/consultations", marker: "C" },
-  { id: "jobs", label: "Jobs", route: "/jobs", marker: "J" },
-  { id: "network", label: "My Network", route: "/network", marker: "MN" },
-  { id: "wallet", label: "Rewards Wallet", route: "/wallet", marker: "RW" },
-  { id: "advertising", label: "Advertising", route: "/advertising", marker: "AD" },
-  { id: "store", label: "Health Marketplace", route: "/store", marker: "HM" },
-  { id: "profile", label: "Profile", route: "/profile", marker: "P" },
-  { id: "settings", label: "Settings", route: "/settings", marker: "S" },
+  { id: "home", label: "Home", route: "/" },
+  { id: "explore", label: "Explore", route: "/explore" },
+  { id: "notifications", label: "Notifications", route: "/notifications" },
+  { id: "messages", label: "Messages", route: "/messages" },
+  { id: "consultations", label: "Consultations", route: "/consultations" },
+  { id: "jobs", label: "Jobs", route: "/jobs" },
+  { id: "network", label: "My Network", route: "/network" },
+  { id: "wallet", label: "Rewards Wallet", route: "/wallet" },
+  { id: "advertising", label: "Advertising", route: "/advertising" },
+  { id: "store", label: "Health Marketplace", route: "/store" },
+  { id: "profile", label: "Profile", route: "/profile" },
+  { id: "settings", label: "Settings", route: "/settings" },
 ];
+
+const destinationIcons: Record<WorkspaceDestinationId, LucideIcon> = {
+  home: House,
+  explore: Search,
+  notifications: Bell,
+  messages: MessageSquare,
+  consultations: Phone,
+  jobs: Briefcase,
+  network: Users,
+  wallet: Wallet,
+  advertising: Megaphone,
+  store: ShoppingBag,
+  profile: UserRound,
+  settings: Settings,
+};
 
 export interface NavigationDestinationsProps {
   activeDestination: WorkspaceDestinationId;
@@ -56,7 +87,7 @@ export function NavigationDestinations({
         />
       ))}
       <button type="button" className="workspace-create-post" onClick={onCreatePost}>
-        <span aria-hidden="true">+</span>
+        <span aria-hidden="true"><SquarePlus /></span>
         Create post
       </button>
       {workspaceDestinations.slice(2).map((destination) => (
@@ -78,6 +109,8 @@ interface DestinationButtonProps {
 }
 
 function DestinationButton({ destination, active, onNavigate }: DestinationButtonProps) {
+  const DestinationIcon = destinationIcons[destination.id];
+
   return (
     <button
       type="button"
@@ -85,7 +118,7 @@ function DestinationButton({ destination, active, onNavigate }: DestinationButto
       aria-current={active ? "page" : undefined}
       onClick={() => onNavigate(destination)}
     >
-      <span className="destination-marker" aria-hidden="true">{destination.marker}</span>
+      <span className="destination-marker" aria-hidden="true"><DestinationIcon /></span>
       {destination.label}
     </button>
   );

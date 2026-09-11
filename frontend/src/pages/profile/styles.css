@@ -1,19 +1,19 @@
 .member-profile-page { width: min(920px,100%); margin: 0 auto; display: grid; gap: 18px; color: #152033; }
 .member-profile-header, .professional-details, .member-post-history { border: 1px solid #dce5e1; border-radius: 18px; padding: 22px; background: white; box-shadow: 0 7px 24px rgba(33,53,45,.06); }
 .member-profile-header { display: grid; grid-template-columns: 110px minmax(0,1fr) auto; gap: 20px; align-items: center; background: radial-gradient(circle at 90% 10%, rgba(55,159,113,.16), transparent 28%), white; }
-.member-profile-avatar img, .member-profile-avatar span { width: 110px; height: 110px; display: grid; place-items: center; border-radius: 30px; object-fit: cover; background: #087b53; color: white; font-size: 42px; font-weight: 800; }
+.member-profile-avatar img, .member-profile-avatar span { width: 110px; height: 110px; display: grid; place-items: center; border-radius: 30px; object-fit: cover; background: #2367f2; color: white; font-size: 42px; font-weight: 800; }
 .member-profile-header p, .member-profile-header h1 { margin: 0; }
-.member-profile-header p { color: #087b53; font-weight: 800; }
+.member-profile-header p { color: #2367f2; font-weight: 800; }
 .member-profile-header h1 { margin: 4px 0; font-size: clamp(30px,5vw,48px); }
 .member-profile-header > div:nth-child(2) > span { color: #69766f; }
 .member-profile-header dl { display: flex; gap: 24px; margin: 18px 0 0; }
 .member-profile-header dl div { display: grid; }
 .member-profile-header dt { color: #75827b; font-size: 12px; }
 .member-profile-header dd { margin: 2px 0 0; font-size: 20px; font-weight: 800; }
-.member-profile-header > button, .professional-details header button, .profile-state button, .member-post-history footer button { border: 1px solid #d2ded8; border-radius: 9px; padding: 9px 11px; background: white; color: #08744e; font: inherit; font-weight: 800; cursor: pointer; }
+.member-profile-header > button, .professional-details header button, .profile-state button, .member-post-history footer button { border: 1px solid #d2ded8; border-radius: 9px; padding: 9px 11px; background: white; color: #1d5bd8; font: inherit; font-weight: 800; cursor: pointer; }
 .professional-details > header, .member-post-history > header { display: flex; justify-content: space-between; align-items: center; gap: 18px; }
 .professional-details header p, .professional-details header h2, .member-post-history header p, .member-post-history header h2 { margin: 0; }
-.professional-details header p, .member-post-history header p { color: #087b53; font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.professional-details header p, .member-post-history header p { color: #2367f2; font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .profile-facts { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin: 18px 0; }
 .profile-facts div { padding: 12px; border-radius: 11px; background: #f2f7f4; }
 .profile-facts dt { color: #74817a; font-size: 12px; }
@@ -22,12 +22,12 @@
 .experience-form label { display: grid; gap: 6px; font-weight: 700; }
 .experience-form > div { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .experience-form input, .experience-form textarea { box-sizing: border-box; width: 100%; border: 1px solid #cbd8d2; border-radius: 9px; padding: 10px; font: inherit; }
-.experience-form > button { justify-self: start; border: 0; border-radius: 9px; padding: 10px 14px; background: #087b53; color: white; font: inherit; font-weight: 800; cursor: pointer; }
+.experience-form > button { justify-self: start; border: 0; border-radius: 9px; padding: 10px 14px; background: #2367f2; color: white; font: inherit; font-weight: 800; cursor: pointer; }
 .experience-list { display: grid; gap: 10px; }
 .experience-list article { display: grid; gap: 4px; padding: 13px; border-left: 3px solid #24936b; background: #f8fbf9; }
 .experience-list article span, .experience-list article small { color: #68766f; }
 .member-skills { margin-top: 18px; }
-.member-skills > span { display: inline-block; margin: 0 7px 7px 0; border-radius: 999px; padding: 7px 10px; background: #e8f7ef; color: #08744e; font-size: 13px; font-weight: 700; }
+.member-skills > span { display: inline-block; margin: 0 7px 7px 0; border-radius: 999px; padding: 7px 10px; background: #e8f7ef; color: #1d5bd8; font-size: 13px; font-weight: 700; }
 .profile-state { border: 1px dashed #cbd8d2; border-radius: 13px; padding: 20px; background: #f8fbf9; color: #65736c; text-align: center; }
 .profile-error { color: #a62d28; }
 .profile-warning { border-style: solid; border-color: #ead49d; background: #fff8e8; color: #725416; }
@@ -35,7 +35,7 @@
 .member-post-list { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 12px; margin-top: 16px; }
 .member-post-list article { overflow: hidden; border: 1px solid #dce5e1; border-radius: 13px; }
 .member-post-list article > small, .member-post-list article > p { display: block; margin: 0; padding: 12px 13px 0; }
-.member-post-list article > small { color: #08744e; font-weight: 800; }
+.member-post-list article > small { color: #1d5bd8; font-weight: 800; }
 .member-post-list img, .member-post-list video { width: 100%; max-height: 260px; object-fit: cover; margin-top: 12px; }
 .member-post-list footer { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 10px 13px; color: #6b7871; font-size: 13px; }
 .member-post-list footer button { margin-left: auto; }

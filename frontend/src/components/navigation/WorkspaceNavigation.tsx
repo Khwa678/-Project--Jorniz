@@ -18,6 +18,7 @@ export interface WorkspaceNavigationProps {
   onNavigate: (destination: WorkspaceDestination) => void;
   onCreatePost: () => void;
   onOpenAccountOptions?: () => void;
+  onSignOut: () => void;
 }
 
 export function WorkspaceNavigation({
@@ -28,6 +29,7 @@ export function WorkspaceNavigation({
   onNavigate,
   onCreatePost,
   onOpenAccountOptions,
+  onSignOut,
 }: WorkspaceNavigationProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -69,7 +71,7 @@ export function WorkspaceNavigation({
   }, [drawerOpen]);
 
   function openWallet() {
-    const wallet = { id: "wallet", label: "Rewards Wallet", route: "/wallet", marker: "RW" } as const;
+    const wallet = { id: "wallet", label: "Rewards Wallet", route: "/wallet" } as const;
     onNavigate(wallet);
   }
 
@@ -88,7 +90,7 @@ export function WorkspaceNavigation({
       )}
 
       <aside className="desktop-workspace-navigation">
-        <header><strong>Jorniz</strong><small>AI-Native Social and Participation Platform</small></header>
+        <header><strong>Jorniz</strong><small>AI-Native Social & Participation Platform</small></header>
         <NavigationDestinations
           activeDestination={activeDestination}
           onNavigate={onNavigate}
@@ -99,7 +101,7 @@ export function WorkspaceNavigation({
           loading={rewardBalanceLoading}
           onOpenWallet={openWallet}
         />
-        <NavigationMemberSummary account={account} onOpenAccountOptions={onOpenAccountOptions} />
+        <NavigationMemberSummary account={account} onOpenAccountOptions={onOpenAccountOptions} onSignOut={onSignOut} />
       </aside>
 
       <MobileNavigationDrawer
@@ -113,6 +115,7 @@ export function WorkspaceNavigation({
         onCreatePost={onCreatePost}
         onOpenWallet={openWallet}
         onOpenAccountOptions={onOpenAccountOptions}
+        onSignOut={onSignOut}
       />
     </>
   );

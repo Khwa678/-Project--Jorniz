@@ -44,12 +44,21 @@ export function HomeFeedPage({ signedInAccount, onOpenCreatePost, onOpenMember, 
   return (
     <main className="home-feed-page">
       <header className="home-feed-heading">
-        <div><p>Home</p><h1>Your health network</h1></div>
-        <button type="button" onClick={onOpenCreatePost}>Create post</button>
+        <div>
+          <h1>Home Feed</h1>
+          <p>Health insights from professionals and people you follow.</p>
+        </div>
       </header>
-      <FeedAudienceTabs selectedAudience={audience} onAudienceChange={setAudience} />
+      <div className="home-feed-controls">
+        <FeedAudienceTabs selectedAudience={audience} onAudienceChange={setAudience} />
+        <button className="home-create-post-button" type="button" onClick={onOpenCreatePost}>
+          <Plus size={16} aria-hidden="true" />
+          Create post
+        </button>
+      </div>
       {notice ? <p className="feed-notice">{notice}</p> : null}
       <PostTimeline posts={posts} loading={loading} error={error} emptyMessage={emptyMessage} currentAccountId={String(signedInAccount.id)} onRetry={() => setReloadNumber((value) => value + 1)} onOpenMember={onOpenMember} onEditPost={onEditPost} onDeletePost={onDeletePost} />
     </main>
   );
 }
+import { Plus } from "lucide-react";

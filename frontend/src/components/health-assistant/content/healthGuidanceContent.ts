@@ -1,69 +1,81 @@
 export type HealthGuidanceTopicId =
-  | "urgent-warning-signs"
-  | "everyday-wellbeing"
-  | "medication-safety"
-  | "appointment-preparation";
+  | "check-symptoms"
+  | "heart-health"
+  | "mental-wellness"
+  | "nutrition"
+  | "medications"
+  | "find-doctor"
+  | "emergency";
 
 export interface HealthGuidanceTopic {
   id: HealthGuidanceTopicId;
   title: string;
-  summary: string;
-  guidance: readonly string[];
+  response: string;
 }
 
 export const healthGuidanceTopics: readonly HealthGuidanceTopic[] = [
   {
-    id: "urgent-warning-signs",
-    title: "Urgent warning signs",
-    summary: "Know when general website guidance is not appropriate.",
-    guidance: [
-      "Call local emergency services for severe breathing difficulty, chest pressure, unconsciousness, stroke signs, uncontrolled bleeding, or a rapidly worsening emergency.",
-      "Do not wait for this prototype or an online reply when immediate help may be needed.",
-    ],
+    id: "check-symptoms",
+    title: "Check Symptoms",
+    response: "Note when the symptoms started, how severe they are, and what makes them better or worse. A qualified clinician should assess persistent, worsening, or concerning symptoms.",
   },
   {
-    id: "everyday-wellbeing",
-    title: "Everyday wellbeing",
-    summary: "Simple, non-diagnostic health habits.",
-    guidance: [
-      "Use regular sleep, hydration, movement, and balanced meals as general wellbeing foundations.",
-      "Discuss persistent, worsening, or function-limiting symptoms with a qualified clinician.",
-    ],
+    id: "heart-health",
+    title: "Heart Health",
+    response: "Regular movement, sleep, balanced meals, and appropriate blood-pressure checks support heart health. Seek urgent help for chest pressure, severe breathlessness, fainting, or sudden weakness.",
   },
   {
-    id: "medication-safety",
-    title: "Medication safety",
-    summary: "General precautions before using a medicine.",
-    guidance: [
-      "Follow the prescription label and the instructions supplied with the medicine or device.",
-      "Ask a pharmacist or clinician before changing a dose, combining medicines, or using an unfamiliar delivery method.",
-    ],
+    id: "mental-wellness",
+    title: "Mental Wellness",
+    response: "Small routines such as sleep, movement, social contact, and time away from stress can support wellbeing. Contact a qualified professional if distress persists or interferes with daily life.",
   },
   {
-    id: "appointment-preparation",
-    title: "Prepare for an appointment",
-    summary: "Organise useful information for a clinician.",
-    guidance: [
-      "Write down symptoms, when they started, what changes them, and any medicines or supplements you use.",
-      "Bring relevant reports and prepare the questions you most want answered.",
-    ],
+    id: "nutrition",
+    title: "Nutrition & Diet",
+    response: "Prefer sustainable meals with vegetables, protein, fibre, and enough water. A registered dietitian can tailor guidance for allergies, medical conditions, pregnancy, or specific goals.",
+  },
+  {
+    id: "medications",
+    title: "Medications",
+    response: "Follow the label and your prescriber's instructions. Do not start, stop, or change a prescribed medicine based only on this assistant; ask a pharmacist or clinician when uncertain.",
+  },
+  {
+    id: "find-doctor",
+    title: "Find a Doctor",
+    response: "Choose a licensed professional whose specialty matches your concern. Check their credentials, availability, consultation format, and whether urgent in-person care is more appropriate.",
+  },
+  {
+    id: "emergency",
+    title: "Emergency",
+    response: "Call your local emergency service now for severe breathing difficulty, chest pressure, fainting, a seizure, sudden weakness, heavy bleeding, or immediate danger.",
   },
 ];
 
-export function findHealthGuidance(topicId: HealthGuidanceTopicId): HealthGuidanceTopic {
-  return healthGuidanceTopics.find((topic) => topic.id === topicId) ?? healthGuidanceTopics[0];
+export interface HealthAssistantRequest {
+  topicId?: HealthGuidanceTopicId;
+  question?: string;
 }
 
-export function answerScriptedHealthQuestion(question: string): string {
-  const normalized = question.toLowerCase();
-  if (/(chest pain|cannot breathe|can't breathe|unconscious|stroke|heavy bleeding)/.test(normalized)) {
-    return "This may require urgent help. Contact local emergency services now rather than relying on this prototype.";
+async function getClientSideHealthAssistantReply(request: HealthAssistantRequest): Promise<string> {
+  if (request.topicId) {
+    return healthGuidanceTopics.find((topic) => topic.id === request.topicId)?.response ?? "Please choose another topic.";
   }
-  if (/(medicine|medication|dose|tablet|inhaler|nebulizer)/.test(normalized)) {
-    return "This prototype cannot verify a personal dose or treatment. Follow the prescription and ask a pharmacist or clinician before changing how the medicine is used.";
+
+  const question = request.question?.trim().toLowerCase() ?? "";
+  if (/(chest pain|cannot breathe|can't breathe|unconscious|stroke|heavy bleeding)/.test(question)) {
+    return "This may require urgent help. Contact your local emergency service now rather than relying on this assistant.";
   }
-  if (/(appointment|doctor|consultation)/.test(normalized)) {
-    return "Prepare when the symptoms started, what changes them, your medicines, relevant reports, and your most important questions.";
+  if (/(medicine|medication|dose|tablet|inhaler|nebulizer)/.test(question)) {
+    return healthGuidanceTopics.find((topic) => topic.id === "medications")!.response;
   }
-  return "This is scripted prototype guidance, not an AI or clinical response. Choose a guided topic or contact a qualified clinician for personal advice.";
+  if (/(appointment|doctor|consultation)/.test(question)) {
+    return healthGuidanceTopics.find((topic) => topic.id === "find-doctor")!.response;
+  }
+  if (/(diet|food|nutrition|meal)/.test(question)) {
+    return healthGuidanceTopics.find((topic) => topic.id === "nutrition")!.response;
+  }
+  return "I can provide general client-side guidance only. Choose a topic above, or contact a qualified health professional for advice specific to you.";
 }
+
+// CLIENT-SIDE MOCK: replace this one binding with a server or AI request function later.
+export const requestHealthAssistantReply = getClientSideHealthAssistantReply;

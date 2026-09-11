@@ -74,9 +74,8 @@ export function CreateAccountForm({
   return (
     <form className="account-form" onSubmit={submitAccountCreation} noValidate>
       <header>
-        <p className="account-eyebrow">Create account</p>
         <h1>Join Jorniz</h1>
-        <p>Choose the account type that matches how you will participate.</p>
+        <p>Tell us whether you’re joining as a user or a healthcare professional.</p>
       </header>
 
       {submissionError ? <p className="account-message account-message-error">{submissionError}</p> : null}

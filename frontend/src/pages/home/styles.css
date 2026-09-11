@@ -1,11 +1,12 @@
-.home-feed-page { width: min(760px, 100%); margin: 0 auto; color: #142033; }
-.home-feed-heading { display: flex; justify-content: space-between; align-items: end; gap: 20px; margin-bottom: 18px; }
-.home-feed-heading p { margin: 0 0 4px; color: #087b53; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-.home-feed-heading h1 { margin: 0; font-size: clamp(28px, 5vw, 42px); }
-.home-feed-heading > button { border: 0; border-radius: 12px; padding: 12px 17px; background: #087b53; color: white; font: inherit; font-weight: 800; cursor: pointer; }
-.feed-audience-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 5px; margin-bottom: 16px; border-radius: 14px; background: #eaf0ed; }
-.feed-audience-tabs button { border: 0; border-radius: 10px; padding: 10px; background: transparent; color: #65727c; font: inherit; font-weight: 700; cursor: pointer; }
-.feed-audience-tabs button.active { background: white; color: #087b53; box-shadow: 0 2px 9px rgba(31,54,44,.1); }
+.home-feed-page { width: 100%; margin: 0; color: #142033; }
+.home-feed-heading { display: flex; justify-content: space-between; align-items: end; gap: 20px; margin-bottom: 14px; }
+.home-feed-heading h1 { margin: 0; font-size: clamp(24px, 2.5vw, 30px); line-height: 1.15; }
+.home-feed-heading p { margin: 6px 0 0; color: #687588; font-size: 14px; font-weight: 400; letter-spacing: 0; }
+.home-feed-controls { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+.home-create-post-button { display:inline-flex; align-items:center; gap:4px; border:0; border-radius:12px; padding:12px 17px; background:#2367f2; color:white; font:inherit; font-weight:800; white-space:nowrap; cursor:pointer; }
+.feed-audience-tabs { display: grid; grid-template-columns: repeat(3, 1fr); width: min(390px, 100%); gap: 6px; padding: 5px; margin: 0; border-radius: 14px; background: #e9edf2; }
+.feed-audience-tabs button { border: 0; border-radius: 10px; padding: 10px; background: transparent; color: #65727c; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.feed-audience-tabs button.active { background: #2367f2; color: white; box-shadow: 0 2px 9px rgba(35,103,242,.22); }
 .feed-notice { margin: 0 0 14px; border-left: 3px solid #3b82f6; padding: 9px 12px; background: #eff6ff; color: #38556e; font-size: 13px; }
 .post-timeline { display: grid; gap: 16px; }
 .health-post-card { overflow: hidden; border: 1px solid #dde5e1; border-radius: 18px; background: white; box-shadow: 0 7px 24px rgba(33,53,45,.07); }
@@ -17,11 +18,11 @@
 .health-post-author small { margin-top: 3px; color: #738078; }
 .health-post-owner-actions { display: flex; gap: 5px; }
 .health-post-owner-actions button { border: 1px solid #d7e1dc; border-radius: 8px; padding: 7px 9px; background: white; color: #315044; cursor: pointer; }
-.health-post-category { display: inline-block; margin: 8px 18px 0; border-radius: 999px; padding: 4px 9px; background: #e8f7ef; color: #08744e; font-size: 12px; font-weight: 800; }
+.health-post-category { display: inline-block; margin: 8px 18px 0; border-radius: 999px; padding: 4px 9px; background: #e8f7ef; color: #1d5bd8; font-size: 12px; font-weight: 800; }
 .health-post-content { margin: 12px 18px 18px; line-height: 1.65; white-space: pre-wrap; }
 .health-post-media { display: block; width: 100%; max-height: 560px; object-fit: cover; background: #e7ece9; }
 .health-post-statistics { display: flex; flex-wrap: wrap; gap: 18px; padding: 13px 18px; border-top: 1px solid #edf1ef; color: #68766f; font-size: 13px; }
 .feed-state { border: 1px dashed #cbd8d2; border-radius: 16px; padding: 32px 20px; background: #f8fbf9; color: #65736c; text-align: center; }
 .feed-state-error { color: #a62d28; }
 .feed-state button { border: 0; border-radius: 9px; padding: 9px 13px; background: #173f34; color: white; cursor: pointer; }
-@media (max-width: 600px) { .home-feed-heading { align-items: center; } .home-feed-heading h1 { font-size: 27px; } .health-post-author { grid-template-columns: 42px minmax(0,1fr); } .health-post-owner-actions { grid-column: 2; } }
+@media (max-width: 600px) { .home-feed-heading { align-items: center; } .home-feed-heading h1 { font-size: 24px; } .home-feed-controls { align-items:stretch; flex-direction:column; } .home-create-post-button { justify-content:center; } .health-post-author { grid-template-columns: 42px minmax(0,1fr); } .health-post-owner-actions { grid-column: 2; } }

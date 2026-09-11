@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from "react";
+import { Bot, RotateCcw, Send, TriangleAlert, X } from "lucide-react";
 import { HealthGuidanceFlow } from "./HealthGuidanceFlow";
 import type { HealthGuidanceTopic, HealthGuidanceTopicId } from "../content/healthGuidanceContent";
 
 export interface HealthAssistantDialogProps {
+  closing: boolean;
   selectedTopicId: HealthGuidanceTopicId | null;
   question: string;
-  scriptedAnswer: string;
+  assistantReply: string;
   onSelectTopic: (topic: HealthGuidanceTopic) => void;
   onSubmitQuestion: (question: string) => void;
   onRestart: () => void;
@@ -13,9 +15,10 @@ export interface HealthAssistantDialogProps {
 }
 
 export function HealthAssistantDialog({
+  closing,
   selectedTopicId,
   question,
-  scriptedAnswer,
+  assistantReply,
   onSelectTopic,
   onSubmitQuestion,
   onRestart,
@@ -32,40 +35,65 @@ export function HealthAssistantDialog({
   }
 
   return (
-    <section className="health-assistant-dialog" role="dialog" aria-modal="false" aria-labelledby="health-assistant-title">
+    <section className={`health-assistant-dialog${closing ? " is-closing" : ""}`} role="dialog" aria-modal="false" aria-labelledby="health-assistant-title">
       <header>
-        <div>
-          <strong id="health-assistant-title">Jorniz Health Guide</strong>
-          <small>Scripted client-side prototype</small>
+        <div className="health-assistant-identity">
+          <span className="health-assistant-header-avatar" aria-hidden="true"><Bot /></span>
+          <div>
+            <strong id="health-assistant-title">HU Health Assistant</strong>
+            <small><span aria-hidden="true" />Always available</small>
+          </div>
         </div>
-        <div>
-          <button type="button" onClick={onRestart}>Restart</button>
-          <button type="button" onClick={onClose} aria-label="Close health guide">X</button>
+        <div className="health-assistant-header-actions">
+          <button type="button" onClick={onRestart} aria-label="Restart health assistant" title="Restart">
+            <RotateCcw aria-hidden="true" />
+          </button>
+          <button type="button" onClick={onClose} aria-label="Close health assistant" title="Close">
+            <X aria-hidden="true" />
+          </button>
         </div>
       </header>
+
       <p className="health-assistant-disclaimer">
-        General information only. This is not an AI clinician, diagnosis, or emergency service.
+        <TriangleAlert aria-hidden="true" />
+        <span>General health information only - not medical advice.</span>
       </p>
+
       <div className="health-assistant-conversation">
-        <p>Choose a guided topic or enter a question to receive limited scripted guidance.</p>
+        <div className="health-assistant-message-row">
+          <span className="health-assistant-message-avatar" aria-hidden="true"><Bot /></span>
+          <div className="health-assistant-message-bubble">
+            <p>Hi! I&apos;m your <strong>HU Health Assistant.</strong></p>
+            <p>I can help with symptoms, health tips, medications, and more.</p>
+            <p><strong>What can I help you with today?</strong></p>
+          </div>
+        </div>
+
         <HealthGuidanceFlow selectedTopicId={selectedTopicId} onSelectTopic={onSelectTopic} />
-        {question && scriptedAnswer && (
-          <div className="scripted-question-answer">
-            <p><strong>You:</strong> {question}</p>
-            <p><strong>Scripted guide:</strong> {scriptedAnswer}</p>
+
+        {assistantReply && (
+          <div className="health-assistant-message-row health-assistant-reply" aria-live="polite">
+            <span className="health-assistant-message-avatar" aria-hidden="true"><Bot /></span>
+            <div className="health-assistant-message-bubble">
+              {question && <small>{question}</small>}
+              <p>{assistantReply}</p>
+            </div>
           </div>
         )}
       </div>
+
       <form className="health-assistant-question" onSubmit={submitQuestion}>
-        <label htmlFor="health-assistant-question">Ask a general question</label>
         <div>
           <input
             id="health-assistant-question"
             value={draftQuestion}
             onChange={(event) => setDraftQuestion(event.target.value)}
-            placeholder="This prototype uses keyword-based guidance"
+            placeholder="Ask about symptoms, diet, medications..."
+            aria-label="Ask the health assistant a general question"
           />
-          <button type="submit" disabled={!draftQuestion.trim()}>Send</button>
+          <button type="submit" disabled={!draftQuestion.trim()} aria-label="Send question" title="Send question">
+            <Send aria-hidden="true" />
+          </button>
         </div>
       </form>
     </section>
