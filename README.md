@@ -8,15 +8,95 @@ The project currently has:
 - A new React, Vite, and TypeScript frontend under `frontend/`.
 - The existing HTML, CSS, and JavaScript frontend at the repository root during migration.
 
+## Installation
+
+### Prerequisites
+
+Install these tools:
+
+- Python 3
+- Node.js and npm
+
+### Backend installation
+
+Open a terminal and install the backend dependencies:
+
+```bash
+cd "/Users/prateekpanwar/PP Work/-Project--Jorniz/backend"
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+cp -n .env.example .env
+```
+
+Keep backend secrets in `backend/.env`. Never commit this file.
+
+Leave `DATABASE_URL` empty to use local SQLite. Set it to a PostgreSQL or Neon connection string to use PostgreSQL.
+
+### Frontend installation
+
+Open another terminal and install the frontend dependencies:
+
+```bash
+cd "/Users/prateekpanwar/PP Work/-Project--Jorniz/frontend"
+npm install
+cp -n .env.example .env.local
+```
+
+Set the local API URL in `frontend/.env.local`:
+
+```env
+VITE_API_URL=http://127.0.0.1:8000
+```
+
+Values that start with `VITE_` are visible in the browser. Do not put secrets in the frontend environment.
+
+## Running locally
+
+### 1. Run the backend
+
+Open the first terminal:
+
+```bash
+cd "/Users/prateekpanwar/PP Work/-Project--Jorniz/backend"
+source .venv/bin/activate
+python3 main.py
+```
+
+The API runs at `http://127.0.0.1:8000`.
+
+Check the API from another terminal:
+
+```bash
+curl http://127.0.0.1:8000/api/health
+```
+
+A successful response shows that Flask and the configured database are reachable. Port `8000` is the API, not the website.
+
+### 2. Run the React frontend
+
+Keep the backend active. Open a second terminal:
+
+```bash
+cd "/Users/prateekpanwar/PP Work/-Project--Jorniz/frontend"
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173).
+
+Restart Vite after you change `frontend/.env.local`.
+
 ## Project structure
 
 ```text
 .
 |-- backend/                 Flask API, database code, migrations and dependencies
 |-- frontend/                New React + Vite + TypeScript application
-|   |-- src/app/             Application shell
-|   |-- src/core/            API, identity, session and shared types
-|   |-- src/features/auth/   React signup and login feature
+|   |-- src/app/             Application shell and route composition
+|   |-- src/components/      Global navigation, health panel, assistant and post editor
+|   |-- src/lib/             Shared API, identity and session code
+|   |-- src/pages/           Route pages and their private components
+|   |-- src/styles/          Global visual language and responsive styles
 |-- css/                     Styles for the legacy frontend
 |-- js/                      JavaScript for the legacy frontend
 |-- docs/                    Architecture, setup and project documentation
@@ -28,81 +108,6 @@ The project currently has:
 |-- server.py                Legacy frontend gateway
 `-- README.md
 ```
-
-## Prerequisites
-
-Install these tools before starting:
-
-- Python 3
-- Node.js and npm
-
-## 1. Run the backend
-
-Open the first terminal:
-
-```bash
-cd "/Users/prateekpanwar/PP Work/-Project--Jorniz/backend"
-
-# First-time setup only
-python3 -m venv .venv
-source .venv/bin/activate
-python3 -m pip install -r requirements.txt
-cp -n .env.example .env
-
-# Start the API
-python3 main.py
-```
-
-On later runs, only activate the existing environment and start Flask:
-
-```bash
-cd "/Users/prateekpanwar/PP Work/-Project--Jorniz/backend"
-source .venv/bin/activate
-python3 main.py
-```
-
-The API runs at `http://127.0.0.1:8000`.
-
-Check it from another terminal:
-
-```bash
-curl http://127.0.0.1:8000/api/health
-```
-
-A health response confirms that Flask and the configured database are reachable. Port `8000` is the API, not the frontend website.
-
-### Backend environment
-
-Keep backend secrets in `backend/.env`. Start from `backend/.env.example` and set the required values. Leave `DATABASE_URL` empty to use local SQLite, or provide the PostgreSQL/Neon connection string to use PostgreSQL.
-
-Never commit `backend/.env`.
-
-## 2. Run the new React frontend
-
-Keep the backend running. Open a second terminal:
-
-```bash
-cd "/Users/prateekpanwar/PP Work/-Project--Jorniz/frontend"
-
-# First-time setup only
-npm install
-cp -n .env.example .env.local
-
-# Start Vite
-npm run dev
-```
-
-Open [http://localhost:5173](http://localhost:5173).
-
-The frontend selects its backend through `VITE_API_URL`. For local development, set it in `frontend/.env.local`:
-
-```env
-VITE_API_URL=http://127.0.0.1:8000
-```
-
-For production, set `VITE_API_URL=https://jorniz.onrender.com` in the Vercel project environment. Restart Vite after changing a local environment value.
-
-Values beginning with `VITE_` are exposed to the browser. Do not put passwords, JWT secrets, database URLs, or storage write tokens in the frontend environment.
 
 ## 3. Test signup and login
 
