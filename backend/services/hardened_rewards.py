@@ -73,7 +73,9 @@ def install_hardened_rewards(ns):
         return float(canonical_balance(conn, user_id))
 
     def create_post():
+        title = (request.form.get("title") or "").strip()[:180]
         content = (request.form.get("content") or "").strip()
+        hashtags = ns["normalize_post_hashtags"](request.form.get("hashtags"))
         category = request.form.get("category") or "General Wellness"
         media = request.files.get("media")
         uid = str(request.current_user["id"])
@@ -114,8 +116,8 @@ def install_hardened_rewards(ns):
         try:
             execute(
                 conn,
-                "INSERT INTO posts (id,user_id,content,media_url,media_type,category) VALUES (%s,%s,%s,%s,%s,%s)",
-                (post_id, uid, content, media_url, media_type, category),
+                "INSERT INTO posts (id,creator_user_id,title,content,hashtags,media_url,media_type,category) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
+                (post_id, uid, title, content, hashtags, media_url, media_type, category),
             )
             rewarded, balance = apply_coin_entry(
                 conn, uid, "CREDIT", 10, "SOCIAL_POST_REWARD", post_id, f"post_reward:{post_id}"
@@ -151,7 +153,7 @@ def install_hardened_rewards(ns):
         post = None
         liked = False
         try:
-            post = one(conn, "SELECT id,user_id FROM posts WHERE id=%s" + lock_suffix(conn), (post_id,))
+            post = one(conn, "SELECT id,creator_user_id FROM posts WHERE id=%s" + lock_suffix(conn), (post_id,))
             if not post:
                 conn.rollback()
                 return jsonify({"detail": "Post not found"}), 404
@@ -169,19 +171,19 @@ def install_hardened_rewards(ns):
             raise
         finally:
             conn.close()
-        if liked and str(post["user_id"]) != uid:
-            create_notification(post["user_id"], uid, "like", post_id, f'{request.current_user.get("name", "Someone")} liked your post')
+        if liked and str(post["creator_user_id"]) != uid:
+            create_notification(post["creator_user_id"], uid, "like", post_id, f'{request.current_user.get("name", "Someone")} liked your post')
         return jsonify({"likes": count, "liked": liked})
 
     def record_post_view(post_id):
         uid = str(request.current_user["id"])
         conn = get_db()
         try:
-            post = one(conn, "SELECT id,user_id,views FROM posts WHERE id=%s" + lock_suffix(conn), (post_id,))
+            post = one(conn, "SELECT id,creator_user_id,views FROM posts WHERE id=%s" + lock_suffix(conn), (post_id,))
             if not post:
                 conn.rollback()
                 return jsonify({"detail": "Post not found"}), 404
-            if str(post["user_id"]) == uid:
+            if str(post["creator_user_id"]) == uid:
                 conn.rollback()
                 return jsonify({"counted": False, "views": post.get("views") or 0})
 
@@ -200,7 +202,7 @@ def install_hardened_rewards(ns):
                         """INSERT INTO creator_analytics (id,user_id,post_id,views,valid_views,reach)
                            VALUES (%s,%s,%s,1,1,1)
                            ON CONFLICT(user_id,post_id) DO UPDATE SET views=views+1,valid_views=valid_views+1,reach=reach+1""",
-                        (analytics_id, post["user_id"], post_id),
+                        (analytics_id, post["creator_user_id"], post_id),
                     )
                 else:
                     execute(
@@ -209,7 +211,7 @@ def install_hardened_rewards(ns):
                            VALUES (%s,%s,%s,1,1,1)
                            ON CONFLICT(user_id,post_id) DO UPDATE SET
                            views=creator_analytics.views+1,valid_views=creator_analytics.valid_views+1,reach=creator_analytics.reach+1""",
-                        (analytics_id, post["user_id"], post_id),
+                        (analytics_id, post["creator_user_id"], post_id),
                     )
             views = one(conn, "SELECT views FROM posts WHERE id=%s", (post_id,))["views"]
             conn.commit()
@@ -231,7 +233,7 @@ def install_hardened_rewards(ns):
         conn = get_db()
         notify = False
         try:
-            post = one(conn, "SELECT id,user_id FROM posts WHERE id=%s" + lock_suffix(conn), (post_id,))
+            post = one(conn, "SELECT id,creator_user_id FROM posts WHERE id=%s" + lock_suffix(conn), (post_id,))
             if not post:
                 conn.rollback()
                 return jsonify({"detail": "Post not found"}), 404
@@ -245,7 +247,7 @@ def install_hardened_rewards(ns):
             else:
                 execute(conn, "INSERT INTO post_reactions (id,post_id,user_id,reaction_type) VALUES (%s,%s,%s,%s)", ("rx_" + uuid.uuid4().hex, post_id, uid, new_type))
 
-            author_id = str(post["user_id"])
+            author_id = str(post["creator_user_id"])
             old_rewarding = old_type in eligible and author_id != uid
             new_rewarding = new_type in eligible and author_id != uid
             if new_rewarding and not old_rewarding:
@@ -286,11 +288,11 @@ def install_hardened_rewards(ns):
         reversed_amount = 0
         conn = get_db()
         try:
-            post = one(conn, "SELECT id,user_id,media_url FROM posts WHERE id=%s" + lock_suffix(conn), (post_id,))
+            post = one(conn, "SELECT id,creator_user_id,media_url FROM posts WHERE id=%s" + lock_suffix(conn), (post_id,))
             if not post:
                 conn.rollback()
                 return jsonify({"detail": "Post not found"}), 404
-            if str(post["user_id"]) != uid:
+            if str(post["creator_user_id"]) != uid:
                 conn.rollback()
                 return jsonify({"detail": "You can only delete your own posts"}), 403
             media_url = post.get("media_url") or ""

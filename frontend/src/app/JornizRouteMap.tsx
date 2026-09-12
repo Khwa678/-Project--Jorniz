@@ -34,7 +34,9 @@ export interface JornizRouteMapProps {
 function editablePost(post: HealthPost): EditablePost {
   return {
     id: String(post.id),
+    title: post.title,
     content: post.content ?? "",
+    hashtags: post.hashtags,
     category: post.category,
     media_url: post.media_url,
     media_type: post.media_type,

@@ -18,7 +18,8 @@
 .health-post-avatar-image { object-fit: cover; }
 .health-post-avatar-fallback { display: grid; place-items: center; }
 .health-post-author-button { min-width: 0; min-height: 0; padding: 0; flex-direction: column; align-items: flex-start; text-align: left; }
-.health-post-author strong, .health-post-author small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.health-post-author-name, .health-post-author small { display: flex; align-items: center; gap: 5px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.health-post-author-name svg { flex: 0 0 auto; color: #2367f2; }
 .health-post-author small { margin-top: 3px; color: #738078; }
 .health-post-owner-menu-trigger { width: 32px; padding: 0; color: #687588; }
 .health-post-owner-menu { z-index: 80; min-width: 150px; border: 1px solid #dde5e1; border-radius: 11px; padding: 5px; background: white; box-shadow: 0 12px 32px rgba(20,32,51,.14); }
@@ -27,10 +28,15 @@
 .health-post-owner-menu-item.danger { color: #b5352f; }
 .health-post-owner-menu-item.danger[data-highlighted] { background: #fff1f0; color: #a62d28; }
 .health-post-category { display: inline-block; margin: 8px 18px 0; border-radius: 999px; padding: 4px 9px; background: #e8f7ef; color: #1d5bd8; font-size: 12px; font-weight: 800; }
-.health-post-content { margin: 12px 18px 18px; line-height: 1.65; white-space: pre-wrap; }
+.health-post-title { margin: 13px 18px 0; font-size: 18px; line-height: 1.35; }
+.health-post-content { display: -webkit-box; margin: 8px 18px 18px; overflow: hidden; line-height: 1.6; white-space: pre-wrap; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.health-post-media-frame { position: relative; }
 .health-post-media { display: block; width: 100%; max-height: 560px; object-fit: cover; background: #e7ece9; }
+.health-post-trust { position: absolute; top: 14px; right: 14px; z-index: 1; display: flex; align-items: center; gap: 5px; border-radius: 999px; padding: 6px 10px; background: #2367f2; color: white; font-size: 12px; font-weight: 800; }
 .health-post-separator { display: block; height: 1px; background: #edf1ef; }
 .health-post-statistics { display: flex; flex-wrap: wrap; gap: 18px; padding: 13px 18px; color: #68766f; font-size: 13px; }
+.health-post-hashtags { display: flex; flex-wrap: wrap; gap: 7px; padding: 0 18px 15px; }
+.health-post-hashtags span { border-radius: 999px; padding: 4px 9px; background: #eef4ff; color: #1d5bd8; font-size: 12px; font-weight: 700; }
 .feed-state { border: 1px dashed #cbd8d2; border-radius: 16px; padding: 32px 20px; background: #f8fbf9; color: #65736c; text-align: center; }
 .feed-state-error { color: #a62d28; }
 @media (max-width: 600px) { .home-feed-heading { align-items: center; } .home-feed-heading h1 { font-size: 24px; } .home-feed-controls { align-items:stretch; flex-direction:column; } .home-create-post-button { justify-content:center; } .health-post-author { grid-template-columns: 42px minmax(0,1fr) auto; } }

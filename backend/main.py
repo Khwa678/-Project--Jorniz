@@ -295,13 +295,37 @@ def optional_uid_from_request():
     user, _sid = authenticated_user(token)
     return str(user["id"]) if user else None
 
+def normalize_post_hashtags(value):
+    """Store a compact, unique comma-separated hashtag list."""
+    tags = []
+    seen = set()
+    for raw_tag in str(value or "").split(","):
+        tag = raw_tag.strip().lstrip("#").strip()[:50]
+        key = tag.lower()
+        if tag and key not in seen:
+            tags.append(tag)
+            seen.add(key)
+    return ",".join(tags[:10])
+
+def utc_iso_timestamp(value):
+    """Return API timestamps as unambiguous UTC ISO-8601 values."""
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value.replace("Z", "+00:00").replace(" ", "T"))
+        except ValueError:
+            return value
+    if not isinstance(value, datetime):
+        return value
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
 def post_with_author(post, viewer_id=None) -> dict:
     if not post: return {}
     post = dict(post)
-    for k, v in post.items():
-        if isinstance(v, datetime): post[k] = v.isoformat()
-    a = user_payload(db_one("SELECT id,name,user_type,system_role,avatar_url FROM users WHERE id=%s",
-                            (post.get("user_id"),)) or {})
+    post["created_at"] = utc_iso_timestamp(post.get("created_at"))
+    a = user_payload(db_one("SELECT id,name,user_type,system_role,avatar_url,is_verified FROM users WHERE id=%s",
+                            (post.get("creator_user_id"),)) or {})
     profile = a.get("profile") or {}
     post["author"] = {
         "id":        str(a.get("id","")),
@@ -309,7 +333,7 @@ def post_with_author(post, viewer_id=None) -> dict:
         "user_type": a.get("user_type", "general_user"),
         "specialty": profile.get("specialty", ""),
         "avatar":    a.get("avatar_url",""),
-        "verified":  a.get("verification_status") == "approved",
+        "is_verified": bool(a.get("is_verified", False)),
     }
     cc = db_one("SELECT COUNT(*) AS n FROM post_comments WHERE post_id=%s", (post["id"],))
     post["comments_count"] = cc["n"] if cc else 0
@@ -751,7 +775,9 @@ def reset_password():
 @app.route("/api/posts/create", methods=["POST"])
 @require_auth
 def create_post():
+    title    = (request.form.get("title") or "").strip()[:180]
     content  = (request.form.get("content") or "").strip()
+    hashtags = normalize_post_hashtags(request.form.get("hashtags"))
     category =  request.form.get("category") or "General Wellness"
     media    =  request.files.get("media")
     uid      =  str(request.current_user["id"])
@@ -793,8 +819,8 @@ def create_post():
 
     conn = get_db()
     try:
-        db_exec(conn, "INSERT INTO posts (id,user_id,content,media_url,media_type,category) VALUES (%s,%s,%s,%s,%s,%s)",
-                (post_id, uid, content, media_url, media_type, category))
+        db_exec(conn, "INSERT INTO posts (id,creator_user_id,title,content,hashtags,media_url,media_type,category) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
+                (post_id, uid, title, content, hashtags, media_url, media_type, category))
         lock = "SELECT hu_coins FROM users WHERE id=%s" + (" FOR UPDATE" if not isinstance(conn, sqlite3.Connection) else "")
         row = db_exec(conn, lock, (uid,)).fetchone()
         current_coins = (dict(row).get("hu_coins") if row else 0) or 0
@@ -854,7 +880,7 @@ def get_posts():
 def get_my_posts():
     uid   = str(request.current_user["id"])
     posts = db_all(
-        "SELECT * FROM posts WHERE user_id=%s ORDER BY created_at DESC", (uid,)
+        "SELECT * FROM posts WHERE creator_user_id=%s ORDER BY created_at DESC", (uid,)
     )
     return jsonify([post_with_author(p, uid) for p in posts])
 
@@ -879,10 +905,10 @@ def like_post(post_id):
         db_run("UPDATE posts SET likes=likes+1 WHERE id=%s", (post_id,))
         liked = True
         # Notify ONLY the post's owner (not on unlike, and never notify yourself).
-        post_row = db_one("SELECT user_id FROM posts WHERE id=%s", (post_id,))
+        post_row = db_one("SELECT creator_user_id FROM posts WHERE id=%s", (post_id,))
         actor_name = request.current_user.get("name", "Someone")
         if post_row:
-            create_notification(post_row["user_id"], uid, "like", post_id, f"{actor_name} liked your post")
+            create_notification(post_row["creator_user_id"], uid, "like", post_id, f"{actor_name} liked your post")
 
     updated = db_one("SELECT likes FROM posts WHERE id=%s", (post_id,))
     return jsonify({"likes": updated["likes"], "liked": liked})
@@ -938,11 +964,11 @@ def add_comment(post_id):
     )
 
     # Notify ONLY the post's owner (not everyone) — never notify yourself.
-    post_row = db_one("SELECT user_id FROM posts WHERE id=%s", (post_id,))
+    post_row = db_one("SELECT creator_user_id FROM posts WHERE id=%s", (post_id,))
     actor_name = request.current_user.get("name", "Someone")
     if post_row:
         snippet = (content[:60] + "…") if len(content) > 60 else content
-        create_notification(post_row["user_id"], uid, "comment", post_id, f'{actor_name} commented: "{snippet}"')
+        create_notification(post_row["creator_user_id"], uid, "comment", post_id, f'{actor_name} commented: "{snippet}"')
 
     comment = dict(db_one("SELECT * FROM post_comments WHERE id=%s", (cid,)))
     for k, v in comment.items():
@@ -962,10 +988,12 @@ def update_post(post_id):
     post = db_one("SELECT * FROM posts WHERE id=%s", (post_id,))
     if not post:
         return jsonify({"detail": "Post not found"}), 404
-    if str(post["user_id"]) != uid:
+    if str(post["creator_user_id"]) != uid:
         return jsonify({"detail": "You can only edit your own posts"}), 403
 
+    title = (request.form.get("title", post.get("title") or "") or "").strip()[:180]
     content = (request.form.get("content", post.get("content") or "") or "").strip()
+    hashtags = normalize_post_hashtags(request.form.get("hashtags", post.get("hashtags") or ""))
     category = request.form.get("category", post.get("category") or "General Wellness")
     media = request.files.get("media")
     remove_media = (request.form.get("remove_media") or "").lower() in {"1", "true", "yes"}
@@ -1003,8 +1031,8 @@ def update_post(post_id):
 
     try:
         db_run(
-            "UPDATE posts SET content=%s,category=%s,media_url=%s,media_type=%s WHERE id=%s",
-            (content, category, media_url, media_type, post_id),
+            "UPDATE posts SET title=%s,content=%s,hashtags=%s,category=%s,media_url=%s,media_type=%s WHERE id=%s",
+            (title, content, hashtags, category, media_url, media_type, post_id),
         )
     except Exception:
         if uploaded_url:
@@ -1032,10 +1060,10 @@ def update_post(post_id):
 @require_auth
 def delete_post(post_id):
     uid  = str(request.current_user["id"])
-    post = db_one("SELECT id,user_id,media_url FROM posts WHERE id=%s", (post_id,))
+    post = db_one("SELECT id,creator_user_id,media_url FROM posts WHERE id=%s", (post_id,))
     if not post:
         return jsonify({"detail": "Post not found"}), 404
-    if str(post["user_id"]) != uid:
+    if str(post["creator_user_id"]) != uid:
         return jsonify({"detail": "You can only delete your own posts"}), 403
     db_run("DELETE FROM posts WHERE id=%s", (post_id,))
     response = {"message": "Post deleted", "media_deleted": False}
@@ -2707,7 +2735,7 @@ def enable_two_factor_auth():
 def export_user_data():
     uid = str(request.current_user["id"])
     user = db_one("SELECT id,name,email,user_type,system_role,hu_coins,created_at FROM users WHERE id=%s", (uid,))
-    posts = db_all("SELECT id, content, created_at FROM posts WHERE user_id=%s", (uid,))
+    posts = db_all("SELECT id, title, content, hashtags, created_at FROM posts WHERE creator_user_id=%s", (uid,))
     return jsonify({"user": user, "posts": posts, "export_date": datetime.now().isoformat()})
 
 @app.route("/api/auth/delete-account", methods=["POST"])
@@ -3236,13 +3264,13 @@ def react_to_post(post_id):
         user_reaction = reaction_type
 
         # Reward author +5 HU Coins for insightful / celebrate / support reactions
-        if reaction_type in {"insightful", "celebrate", "support"} and post["user_id"] != uid:
-            author_row = db_one("SELECT hu_coins FROM users WHERE id=%s", (post["user_id"],))
+        if reaction_type in {"insightful", "celebrate", "support"} and post["creator_user_id"] != uid:
+            author_row = db_one("SELECT hu_coins FROM users WHERE id=%s", (post["creator_user_id"],))
             cur_coins = author_row["hu_coins"] if author_row and author_row.get("hu_coins") is not None else 500
             new_c = cur_coins + 5
-            db_run("UPDATE users SET hu_coins=%s, coins=%s WHERE id=%s", (new_c, new_c, post["user_id"]))
+            db_run("UPDATE users SET hu_coins=%s, coins=%s WHERE id=%s", (new_c, new_c, post["creator_user_id"]))
             actor_name = request.current_user.get("name", "Someone")
-            create_notification(post["user_id"], uid, "reaction", post_id, message=f"{actor_name} reacted '{reaction_type}' to your post!")
+            create_notification(post["creator_user_id"], uid, "reaction", post_id, message=f"{actor_name} reacted '{reaction_type}' to your post!")
 
     # Calculate reaction breakdown counts
     counts = db_all(
@@ -3414,7 +3442,7 @@ def get_explore_hub():
         })
 
     # 3. Trending Posts & Case Studies
-    posts = db_all("SELECT p.*, u.name as author_name, u.avatar_url as author_avatar FROM posts p JOIN users u ON p.user_id=u.id ORDER BY p.created_at DESC LIMIT 4")
+    posts = db_all("SELECT p.*, u.name as author_name, u.avatar_url as author_avatar FROM posts p JOIN users u ON p.creator_user_id=u.id ORDER BY p.created_at DESC LIMIT 4")
 
     # 4. Communities
     communities = [
@@ -3484,7 +3512,7 @@ def search_advanced():
     q_pattern = f"%{query}%"
 
     res_people = db_all("SELECT id, name, role, specialty, hospital, avatar_url, is_verified FROM users WHERE name LIKE %s OR specialty LIKE %s OR hospital LIKE %s LIMIT 10", (q_pattern, q_pattern, q_pattern))
-    res_posts = db_all("SELECT p.*, u.name as author_name FROM posts p JOIN users u ON p.user_id=u.id WHERE p.content LIKE %s OR p.category LIKE %s LIMIT 10", (q_pattern, q_pattern))
+    res_posts = db_all("SELECT p.*, u.name as author_name FROM posts p JOIN users u ON p.creator_user_id=u.id WHERE p.title LIKE %s OR p.content LIKE %s OR p.category LIKE %s LIMIT 10", (q_pattern, q_pattern, q_pattern))
     res_jobs = db_all("SELECT * FROM jobs WHERE title LIKE %s OR company LIKE %s LIMIT 10", (q_pattern, q_pattern))
     res_prods = db_all("SELECT * FROM products WHERE name LIKE %s OR description LIKE %s LIMIT 10", (q_pattern, q_pattern))
 

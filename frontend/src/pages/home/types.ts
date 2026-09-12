@@ -5,16 +5,19 @@ export interface PostAuthor {
   name?: string;
   avatar?: string;
   avatar_url?: string;
-  professional_label?: string;
-  role?: string;
+  specialty?: string;
+  user_type?: string;
   is_verified?: boolean;
   is_following?: boolean;
 }
 
 export interface HealthPost {
   id: string;
-  user_id?: string;
+  creator_user_id?: string;
+  title?: string;
   content: string;
+  hashtags?: string;
+  trust_status?: "unreviewed" | "trusted" | "flagged" | "rejected";
   category?: string;
   media_url?: string;
   media_type?: "image" | "video" | string;

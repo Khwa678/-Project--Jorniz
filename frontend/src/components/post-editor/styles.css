@@ -7,13 +7,28 @@
 .post-editor-description { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 .post-editor-dialog form { display: grid; gap: 16px; padding: 22px; }
 .post-editor-dialog form > label, .post-media-picker label { display: grid; gap: 7px; font-weight: 800; }
-.post-editor-dialog textarea, .post-media-picker input { box-sizing: border-box; width: 100%; border: 1px solid #cbd8d2; border-radius: 11px; padding: 12px; font: inherit; }
+.post-editor-dialog form > label input, .post-editor-dialog textarea, .post-media-picker input { box-sizing: border-box; width: 100%; border: 1px solid #cbd8d2; border-radius: 11px; padding: 12px; font: inherit; }
+.post-editor-dialog form > label small { color: #718078; font-size: 12px; font-weight: 500; }
+.post-editor-field { display: grid; gap: 7px; }
+.post-editor-field > label { font-weight: 800; }
+.post-editor-field > small { color: #718078; font-size: 12px; }
+.post-hashtag-editor { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; min-height: 44px; border: 1px solid #cbd8d2; border-radius: 11px; padding: 7px 9px; background: white; }
+.post-hashtag-editor:focus-within { border-color: #2367f2; box-shadow: 0 0 0 3px rgba(35,103,242,.14); }
+.post-hashtag-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.post-hashtag-chip { display: inline-flex; align-items: center; gap: 4px; border: 0; border-radius: 999px; padding: 5px 8px; background: #eef4ff; color: #1d5bd8; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.post-hashtag-chip:hover { background: #dce8ff; }
+.post-hashtag-editor input { flex: 1 1 150px; min-width: 120px; border: 0; padding: 5px 2px; font: inherit; outline: 0; }
 .post-editor-dialog textarea { resize: vertical; }
 .post-category-trigger { display:flex; align-items:center; justify-content:space-between; width:100%; border:1px solid #cbd8d2; border-radius:11px; padding:12px; background:white; color:#142033; font:inherit; cursor:pointer; }
 .post-category-menu { z-index:100; min-width:var(--radix-select-trigger-width); overflow:hidden; border:1px solid #d5e0db; border-radius:11px; padding:5px; background:white; box-shadow:0 14px 38px rgba(20,32,51,.16); }
 .post-category-option { border-radius:7px; padding:9px 10px; color:#315044; font-size:14px; cursor:pointer; outline:none; }
 .post-category-option[data-highlighted] { background:#eef4ff; color:#1d5bd8; }
 .post-media-picker { display: grid; gap: 10px; }
+.post-media-heading { display: grid; gap: 3px; }
+.post-media-heading small { color: #718078; font-size: 12px; font-weight: 500; }
+.post-media-picker .post-media-upload-control { display: flex; align-items: center; justify-content: center; gap: 7px; border: 1px dashed #9db9ed; border-radius: 11px; padding: 13px; background: #f7faff; color: #1d5bd8; font-size: 14px; font-weight: 800; cursor: pointer; }
+.post-media-picker .post-media-upload-control:hover { border-color: #2367f2; background: #eef4ff; }
+.post-media-picker .post-media-file-input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .post-media-picker img, .post-media-picker video { width: 100%; max-height: 330px; border-radius: 13px; object-fit: contain; background: #edf2ef; }
 .post-media-picker p { margin: 0; padding: 18px; border: 1px dashed #cbd8d2; border-radius: 12px; color: #718078; text-align: center; }
 .post-editor-message { margin: 0; border-radius: 10px; padding: 10px 12px; }

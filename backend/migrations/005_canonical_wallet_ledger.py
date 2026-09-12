@@ -29,7 +29,11 @@ def connect(target):
 
 def execute(conn, dialect, sql, params=()):
     cursor = conn.cursor()
-    cursor.execute(sql.replace("%s", "?") if dialect == "sqlite" else sql, params)
+    statement = sql.replace("%s", "?") if dialect == "sqlite" else sql
+    if params:
+        cursor.execute(statement, params)
+    else:
+        cursor.execute(statement)
     return cursor
 
 

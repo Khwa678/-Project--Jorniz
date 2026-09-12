@@ -265,8 +265,12 @@ def init_db(db_path="healthy_universe.db"):
     cur.execute("""
     CREATE TABLE IF NOT EXISTS posts (
         id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
+        creator_user_id TEXT NOT NULL,
+        title TEXT NOT NULL DEFAULT '',
         content TEXT NOT NULL,
+        hashtags TEXT NOT NULL DEFAULT '',
+        trust_status TEXT NOT NULL DEFAULT 'unreviewed'
+            CHECK (trust_status IN ('unreviewed', 'trusted', 'flagged', 'rejected')),
         category TEXT DEFAULT 'General Wellness',
         media_url TEXT DEFAULT '',
         media_type TEXT DEFAULT '',
@@ -274,8 +278,8 @@ def init_db(db_path="healthy_universe.db"):
         views INTEGER DEFAULT 0,
         shares INTEGER DEFAULT 0,
         revenue REAL DEFAULT 0.0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id)
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (creator_user_id) REFERENCES users(id)
     );
     """)
 
@@ -684,15 +688,18 @@ def init_db(db_path="healthy_universe.db"):
         credit_debit TEXT NOT NULL,
         value_type TEXT NOT NULL,
         amount REAL NOT NULL,
-        currency TEXT DEFAULT 'INR',
+        currency TEXT DEFAULT 'HU_COIN',
         source_type TEXT NOT NULL,
         source_id TEXT,
         idempotency_key TEXT UNIQUE NOT NULL,
         balance_before REAL DEFAULT 0.0,
         balance_after REAL DEFAULT 0.0,
-        status TEXT DEFAULT 'Settled',
+        status TEXT DEFAULT 'available',
+        action TEXT,
+        reversal_of_id TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id)
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (reversal_of_id) REFERENCES wallet_ledger(id)
     );
     """)
 
