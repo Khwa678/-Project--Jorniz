@@ -1,5 +1,5 @@
 .health-assistant { position:relative; z-index:1500; color:#172033; }
-.health-assistant-launcher { position:fixed; right:18px; bottom:18px; display:grid; width:48px; height:48px; place-items:center; border:0; border-radius:50%; padding:0; background:#2367f2; color:#fff; box-shadow:0 10px 26px rgba(35,103,242,.3); cursor:pointer; animation:healthAssistantButtonIn .2s cubic-bezier(.34,1.56,.64,1) both; transition:transform .18s ease,box-shadow .18s ease; }
+.health-assistant-launcher { position:fixed; right:18px; bottom:18px; display:grid; box-sizing:border-box; width:48px; height:48px; place-items:center; border:2px solid #6595f6; border-radius:50%; padding:0; background:#2367f2; color:#fff; box-shadow:0 10px 26px rgba(35,103,242,.3); cursor:pointer; animation:healthAssistantButtonIn .2s cubic-bezier(.34,1.56,.64,1) both; transition:transform .18s ease,box-shadow .18s ease; }
 .health-assistant-launcher:hover { transform:translateY(-2px) scale(1.05); box-shadow:0 13px 30px rgba(35,103,242,.38); }
 .health-assistant-launcher:active { transform:scale(.94); }
 .health-assistant-launcher svg { width:22px; height:22px; stroke-width:2; }

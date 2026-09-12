@@ -74,8 +74,8 @@ export function HealthcareJobsPage({ signedInAccount }: HealthcareJobsPageProps)
 
   return (
     <section className="hj-page">
-      <header className="hj-page-heading">
-        <div><span>Healthcare careers</span><h1>Jobs</h1><p>Persisted roles and applications from the Jorniz backend.</p></div>
+      <header className="hj-page-heading workspace-page-heading">
+        <div><h1>Jobs</h1><p className="workspace-page-tagline">Discover healthcare roles and manage your applications.</p></div>
         <Button className="hj-primary-button" onClick={() => setShowPostingForm(true)}>Post a job</Button>
       </header>
       <Tabs.Root className="hj-tabs-root" value={tab} onValueChange={(value) => setTab(value as JobsTab)}>

@@ -62,8 +62,8 @@ export function DoctorConsultationsPage() {
 
   return (
     <Tabs.Root className="dc-page" value={tab} onValueChange={(value) => setTab(value as ConsultationPageTab)}>
-      <header className="dc-page-heading">
-        <div><span>Verified care directory</span><h1>Doctor consultations</h1><p>Browse approved healthcare professionals without mixing in demo profiles.</p></div>
+      <header className="dc-page-heading workspace-page-heading">
+        <div><h1>Doctor Consultations</h1><p className="workspace-page-tagline">Find verified healthcare professionals and book care.</p></div>
         <Tabs.List className="dc-tabs" aria-label="Consultation views">
           <Tabs.Trigger value="directory">Find a doctor</Tabs.Trigger>
           <Tabs.Trigger value="appointments">My appointments</Tabs.Trigger>

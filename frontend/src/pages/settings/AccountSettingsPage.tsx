@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Tabs } from "radix-ui";
+import { Button } from "../../components/ui/Button";
 import type { SignedInAccount } from "../../lib/auth/accountTypes";
 import { AccountDataControls } from "./components/AccountDataControls";
 import { AppearanceSettings } from "./components/AppearanceSettings";
@@ -22,12 +23,14 @@ export interface AccountSettingsPageProps {
   account: SignedInAccount;
   onAccountUpdated: (account: SignedInAccount) => void;
   onAccountDeactivated?: () => void;
+  onSignOut: () => void;
 }
 
 export function AccountSettingsPage({
   account,
   onAccountUpdated,
   onAccountDeactivated,
+  onSignOut,
 }: AccountSettingsPageProps) {
   const [section, setSection] = useState<SettingsSection>("profile");
   const [sessions, setSessions] = useState<SignedInSession[]>([]);
@@ -105,9 +108,8 @@ export function AccountSettingsPage({
   return (
     <main className="account-settings-page">
       <header>
-        <span className="settings-page-kicker">Account control</span>
         <h1>Settings</h1>
-        <p>Only settings supported by a real backend endpoint can be saved.</p>
+        <p>Keep your profile, privacy, and preferences working your way.</p>
       </header>
       <Tabs.Root
         className="account-settings-layout"
@@ -118,19 +120,22 @@ export function AccountSettingsPage({
           setSection(value as SettingsSection);
         }}
       >
-        <Tabs.List className="account-settings-navigation" aria-label="Settings sections">
-          {([
-            ["profile", "Profile"],
-            ["notifications", "Notifications"],
-            ["privacy", "Privacy"],
-            ["appearance", "Appearance"],
-            ["account-data", "Sessions and data"],
-          ] as Array<[SettingsSection, string]>).map(([id, label]) => (
-            <Tabs.Trigger value={id} key={id}>
-              {label}
-            </Tabs.Trigger>
-          ))}
-        </Tabs.List>
+        <div className="account-settings-navigation-column">
+          <Tabs.List className="account-settings-navigation" aria-label="Settings sections">
+            {([
+              ["profile", "Profile"],
+              ["notifications", "Notifications"],
+              ["privacy", "Privacy"],
+              ["appearance", "Appearance"],
+              ["account-data", "Sessions and data"],
+            ] as Array<[SettingsSection, string]>).map(([id, label]) => (
+              <Tabs.Trigger value={id} key={id}>
+                {label}
+              </Tabs.Trigger>
+            ))}
+          </Tabs.List>
+          <Button className="settings-sign-out" variant="danger" onClick={onSignOut}>Sign out</Button>
+        </div>
         <div>
           <Tabs.Content value="profile">
             <ProfileSettings

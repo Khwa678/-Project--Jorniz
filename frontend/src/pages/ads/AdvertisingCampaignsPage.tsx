@@ -74,11 +74,10 @@ export function AdvertisingCampaignsPage() {
 
   return (
     <main className="advertising-campaigns-page">
-      <header className="advertising-page-heading">
+      <header className="advertising-page-heading workspace-page-heading">
         <div>
-          <span className="campaign-kicker">Paid participation</span>
-          <h1>Advertising Campaigns</h1>
-          <p>Create campaigns and review only metrics returned by the backend.</p>
+          <h1>Ads Manager</h1>
+          <p className="workspace-page-tagline">Reach more people and see how your campaigns perform.</p>
         </div>
         <Dialog.Root open={showCreationForm} onOpenChange={setShowCreationForm}>
           <Dialog.Trigger asChild>

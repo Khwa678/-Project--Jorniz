@@ -97,12 +97,7 @@ export function JornizRouteMap({
     return <MemberProfilePage signedInAccount={account} onOpenPost={() => onNavigate("home")} onOpenSettings={() => onNavigate("settings")} />;
   }
   if (destination === "settings") {
-    return (
-      <div className="settings-route">
-        <AccountSettingsPage account={account} onAccountUpdated={onAccountUpdated} onAccountDeactivated={onSignOut} />
-        <Button className="workspace-sign-out" variant="danger" onClick={onSignOut}>Sign out</Button>
-      </div>
-    );
+    return <AccountSettingsPage account={account} onAccountUpdated={onAccountUpdated} onAccountDeactivated={onSignOut} onSignOut={onSignOut} />;
   }
 
   return (

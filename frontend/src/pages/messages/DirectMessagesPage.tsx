@@ -230,8 +230,8 @@ export function DirectMessagesPage({ accessToken, signedInAccount, socketUrl }: 
 
   return (
     <section className="dm-page">
-      <header className="dm-page-heading">
-        <div><span>Private conversations</span><h1>Direct messages</h1></div>
+      <header className="dm-page-heading workspace-page-heading">
+        <div><h1>Direct Messages</h1><p className="workspace-page-tagline">Start and continue private conversations with Jorniz members.</p></div>
         <Dialog.Root open={showMemberSearch} onOpenChange={setShowMemberSearch}>
           <Dialog.Trigger asChild>
             <Button>New conversation</Button>

@@ -100,7 +100,7 @@ export function ProfessionalNetworkPage() {
 
   return (
     <section className="pn-page">
-      <header className="pn-page-heading"><div><span>Professional relationships</span><h1>My network</h1><p>Manage persisted connection invitations and first-degree healthcare connections.</p></div><strong>{network.connections.length} connections</strong></header>
+      <header className="pn-page-heading workspace-page-heading"><div><h1>My Network</h1><p className="workspace-page-tagline">Manage your connections and invitations.</p></div><strong>{network.connections.length} connections</strong></header>
       {notice ? <div className="pn-notice">{notice}</div> : null}
       {failure ? <div className="pn-error" role="alert"><p>{failure}</p><Button size="small" onClick={() => void refreshNetwork()}>Try again</Button></div> : loading ? <p className="pn-status">Loading your professional network...</p> : (
         <>

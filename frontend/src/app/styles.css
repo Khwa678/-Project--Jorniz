@@ -32,6 +32,30 @@
 }
 
 .workspace-route-content { min-width: 0; }
+.workspace-route-content > main {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+}
+.workspace-route-content .workspace-page-heading h1,
+.workspace-route-content .account-settings-page > header h1 {
+  margin: 0;
+  font-family: inherit;
+  font-size: clamp(24px, 2.5vw, 30px);
+  line-height: 1.15;
+  letter-spacing: -.02em;
+}
+.workspace-route-content .workspace-page-heading .workspace-page-tagline,
+.workspace-route-content .account-settings-page > header > p {
+  margin: 6px 0 0;
+  color: #687588;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.45;
+  text-transform: none;
+}
 .sidebar-collapse-button {
   position: fixed;
   top: 82.4%;
@@ -81,8 +105,10 @@
   top: auto;
   right: 18px;
   bottom: 84px;
+  box-sizing: border-box;
   width: 48px;
   height: 48px;
+  border: 2px solid #6595f6;
   border-radius: 50%;
   background: #2367f2;
   color: #fff;

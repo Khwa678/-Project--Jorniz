@@ -1,6 +1,6 @@
 .explore-search-page { width: min(960px, 100%); margin: 0 auto; color: #142033; }
-.explore-search-page > header p { margin: 0 0 4px; color: #2367f2; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-.explore-search-page > header h1 { margin: 0 0 22px; font-size: clamp(28px, 5vw, 43px); }
+.explore-search-page > header { margin-bottom: 22px; }
+.explore-search-page > header h1 { margin: 0; font-size: clamp(28px, 5vw, 43px); }
 .explore-search-bar { padding: 18px; border: 1px solid #dce5e1; border-radius: 17px; background: white; box-shadow: 0 7px 24px rgba(33,53,45,.06); }
 .explore-search-bar label { display: block; margin-bottom: 8px; font-weight: 800; }
 .explore-search-bar > div { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 9px; }

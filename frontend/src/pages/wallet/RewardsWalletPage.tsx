@@ -55,11 +55,10 @@ export function RewardsWalletPage({
 
   return (
     <main className="rewards-wallet-page">
-      <header className="wallet-page-heading">
+      <header className="wallet-page-heading workspace-page-heading">
         <div>
-          <span className="reward-section-kicker">Participation rewards</span>
           <h1>Rewards Wallet</h1>
-          <p>Review server-confirmed HU Coins and their immutable ledger entries.</p>
+          <p className="workspace-page-tagline">See your HU Coin balance, earnings, and redemptions in one place.</p>
         </div>
         <Button onClick={() => void refreshRewardsWallet()} disabled={status === "loading"}>
           Refresh

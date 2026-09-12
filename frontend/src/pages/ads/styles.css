@@ -1,8 +1,8 @@
 .advertising-campaigns-page { display:grid; gap:22px; color:#172033; }
 .advertising-page-heading { display:flex; justify-content:space-between; align-items:center; gap:18px; }
-.advertising-page-heading h1,.campaign-creation-panel h2,.advertising-campaign-card h2 { margin:4px 0 8px; }
+.advertising-page-heading h1 { margin:0 0 8px; }
+.campaign-creation-panel h2,.advertising-campaign-card h2 { margin:4px 0 8px; }
 .advertising-page-heading p,.advertising-campaign-card p { margin:0; color:#687386; }
-.campaign-kicker { color:#1d5bd8; font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
 .advertising-page-heading button,.campaign-creation-panel button,.campaign-error-state button,.campaign-card-actions button,.sponsored-post-card button { border:0; border-radius:11px; padding:10px 16px; background:#c15d18; color:#fff; font:inherit; font-weight:750; cursor:pointer; }
 .campaign-performance { display:grid; grid-template-columns:repeat(4,1fr); overflow:hidden; border:1px solid #eadfd7; border-radius:18px; background:#fff; }
 .campaign-performance div { display:grid; gap:4px; padding:18px; border-right:1px solid #eee5df; }

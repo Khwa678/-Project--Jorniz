@@ -45,10 +45,10 @@ export function HomeFeedPage({ signedInAccount, onOpenCreatePost, onOpenMember, 
 
   return (
     <main className="home-feed-page">
-      <header className="home-feed-heading">
+      <header className="home-feed-heading workspace-page-heading">
         <div>
           <h1>Home Feed</h1>
-          <p>Health insights from professionals and people you follow.</p>
+          <p className="workspace-page-tagline">Read and share health posts from across the Jorniz community.</p>
         </div>
       </header>
       <FeedAudienceTabs

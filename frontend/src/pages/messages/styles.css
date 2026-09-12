@@ -1,8 +1,7 @@
 .dm-page { color:#132238; display:grid; gap:18px; }
 .dm-page button,.dm-page input,.dm-page textarea { font:inherit; }
 .dm-page-heading { align-items:end; display:flex; justify-content:space-between; }
-.dm-page-heading span { color:#2367f2; font-size:.78rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
-.dm-page-heading h1 { font-family:Georgia,serif; font-size:clamp(2rem,5vw,3.2rem); margin:4px 0 0; }
+.dm-page-heading h1 { font-family:Georgia,serif; font-size:clamp(2rem,5vw,3.2rem); margin:0; }
 .dm-error { background:#fff0ec; border:1px solid #f2b8ab; border-radius:12px; color:#8d2d1e; padding:12px 14px; }
 .dm-member-search { align-items:center; display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
 .dm-member-search input,.dm-sidebar>input,.dm-thread-header input { background:white; border:1px solid #cbd9d2; border-radius:10px; min-width:180px; padding:10px 12px; }

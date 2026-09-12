@@ -12,7 +12,10 @@
   gap: 20px;
 }
 
-.wallet-page-heading h1,
+.wallet-page-heading h1 {
+  margin: 0 0 8px;
+}
+
 .reward-redemption-card h2,
 .reward-ledger-card h2 {
   margin: 4px 0 8px;
@@ -22,14 +25,6 @@
 .reward-redemption-card p {
   margin: 0;
   color: #667085;
-}
-
-.reward-section-kicker {
-  color: #2367f2;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .reward-balance-grid {

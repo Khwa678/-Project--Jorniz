@@ -1,7 +1,8 @@
 .health-marketplace-page { width: min(1120px,100%); margin: 0 auto; color: #152033; }
 .marketplace-page-header { display: flex; justify-content: space-between; gap: 24px; align-items: end; margin-bottom: 24px; }
 .marketplace-page-header p, .marketplace-page-header h1 { margin: 0; }
-.marketplace-page-header p, .product-catalogue header p, .marketplace-checkout header p, .my-orders header p { color: #2367f2; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.marketplace-page-header p { color: #69766f; }
+.product-catalogue header p, .marketplace-checkout header p, .my-orders header p { color: #2367f2; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .marketplace-page-header h1 { margin: 4px 0; font-size: clamp(30px,5vw,48px); }
 .marketplace-page-header span { color: #69766f; }
 .marketplace-page-header nav { display: flex; gap: 6px; padding: 5px; border-radius: 13px; background: #eaf0ed; }

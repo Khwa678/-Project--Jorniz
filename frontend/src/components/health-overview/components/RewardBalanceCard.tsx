@@ -19,7 +19,7 @@ export function RewardBalanceCard({
         <strong>
           {loading ? "Loading" : confirmedCoins === null ? "Unavailable" : confirmedCoins.toLocaleString()}
         </strong>
-        <Button variant="secondary" size="small" onClick={onOpenWallet} disabled={!onOpenWallet}>
+        <Button variant="ghost" size="small" onClick={onOpenWallet} disabled={!onOpenWallet}>
           View wallet
         </Button>
       </div>
