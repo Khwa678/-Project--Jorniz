@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Button } from "../../components/ui/Button";
 import { RewardBalance } from "./components/RewardBalance";
 import { RewardLedger } from "./components/RewardLedger";
 import { RewardRedemption } from "./components/RewardRedemption";
@@ -60,9 +61,9 @@ export function RewardsWalletPage({
           <h1>Rewards Wallet</h1>
           <p>Review server-confirmed HU Coins and their immutable ledger entries.</p>
         </div>
-        <button type="button" onClick={() => void refreshRewardsWallet()} disabled={status === "loading"}>
+        <Button onClick={() => void refreshRewardsWallet()} disabled={status === "loading"}>
           Refresh
-        </button>
+        </Button>
       </header>
 
       {status === "loading" && <p className="wallet-status">Loading your confirmed rewards…</p>}
@@ -70,7 +71,7 @@ export function RewardsWalletPage({
         <section className="wallet-error-state" role="alert">
           <strong>Rewards are unavailable.</strong>
           <p>{failure}</p>
-          <button type="button" onClick={() => void refreshRewardsWallet()}>Try again</button>
+          <Button size="small" onClick={() => void refreshRewardsWallet()}>Try again</Button>
         </section>
       )}
       {status === "ready" && (

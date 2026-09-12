@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { Dialog } from "radix-ui";
+import { Button } from "../../../components/ui/Button";
+import { JobSelect } from "./JobSelect";
 import { postHealthcareJob, type HealthcareJob, type HealthcareJobDraft } from "../api/requests";
 
 export interface JobPostingFormProps {
-  onCancel: () => void;
   onPosted: (job: HealthcareJob) => void;
 }
 
@@ -11,7 +13,7 @@ const emptyDraft: HealthcareJobDraft = {
   salary: "", experience: "", deadline: "", tags: [], description: "", companyLogo: "",
 };
 
-export function JobPostingForm({ onCancel, onPosted }: JobPostingFormProps) {
+export function JobPostingForm({ onPosted }: JobPostingFormProps) {
   const [draft, setDraft] = useState(emptyDraft);
   const [tagText, setTagText] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -42,12 +44,20 @@ export function JobPostingForm({ onCancel, onPosted }: JobPostingFormProps) {
 
   return (
     <form className="hj-form" onSubmit={(event) => void submit(event)}>
-      <header><div><span>Recruiting</span><h2>Post a healthcare job</h2></div><button type="button" onClick={onCancel}>Close</button></header>
+      <header><div><span>Recruiting</span><h2>Post a healthcare job</h2></div><Dialog.Close asChild><Button size="small" type="button" variant="secondary">Close</Button></Dialog.Close></header>
       <div className="hj-form-grid">
         <label>Job title<input required value={draft.title} onChange={(event) => update("title", event.target.value)} /></label>
         <label>Organization<input required value={draft.company} onChange={(event) => update("company", event.target.value)} /></label>
         <label>Location<input value={draft.location} onChange={(event) => update("location", event.target.value)} placeholder="Remote" /></label>
-        <label>Job type<select value={draft.jobType} onChange={(event) => update("jobType", event.target.value)}><option>Full-Time</option><option>Part-Time</option><option>Internship</option><option>Residency</option></select></label>
+        <div className="hj-select-field">
+          <span>Job type</span>
+          <JobSelect
+            ariaLabel="Job type"
+            value={draft.jobType}
+            onValueChange={(value) => update("jobType", value)}
+            options={["Full-Time", "Part-Time", "Internship", "Residency"].map((value) => ({ label: value, value }))}
+          />
+        </div>
         <label>Specialty<input value={draft.specialty} onChange={(event) => update("specialty", event.target.value)} /></label>
         <label>Experience<input value={draft.experience} onChange={(event) => update("experience", event.target.value)} /></label>
         <label>Salary<input value={draft.salary} onChange={(event) => update("salary", event.target.value)} /></label>
@@ -57,7 +67,7 @@ export function JobPostingForm({ onCancel, onPosted }: JobPostingFormProps) {
         <label className="hj-wide">Description<textarea required rows={5} value={draft.description} onChange={(event) => update("description", event.target.value)} /></label>
       </div>
       {failure ? <p className="hj-error" role="alert">{failure}</p> : null}
-      <button className="hj-primary-button" disabled={submitting} type="submit">{submitting ? "Posting..." : "Publish job"}</button>
+      <Button className="hj-primary-button" disabled={submitting} type="submit">{submitting ? "Posting..." : "Publish job"}</Button>
     </form>
   );
 }

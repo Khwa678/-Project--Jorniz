@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Avatar } from "radix-ui";
+import { Button } from "../../ui/Button";
 
 export interface SuggestedMember {
   id: string;
@@ -41,7 +43,9 @@ export function SuggestedMembersCard({
     <section className="health-overview-card">
       <header className="overview-card-heading">
         <h2>Who to follow</h2>
-        <button type="button" onClick={onOpenAll} disabled={!onOpenAll}>See all</button>
+        <Button variant="ghost" size="small" onClick={onOpenAll} disabled={!onOpenAll}>
+          See all
+        </Button>
       </header>
       {members.length === 0 ? (
         <p className="overview-empty-state">No live member suggestions are available.</p>
@@ -51,22 +55,24 @@ export function SuggestedMembersCard({
             const followed = followedMemberIds.has(member.id);
             return (
               <article key={member.id}>
-                {member.avatarUrl ? (
-                  <img src={member.avatarUrl} alt="" />
-                ) : (
-                  <span className="suggested-member-initial" aria-hidden="true">{member.name.charAt(0)}</span>
-                )}
+                <Avatar.Root className="suggested-member-avatar">
+                  {member.avatarUrl && <Avatar.Image src={member.avatarUrl} alt="" />}
+                  <Avatar.Fallback className="suggested-member-initial" delayMs={200} aria-hidden="true">
+                    {member.name.trim().charAt(0).toUpperCase() || "?"}
+                  </Avatar.Fallback>
+                </Avatar.Root>
                 <span>
                   <strong>{member.name}{member.verified ? " (verified)" : ""}</strong>
                   <small>{member.description}</small>
                 </span>
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
+                  size="small"
                   disabled={!onFollow || followed || pendingMemberId === member.id}
                   onClick={() => void followSuggestedMember(member.id)}
                 >
                   {followed ? "Following" : pendingMemberId === member.id ? "Saving" : "Follow"}
-                </button>
+                </Button>
               </article>
             );
           })}

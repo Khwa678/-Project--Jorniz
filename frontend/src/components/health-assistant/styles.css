@@ -5,7 +5,7 @@
 .health-assistant-launcher svg { width:22px; height:22px; stroke-width:2; }
 .health-assistant-notification-count { position:absolute; top:-4px; right:-4px; display:grid; min-width:20px; height:20px; place-items:center; border:2px solid #fff; border-radius:999px; padding:0 5px; background:#e34d43; color:#fff; font-size:11px; font-weight:800; line-height:1; }
 .health-assistant-dialog { position:fixed; right:18px; bottom:18px; display:grid; grid-template-rows:auto auto minmax(0,1fr) auto; width:min(380px,calc(100vw - 32px)); height:min(560px,calc(100dvh - 46px)); overflow:hidden; border:1px solid #dce5e1; border-radius:22px; background:#fff; box-shadow:0 24px 70px rgba(10,29,23,.3); transform-origin:bottom right; animation:healthAssistantOpen .22s cubic-bezier(.34,1.2,.64,1) both; }
-.health-assistant-dialog.is-closing { pointer-events:none; animation:healthAssistantClose .18s ease-in both; }
+.health-assistant-dialog[data-state="closed"] { pointer-events:none; animation:healthAssistantClose .18s ease-in both; }
 .health-assistant-dialog>header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; background:#2367f2; color:#fff; }
 .health-assistant-identity { display:flex; align-items:center; gap:11px; }
 .health-assistant-header-avatar { display:grid; flex:0 0 auto; width:38px; height:38px; place-items:center; border:2px solid rgba(255,255,255,.44); border-radius:50%; }
@@ -15,7 +15,7 @@
 .health-assistant-identity small { display:flex; align-items:center; gap:6px; color:rgba(255,255,255,.88); font-size:11px; }
 .health-assistant-identity small span { width:7px; height:7px; border-radius:50%; background:#65e6c4; }
 .health-assistant-header-actions { display:flex; gap:6px; }
-.health-assistant-dialog>header button { display:grid; width:32px; height:32px; place-items:center; border:0; border-radius:9px; padding:0; background:rgba(255,255,255,.16); color:#fff; cursor:pointer; }
+.health-assistant-dialog>header button { display:grid; width:32px; min-height:32px; height:32px; place-items:center; border:0; border-radius:9px; padding:0; background:rgba(255,255,255,.16); color:#fff; cursor:pointer; }
 .health-assistant-dialog>header button svg { width:17px; height:17px; stroke-width:2; }
 .health-assistant-disclaimer { display:flex; align-items:center; justify-content:center; gap:7px; margin:0; padding:9px 12px; border-bottom:1px solid #f0db9a; background:#fff8df; color:#725216; font-size:11px; line-height:1.45; }
 .health-assistant-disclaimer svg { flex:0 0 auto; width:15px; height:15px; color:#d99a00; }
@@ -30,12 +30,12 @@
 .health-guidance-topic-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; margin:13px 0 0 39px; }
 .health-guidance-topic-list button { display:flex; align-items:center; justify-content:flex-start; gap:6px; width:100%; min-height:34px; padding:7px 13px; border:1.5px solid #cbdcff; border-radius:999px; background:#fff; color:#2f73f6; font:inherit; font-size:11px; font-weight:750; text-align:left; cursor:pointer; }
 .health-guidance-topic-icon { flex:0 0 auto; font-size:15px; line-height:1; }
-.health-guidance-topic-list button:hover,.health-guidance-topic-list button.active { border-color:#2f73f6; background:#edf3ff; }
+.health-guidance-topic-list button:hover,.health-guidance-topic-list button[data-state="on"] { border-color:#2f73f6; background:#edf3ff; }
 .health-assistant-reply { margin-top:14px; }
 .health-assistant-question { padding:11px 13px 13px; border-top:1px solid #e4e9e6; background:#fff; }
 .health-assistant-question>div { display:grid; grid-template-columns:minmax(0,1fr) 42px; gap:8px; }
 .health-assistant-question input { min-width:0; height:42px; padding:0 14px; border:1px solid #d9e0e8; border-radius:999px; background:#f4f6f8; color:#172033; font:inherit; font-size:12px; }
-.health-assistant-question button { display:grid; width:42px; height:42px; place-items:center; padding:0; border:0; border-radius:50%; background:#2367f2; color:#fff; cursor:pointer; }
+.health-assistant-question button { display:grid; width:42px; min-height:42px; height:42px; place-items:center; padding:0; border:0; border-radius:50%; background:#2367f2; color:#fff; cursor:pointer; }
 .health-assistant-question button svg { width:19px; height:19px; }
 .health-assistant-question button:disabled { cursor:not-allowed; opacity:.5; }
 @keyframes healthAssistantOpen {
@@ -51,7 +51,7 @@
   to { opacity:1; transform:scale(1); }
 }
 @media (prefers-reduced-motion:reduce) {
-  .health-assistant-launcher,.health-assistant-dialog,.health-assistant-dialog.is-closing { animation-duration:1ms; transition:none; }
+  .health-assistant-launcher,.health-assistant-dialog,.health-assistant-dialog[data-state="closed"] { animation-duration:1ms; transition:none; }
 }
 @media (max-width:600px) {
   .health-assistant-launcher { right:14px; bottom:14px; }

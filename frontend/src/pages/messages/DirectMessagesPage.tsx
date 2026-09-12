@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AlertDialog, Avatar, Dialog, ScrollArea } from "radix-ui";
+import { Button } from "../../components/ui/Button";
 import type { SignedInAccount } from "../../lib/auth/accountTypes";
 import { ConversationList } from "./components/ConversationList";
 import { ConversationThread } from "./components/ConversationThread";
@@ -47,6 +49,9 @@ export function DirectMessagesPage({ accessToken, signedInAccount, socketUrl }: 
   const [memberQuery, setMemberQuery] = useState("");
   const [members, setMembers] = useState<MessageableMember[]>([]);
   const [memberSearchFailure, setMemberSearchFailure] = useState<string | null>(null);
+  const [messageBeingEdited, setMessageBeingEdited] = useState<DirectMessage | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+  const [messagePendingDeletion, setMessagePendingDeletion] = useState<DirectMessage | null>(null);
 
   const refreshConversations = useCallback(async () => {
     try {
@@ -168,22 +173,27 @@ export function DirectMessagesPage({ accessToken, signedInAccount, socketUrl }: 
     }
   };
 
-  const editMessage = async (message: DirectMessage) => {
-    const next = window.prompt("Edit message", message.content);
-    if (!next?.trim() || next.trim() === message.content) return;
+  const openMessageEditor = (message: DirectMessage) => {
+    setMessageBeingEdited(message);
+    setEditDraft(message.content);
+  };
+
+  const saveEditedMessage = async () => {
+    if (!messageBeingEdited || !editDraft.trim() || editDraft.trim() === messageBeingEdited.content) return;
     try {
-      await editOwnMessage(message.id, next);
-      receiveEdit(message.id, next.trim());
+      await editOwnMessage(messageBeingEdited.id, editDraft);
+      receiveEdit(messageBeingEdited.id, editDraft.trim());
+      setMessageBeingEdited(null);
     } catch (error) {
       setFailure(failureText(error));
     }
   };
 
   const deleteMessage = async (message: DirectMessage) => {
-    if (!window.confirm("Delete this message?")) return;
     try {
       await deleteOwnMessage(message.id);
       receiveDelete(message.id);
+      setMessagePendingDeletion(null);
     } catch (error) {
       setFailure(failureText(error));
     }
@@ -222,27 +232,56 @@ export function DirectMessagesPage({ accessToken, signedInAccount, socketUrl }: 
     <section className="dm-page">
       <header className="dm-page-heading">
         <div><span>Private conversations</span><h1>Direct messages</h1></div>
-        <button type="button" className="dm-primary-button" onClick={() => setShowMemberSearch((open) => !open)}>
-          New conversation
-        </button>
+        <Dialog.Root open={showMemberSearch} onOpenChange={setShowMemberSearch}>
+          <Dialog.Trigger asChild>
+            <Button>New conversation</Button>
+          </Dialog.Trigger>
+          <Dialog.Portal>
+            <Dialog.Overlay className="dm-dialog-overlay" />
+            <Dialog.Content className="dm-dialog-content">
+              <Dialog.Title>Start a conversation</Dialog.Title>
+              <Dialog.Description>Find a Jorniz member and open a private conversation.</Dialog.Description>
+              <form className="dm-member-search" onSubmit={(event) => { event.preventDefault(); void searchMembers(); }}>
+                <input value={memberQuery} onChange={(event) => setMemberQuery(event.target.value)} placeholder="Find a Jorniz member" autoFocus />
+                <Button type="submit" size="small">Search</Button>
+                {memberSearchFailure ? <p role="alert">{memberSearchFailure}</p> : null}
+                <ScrollArea.Root className="dm-member-results-scroll">
+                  <ScrollArea.Viewport className="dm-member-results-viewport">
+                    <div className="dm-member-results">
+                      {members.map((member) => (
+                        <Button
+                          className="dm-member-result"
+                          key={member.id}
+                          onClick={() => void beginConversation(member)}
+                          type="button"
+                          variant="ghost"
+                        >
+                          <Avatar.Root className="dm-member-avatar">
+                            {member.avatar_url ? <Avatar.Image src={member.avatar_url} alt="" /> : null}
+                            <Avatar.Fallback>{member.name.slice(0, 1).toUpperCase()}</Avatar.Fallback>
+                          </Avatar.Root>
+                          <span className="dm-member-result-copy">
+                            <strong>{member.name}</strong>
+                            <span>{member.specialty || "Jorniz member"}</span>
+                          </span>
+                        </Button>
+                      ))}
+                    </div>
+                  </ScrollArea.Viewport>
+                  <ScrollArea.Scrollbar className="dm-scrollbar" orientation="vertical">
+                    <ScrollArea.Thumb className="dm-scroll-thumb" />
+                  </ScrollArea.Scrollbar>
+                </ScrollArea.Root>
+              </form>
+              <div className="dm-dialog-actions">
+                <Dialog.Close asChild><Button variant="secondary">Close</Button></Dialog.Close>
+              </div>
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
       </header>
 
       {failure ? <div className="dm-error" role="alert">{failure}</div> : null}
-
-      {showMemberSearch ? (
-        <div className="dm-member-search">
-          <input value={memberQuery} onChange={(event) => setMemberQuery(event.target.value)} placeholder="Find a Jorniz member" />
-          <button type="button" onClick={() => void searchMembers()}>Search</button>
-          {memberSearchFailure ? <p role="alert">{memberSearchFailure}</p> : null}
-          <div className="dm-member-results">
-            {members.map((member) => (
-              <button type="button" key={member.id} onClick={() => void beginConversation(member)}>
-                <strong>{member.name}</strong><span>{member.specialty || "Jorniz member"}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
 
       <div className="dm-workspace">
         <aside className="dm-sidebar">
@@ -274,8 +313,8 @@ export function DirectMessagesPage({ accessToken, signedInAccount, socketUrl }: 
                 highlightedMessageIds={messageSearch}
                 messages={messages}
                 onBlockMember={() => void toggleBlock()}
-                onDeleteMessage={(message) => void deleteMessage(message)}
-                onEditMessage={(message) => void editMessage(message)}
+                onDeleteMessage={setMessagePendingDeletion}
+                onEditMessage={openMessageEditor}
                 onSearch={(query) => void searchCurrentConversation(query)}
               />
               <VoiceVideoCallScreen memberName={currentConversation.other_user.name} />
@@ -289,6 +328,39 @@ export function DirectMessagesPage({ accessToken, signedInAccount, socketUrl }: 
           )}
         </main>
       </div>
+
+      <Dialog.Root open={Boolean(messageBeingEdited)} onOpenChange={(open) => { if (!open) setMessageBeingEdited(null); }}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="dm-dialog-overlay" />
+          <Dialog.Content className="dm-dialog-content">
+            <Dialog.Title>Edit message</Dialog.Title>
+            <Dialog.Description>Update the text in your message.</Dialog.Description>
+            <form className="dm-edit-form" onSubmit={(event) => { event.preventDefault(); void saveEditedMessage(); }}>
+              <textarea aria-label="Message text" value={editDraft} onChange={(event) => setEditDraft(event.target.value)} rows={4} autoFocus />
+              <div className="dm-dialog-actions">
+                <Dialog.Close asChild><Button variant="secondary">Cancel</Button></Dialog.Close>
+                <Button type="submit" disabled={!editDraft.trim() || editDraft.trim() === messageBeingEdited?.content}>Save changes</Button>
+              </div>
+            </form>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      <AlertDialog.Root open={Boolean(messagePendingDeletion)} onOpenChange={(open) => { if (!open) setMessagePendingDeletion(null); }}>
+        <AlertDialog.Portal>
+          <AlertDialog.Overlay className="dm-dialog-overlay" />
+          <AlertDialog.Content className="dm-dialog-content">
+            <AlertDialog.Title>Delete this message?</AlertDialog.Title>
+            <AlertDialog.Description>This removes the message from the conversation. This action cannot be undone.</AlertDialog.Description>
+            <div className="dm-dialog-actions">
+              <AlertDialog.Cancel asChild><Button variant="secondary">Cancel</Button></AlertDialog.Cancel>
+              <AlertDialog.Action asChild>
+                <Button variant="danger" onClick={() => { if (messagePendingDeletion) void deleteMessage(messagePendingDeletion); }}>Delete message</Button>
+              </AlertDialog.Action>
+            </div>
+          </AlertDialog.Content>
+        </AlertDialog.Portal>
+      </AlertDialog.Root>
     </section>
   );
 }

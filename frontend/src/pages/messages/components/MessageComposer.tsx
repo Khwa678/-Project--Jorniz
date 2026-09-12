@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "../../../components/ui/Button";
 import { MessageAttachmentPreview } from "./MessageAttachmentPreview";
 
 export interface MessageComposerInput {
@@ -57,14 +58,12 @@ export function MessageComposer({ disabledReason, isSending, onSend, onTyping }:
           rows={2}
           value={content}
         />
-        <button
-          type="button"
-          className="dm-primary-button"
+        <Button
           disabled={Boolean(disabledReason) || isSending || (!content.trim() && !file)}
           onClick={() => void submitMessage()}
         >
           {isSending ? "Sending..." : "Send"}
-        </button>
+        </Button>
       </div>
     </div>
   );

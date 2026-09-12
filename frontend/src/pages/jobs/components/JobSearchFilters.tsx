@@ -22,14 +22,19 @@ export function JobSearchFilters({
   return (
     <div className="hj-filters">
       <input value={searchText} onChange={(event) => onSearchChange(event.target.value)} placeholder="Search title, organization or specialty" />
-      <select value={jobType} onChange={(event) => onJobTypeChange(event.target.value)}>
-        <option value="All">All job types</option>
-        {availableTypes.map((value) => <option value={value} key={value}>{value}</option>)}
-      </select>
-      <select value={location} onChange={(event) => onLocationChange(event.target.value)}>
-        <option value="All">All locations</option>
-        {availableLocations.map((value) => <option value={value} key={value}>{value}</option>)}
-      </select>
+      <JobSelect
+        ariaLabel="Filter by job type"
+        value={jobType}
+        onValueChange={onJobTypeChange}
+        options={[{ label: "All job types", value: "All" }, ...availableTypes.map((value) => ({ label: value, value }))]}
+      />
+      <JobSelect
+        ariaLabel="Filter by location"
+        value={location}
+        onValueChange={onLocationChange}
+        options={[{ label: "All locations", value: "All" }, ...availableLocations.map((value) => ({ label: value, value }))]}
+      />
     </div>
   );
 }
+import { JobSelect } from "./JobSelect";

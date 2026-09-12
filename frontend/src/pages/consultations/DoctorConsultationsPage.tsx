@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { Tabs } from "radix-ui";
+import { Button } from "../../components/ui/Button";
 import { AppointmentBookingDialog } from "./components/AppointmentBookingDialog";
 import { DoctorDirectory } from "./components/DoctorDirectory";
 import { DoctorSearchFilters, type DoctorSort } from "./components/DoctorSearchFilters";
@@ -59,17 +61,19 @@ export function DoctorConsultationsPage() {
   }, [doctors, searchText, sortBy, specialty]);
 
   return (
-    <section className="dc-page">
+    <Tabs.Root className="dc-page" value={tab} onValueChange={(value) => setTab(value as ConsultationPageTab)}>
       <header className="dc-page-heading">
         <div><span>Verified care directory</span><h1>Doctor consultations</h1><p>Browse approved healthcare professionals without mixing in demo profiles.</p></div>
-        <div className="dc-tabs">
-          <button type="button" className={tab === "directory" ? "is-active" : ""} onClick={() => setTab("directory")}>Find a doctor</button>
-          <button type="button" className={tab === "appointments" ? "is-active" : ""} onClick={() => setTab("appointments")}>My appointments</button>
-        </div>
+        <Tabs.List className="dc-tabs" aria-label="Consultation views">
+          <Tabs.Trigger value="directory">Find a doctor</Tabs.Trigger>
+          <Tabs.Trigger value="appointments">My appointments</Tabs.Trigger>
+        </Tabs.List>
       </header>
 
-      {tab === "appointments" ? <MyAppointments /> : (
-        <>
+      <Tabs.Content className="dc-tab-content" value="appointments">
+        <MyAppointments />
+      </Tabs.Content>
+      <Tabs.Content className="dc-tab-content" value="directory">
           <DoctorSearchFilters
             searchText={searchText}
             selectedSpecialty={specialty}
@@ -80,7 +84,7 @@ export function DoctorConsultationsPage() {
             onSpecialtyChange={setSpecialty}
           />
           {failure ? (
-            <div className="dc-error" role="alert"><p>{failure}</p><button type="button" onClick={() => void refreshDoctors()}>Try again</button></div>
+            <div className="dc-error" role="alert"><p>{failure}</p><Button className="dc-retry-button" onClick={() => void refreshDoctors()}>Try again</Button></div>
           ) : loading ? (
             <p className="dc-status">Loading approved doctors...</p>
           ) : doctors.length === 0 ? (
@@ -88,9 +92,8 @@ export function DoctorConsultationsPage() {
           ) : (
             <DoctorDirectory doctors={visibleDoctors} onChooseDoctor={setSelectedDoctor} />
           )}
-        </>
-      )}
+      </Tabs.Content>
       <AppointmentBookingDialog doctor={selectedDoctor} onClose={() => setSelectedDoctor(null)} />
-    </section>
+    </Tabs.Root>
   );
 }

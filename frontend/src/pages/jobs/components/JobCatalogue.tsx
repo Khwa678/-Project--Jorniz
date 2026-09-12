@@ -1,3 +1,5 @@
+import { AlertDialog } from "radix-ui";
+import { Button } from "../../../components/ui/Button";
 import type { HealthcareJob } from "../api/requests";
 
 export interface JobCatalogueProps {
@@ -28,11 +30,26 @@ export function JobCatalogue({ currentAccountId, deletingJobId, jobs, onApply, o
           <footer>
             <div><strong>{job.salary || "Salary not listed"}</strong><span>{job.applicants} applications</span></div>
             {job.addedBy && String(job.addedBy) === currentAccountId ? (
-              <button type="button" className="hj-danger-button" disabled={deletingJobId === job.id} onClick={() => onDeleteOwnedJob(job)}>
-                {deletingJobId === job.id ? "Removing..." : "Remove"}
-              </button>
+              <AlertDialog.Root>
+                <AlertDialog.Trigger asChild>
+                  <Button className="hj-danger-button" disabled={deletingJobId === job.id} variant="danger">
+                    {deletingJobId === job.id ? "Removing..." : "Remove"}
+                  </Button>
+                </AlertDialog.Trigger>
+                <AlertDialog.Portal>
+                  <AlertDialog.Overlay className="hj-dialog-backdrop" />
+                  <AlertDialog.Content className="hj-confirm-dialog">
+                    <AlertDialog.Title>Remove this job?</AlertDialog.Title>
+                    <AlertDialog.Description>{job.title} will no longer appear in the Jobs catalogue.</AlertDialog.Description>
+                    <div className="hj-confirm-actions">
+                      <AlertDialog.Cancel asChild><Button variant="secondary">Cancel</Button></AlertDialog.Cancel>
+                      <AlertDialog.Action asChild><Button variant="danger" onClick={() => onDeleteOwnedJob(job)}>Remove job</Button></AlertDialog.Action>
+                    </div>
+                  </AlertDialog.Content>
+                </AlertDialog.Portal>
+              </AlertDialog.Root>
             ) : null}
-            <button type="button" className="hj-primary-button" onClick={() => onApply(job)}>Apply</button>
+            <Button className="hj-primary-button" onClick={() => onApply(job)}>Apply</Button>
           </footer>
         </article>
       ))}

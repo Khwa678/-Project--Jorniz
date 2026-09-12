@@ -66,15 +66,6 @@ export function WorkspaceNavigation({
     };
   }, [drawerOpen]);
 
-  useEffect(() => {
-    if (!drawerOpen) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [drawerOpen]);
-
   function openWallet() {
     const wallet = { id: "wallet", label: "Rewards Wallet", route: "/wallet" } as const;
     onNavigate(wallet);

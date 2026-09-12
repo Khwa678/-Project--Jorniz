@@ -14,6 +14,9 @@ import {
   Wallet,
   type LucideIcon,
 } from "lucide-react";
+import type { ReactElement } from "react";
+import { Tooltip } from "radix-ui";
+import { Button } from "../../ui/Button";
 
 export type WorkspaceDestinationId =
   | "home"
@@ -79,30 +82,56 @@ export function NavigationDestinations({
   compact = false,
 }: NavigationDestinationsProps) {
   return (
-    <nav className="workspace-destination-list" aria-label="Jorniz sections">
-      {workspaceDestinations.slice(0, 2).map((destination) => (
-        <DestinationButton
-          destination={destination}
-          active={activeDestination === destination.id}
-          onNavigate={onNavigate}
-          compact={compact}
-          key={destination.id}
-        />
-      ))}
-      <button type="button" className="workspace-create-post" title={compact ? "Create post" : undefined} onClick={onCreatePost}>
-        <span aria-hidden="true"><SquarePlus /></span>
-        Create post
-      </button>
-      {workspaceDestinations.slice(2).map((destination) => (
-        <DestinationButton
-          destination={destination}
-          active={activeDestination === destination.id}
-          onNavigate={onNavigate}
-          compact={compact}
-          key={destination.id}
-        />
-      ))}
-    </nav>
+    <Tooltip.Provider delayDuration={300} skipDelayDuration={150}>
+      <nav className="workspace-destination-list" aria-label="Jorniz sections">
+        {workspaceDestinations.slice(0, 2).map((destination) => (
+          <DestinationButton
+            destination={destination}
+            active={activeDestination === destination.id}
+            onNavigate={onNavigate}
+            compact={compact}
+            key={destination.id}
+          />
+        ))}
+        <CompactNavigationTooltip label="Create post" enabled={compact}>
+          <Button className="workspace-create-post" size="small" onClick={onCreatePost}>
+            <span aria-hidden="true"><SquarePlus /></span>
+            Create post
+          </Button>
+        </CompactNavigationTooltip>
+        {workspaceDestinations.slice(2).map((destination) => (
+          <DestinationButton
+            destination={destination}
+            active={activeDestination === destination.id}
+            onNavigate={onNavigate}
+            compact={compact}
+            key={destination.id}
+          />
+        ))}
+      </nav>
+    </Tooltip.Provider>
+  );
+}
+
+interface CompactNavigationTooltipProps {
+  label: string;
+  enabled: boolean;
+  children: ReactElement;
+}
+
+function CompactNavigationTooltip({ label, enabled, children }: CompactNavigationTooltipProps) {
+  if (!enabled) return children;
+
+  return (
+    <Tooltip.Root>
+      <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Content className="navigation-destination-tooltip" side="right" sideOffset={10}>
+          {label}
+          <Tooltip.Arrow className="navigation-destination-tooltip-arrow" />
+        </Tooltip.Content>
+      </Tooltip.Portal>
+    </Tooltip.Root>
   );
 }
 
@@ -117,15 +146,17 @@ function DestinationButton({ destination, active, onNavigate, compact }: Destina
   const DestinationIcon = destinationIcons[destination.id];
 
   return (
-    <button
-      type="button"
-      className={active ? "workspace-destination active" : "workspace-destination"}
-      aria-current={active ? "page" : undefined}
-      title={compact ? destination.label : undefined}
-      onClick={() => onNavigate(destination)}
-    >
-      <span className="destination-marker" aria-hidden="true"><DestinationIcon /></span>
-      {destination.label}
-    </button>
+    <CompactNavigationTooltip label={destination.label} enabled={compact}>
+      <button
+        type="button"
+        className={active ? "workspace-destination active" : "workspace-destination"}
+        aria-current={active ? "page" : undefined}
+        aria-label={compact ? destination.label : undefined}
+        onClick={() => onNavigate(destination)}
+      >
+        <span className="destination-marker" aria-hidden="true"><DestinationIcon /></span>
+        {destination.label}
+      </button>
+    </CompactNavigationTooltip>
   );
 }

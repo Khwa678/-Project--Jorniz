@@ -1,3 +1,5 @@
+import { Button } from "../../ui/Button";
+
 export interface TrendingHealthTopic {
   id: string;
   label: string;
@@ -18,11 +20,11 @@ export function TrendingTopicsCard({ topics, onOpenTopic }: TrendingTopicsCardPr
       ) : (
         <div className="trending-health-topic-list">
           {topics.map((topic) => (
-            <button
-              type="button"
-              onClick={() => onOpenTopic?.(topic)}
-              disabled={!onOpenTopic}
-              key={topic.id}
+            <Button
+              variant="ghost"
+                  onClick={() => onOpenTopic?.(topic)}
+                  disabled={!onOpenTopic}
+                  key={topic.id}
             >
               <strong>{topic.label}</strong>
               <span>
@@ -30,7 +32,7 @@ export function TrendingTopicsCard({ topics, onOpenTopic }: TrendingTopicsCardPr
                   ? topic.participationCount.toLocaleString()
                   : "Count unavailable"}
               </span>
-            </button>
+            </Button>
           ))}
         </div>
       )}

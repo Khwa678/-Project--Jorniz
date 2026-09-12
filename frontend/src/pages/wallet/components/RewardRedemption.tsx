@@ -1,3 +1,5 @@
+import { Button } from "../../../components/ui/Button";
+
 export interface RewardRedemptionProps {
   availableCoins: number;
   onOpenMarketplace?: () => void;
@@ -17,9 +19,9 @@ export function RewardRedemption({
           confirmed balance is {availableCoins.toLocaleString()} coins.
         </p>
       </div>
-      <button type="button" onClick={onOpenMarketplace} disabled={!onOpenMarketplace}>
+      <Button onClick={onOpenMarketplace} disabled={!onOpenMarketplace}>
         Open marketplace
-      </button>
+      </Button>
     </section>
   );
 }

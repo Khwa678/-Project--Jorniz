@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Button } from "../../../components/ui/Button";
 import {
   recordSponsoredClick,
   recordSponsoredImpression,
@@ -39,7 +40,7 @@ export function SponsoredPostCard({ placement, onConfirmedCoins }: SponsoredPost
       {placement.imageUrl && <img src={placement.imageUrl} alt="" />}
       <h3>{placement.headline || placement.name}</h3>
       <p>{placement.bodyText}</p>
-      <button type="button" onClick={() => void openSponsoredDestination()}>{placement.callToAction}</button>
+      <Button type="button" onClick={() => void openSponsoredDestination()}>{placement.callToAction}</Button>
       {failure && <small role="status">{failure}</small>}
     </article>
   );

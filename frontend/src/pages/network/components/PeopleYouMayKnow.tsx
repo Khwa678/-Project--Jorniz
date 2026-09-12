@@ -1,4 +1,6 @@
+import { Button } from "../../../components/ui/Button";
 import type { SuggestedConnection } from "../api/requests";
+import { NetworkMemberAvatar } from "./NetworkMemberAvatar";
 
 export interface PeopleYouMayKnowProps {
   connectingMemberId: string | null;
@@ -14,12 +16,12 @@ export function PeopleYouMayKnow({ connectingMemberId, onConnect, suggestions }:
         <div className="pn-grid">
           {suggestions.map((member) => (
             <article className="pn-person-card" key={member.id}>
-              <span className="pn-avatar">{member.name.slice(0, 1).toUpperCase()}</span>
+              <NetworkMemberAvatar avatarUrl={member.avatar_url} name={member.name} />
               <h3>{member.name}</h3>
               <p>{member.user_type || "Jorniz member"}</p>
-              <button type="button" disabled={connectingMemberId === member.id} onClick={() => onConnect(member)}>
+              <Button size="small" disabled={connectingMemberId === member.id} onClick={() => onConnect(member)}>
                 {connectingMemberId === member.id ? "Sending..." : "Connect"}
-              </button>
+              </Button>
             </article>
           ))}
         </div>

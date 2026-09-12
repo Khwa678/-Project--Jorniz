@@ -1,14 +1,18 @@
 .create-post-button { border: 0; border-radius: 11px; padding: 11px 16px; background: #2367f2; color: white; font: inherit; font-weight: 800; cursor: pointer; }
-.post-editor-backdrop { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 18px; background: rgba(10,24,29,.64); }
-.post-editor-dialog { width: min(620px,100%); max-height: calc(100vh - 36px); overflow: auto; border-radius: 20px; background: white; color: #142033; box-shadow: 0 28px 90px rgba(0,0,0,.3); }
+.post-editor-backdrop { position: fixed; inset: 0; z-index: 80; background: rgba(10,24,29,.64); animation: postEditorFadeIn .15s ease-out; }
+.post-editor-dialog { position:fixed; top:50%; left:50%; z-index:81; width:min(620px,calc(100% - 36px)); max-height:calc(100vh - 36px); overflow:auto; border-radius:20px; background:white; color:#142033; box-shadow:0 28px 90px rgba(0,0,0,.3); transform:translate(-50%,-50%); animation:postEditorOpen .18s ease-out; }
 .post-editor-dialog > header { display: flex; justify-content: space-between; gap: 20px; align-items: start; padding: 20px 22px; border-bottom: 1px solid #e6ece9; }
 .post-editor-dialog header p, .post-editor-dialog header h2 { margin: 0; }
 .post-editor-dialog header p { color: #2367f2; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; }
-.post-editor-dialog header button, .post-editor-dialog footer button, .post-media-picker button, .post-owner-actions > button { border: 1px solid #d5e0db; border-radius: 9px; padding: 8px 11px; background: white; color: #315044; font: inherit; font-weight: 700; cursor: pointer; }
+.post-editor-description { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 .post-editor-dialog form { display: grid; gap: 16px; padding: 22px; }
 .post-editor-dialog form > label, .post-media-picker label { display: grid; gap: 7px; font-weight: 800; }
-.post-editor-dialog textarea, .post-editor-dialog select, .post-media-picker input { box-sizing: border-box; width: 100%; border: 1px solid #cbd8d2; border-radius: 11px; padding: 12px; font: inherit; }
+.post-editor-dialog textarea, .post-media-picker input { box-sizing: border-box; width: 100%; border: 1px solid #cbd8d2; border-radius: 11px; padding: 12px; font: inherit; }
 .post-editor-dialog textarea { resize: vertical; }
+.post-category-trigger { display:flex; align-items:center; justify-content:space-between; width:100%; border:1px solid #cbd8d2; border-radius:11px; padding:12px; background:white; color:#142033; font:inherit; cursor:pointer; }
+.post-category-menu { z-index:100; min-width:var(--radix-select-trigger-width); overflow:hidden; border:1px solid #d5e0db; border-radius:11px; padding:5px; background:white; box-shadow:0 14px 38px rgba(20,32,51,.16); }
+.post-category-option { border-radius:7px; padding:9px 10px; color:#315044; font-size:14px; cursor:pointer; outline:none; }
+.post-category-option[data-highlighted] { background:#eef4ff; color:#1d5bd8; }
 .post-media-picker { display: grid; gap: 10px; }
 .post-media-picker img, .post-media-picker video { width: 100%; max-height: 330px; border-radius: 13px; object-fit: contain; background: #edf2ef; }
 .post-media-picker p { margin: 0; padding: 18px; border: 1px dashed #cbd8d2; border-radius: 12px; color: #718078; text-align: center; }
@@ -16,10 +20,11 @@
 .post-editor-error { background: #fff0ef; color: #a62d28; }
 .post-editor-notice { background: #eaf8f0; color: #08744e; }
 .post-editor-dialog footer { display: flex; justify-content: flex-end; gap: 9px; }
-.post-editor-dialog footer button[type=submit] { border-color: #2367f2; background: #2367f2; color: white; }
 .post-owner-actions { position: relative; display: flex; gap: 6px; }
 .post-delete-confirmation { position: absolute; right: 0; top: calc(100% + 8px); z-index: 20; width: 260px; border: 1px solid #edc7c3; border-radius: 13px; padding: 14px; background: white; box-shadow: 0 14px 35px rgba(52,26,22,.18); }
 .post-delete-confirmation p { margin: 0 0 10px; }
 .post-delete-confirmation span { display: block; margin-bottom: 8px; color: #a62d28; font-size: 13px; }
 .post-delete-confirmation div { display: flex; gap: 8px; }
-@media (max-width: 520px) { .post-editor-backdrop { align-items: end; padding: 0; } .post-editor-dialog { max-height: 92vh; border-radius: 20px 20px 0 0; } }
+@keyframes postEditorFadeIn { from { opacity:0; } to { opacity:1; } }
+@keyframes postEditorOpen { from { opacity:0; transform:translate(-50%,-47%) scale(.98); } to { opacity:1; transform:translate(-50%,-50%) scale(1); } }
+@media (max-width: 520px) { .post-editor-dialog { top:auto; bottom:0; width:100%; max-height:92vh; border-radius:20px 20px 0 0; transform:translateX(-50%); animation:none; } }

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Button } from "../../../components/ui/Button";
 import {
   finishPasswordReset,
   requestPasswordReset,
@@ -56,7 +57,7 @@ export function PasswordResetForm({ onReturnToSignIn }: PasswordResetFormProps) 
     return (
       <section className="account-form" aria-live="polite">
         <header><h1>Password updated</h1><p>You can now sign in with your new password.</p></header>
-        <button className="account-primary-action" type="button" onClick={onReturnToSignIn}>Return to sign in</button>
+        <Button className="account-primary-action" onClick={onReturnToSignIn}>Return to sign in</Button>
       </section>
     );
   }
@@ -83,10 +84,10 @@ export function PasswordResetForm({ onReturnToSignIn }: PasswordResetFormProps) 
           <label className="account-field"><span>Confirm new password</span><input type="password" value={confirmedPassword} onChange={(event) => setConfirmedPassword(event.target.value)} autoComplete="new-password" required /></label>
         </>
       ) : null}
-      <button className="account-primary-action" type="submit" disabled={submitting}>
+      <Button className="account-primary-action" type="submit" disabled={submitting}>
         {submitting ? "Please wait..." : step === "email" ? "Send verification code" : step === "code" ? "Verify code" : "Update password"}
-      </button>
-      <button className="account-text-action" type="button" onClick={onReturnToSignIn}>Back to sign in</button>
+      </Button>
+      <Button className="account-text-action" variant="ghost" onClick={onReturnToSignIn}>Back to sign in</Button>
     </form>
   );
 }

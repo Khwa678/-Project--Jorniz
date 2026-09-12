@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Button } from "../../../components/ui/Button";
 import { signIn } from "../api/signIn";
 import type { AccountAccessResult } from "../types";
 
@@ -58,15 +59,15 @@ export function SignInForm({
         <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required />
       </label>
 
-      <button className="account-text-action account-forgot-password" type="button" onClick={onRequestPasswordReset}>
+      <Button className="account-text-action account-forgot-password" variant="ghost" onClick={onRequestPasswordReset}>
         Forgot password?
-      </button>
-      <button className="account-primary-action" type="submit" disabled={submitting}>
+      </Button>
+      <Button className="account-primary-action" type="submit" disabled={submitting}>
         {submitting ? "Signing in..." : "Sign in"}
-      </button>
-      <button className="account-text-action" type="button" onClick={onChooseCreateAccount}>
+      </Button>
+      <Button className="account-text-action" variant="ghost" onClick={onChooseCreateAccount}>
         New to Jorniz? Create an account
-      </button>
+      </Button>
     </form>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Button } from "../../../components/ui/Button";
 import { createAccount } from "../api/createAccount";
 import {
   accountTypeChoices,
@@ -7,6 +8,7 @@ import {
   type JornizAccountType,
 } from "../types";
 import { ProfessionalVerificationFields } from "./ProfessionalVerificationFields";
+import { AccountSelect } from "./AccountSelect";
 
 export interface CreateAccountFormProps {
   onAccountCreated: (result: AccountAccessResult) => void;
@@ -88,20 +90,18 @@ export function CreateAccountForm({
         <span>Email address</span>
         <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required />
       </label>
-      <label className="account-field">
-        <span>Account type</span>
-        <select
+      <div className="account-field">
+        <span id="account-type-label">Account type</span>
+        <AccountSelect
+          ariaLabelledBy="account-type-label"
+          options={accountTypeChoices}
           value={accountType}
-          onChange={(event) => {
-            setAccountType(event.target.value as JornizAccountType);
+          onValueChange={(value) => {
+            setAccountType(value as JornizAccountType);
             setVerificationDocument(null);
           }}
-        >
-          {accountTypeChoices.map((choice) => (
-            <option key={choice.value} value={choice.value}>{choice.label}</option>
-          ))}
-        </select>
-      </label>
+        />
+      </div>
 
       <ProfessionalVerificationFields
         accountType={accountType}
@@ -118,12 +118,12 @@ export function CreateAccountForm({
         <input type="password" minLength={6} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" required />
       </label>
 
-      <button className="account-primary-action" type="submit" disabled={submitting}>
+      <Button className="account-primary-action" type="submit" disabled={submitting}>
         {submitting ? "Creating account..." : "Create account"}
-      </button>
-      <button className="account-text-action" type="button" onClick={onChooseSignIn}>
+      </Button>
+      <Button className="account-text-action" variant="ghost" onClick={onChooseSignIn}>
         Already have an account? Sign in
-      </button>
+      </Button>
     </form>
   );
 }

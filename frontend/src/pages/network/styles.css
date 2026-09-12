@@ -12,8 +12,9 @@
 .pn-person-row { align-items:center; border-top:1px solid #e7eef1; display:grid; gap:10px; grid-template-columns:46px 1fr auto auto; padding:12px 0; }
 .pn-person-row>div { display:grid; }
 .pn-person-row small,.pn-person-card p,.pn-unavailable,.pn-empty-line { color:#6b7888; }
-.pn-avatar { align-items:center; background:#dcedf4; border-radius:50%; color:#175671; display:flex; font-weight:900; height:46px; justify-content:center; width:46px; }
-.pn-person-row button,.pn-person-card button,.pn-error button { background:#206a89; border:0; border-radius:999px; color:white; cursor:pointer; font-weight:800; padding:9px 13px; }
+.pn-avatar { align-items:center; background:#dcedf4; border-radius:50%; color:#175671; display:flex; flex-shrink:0; font-weight:900; height:46px; justify-content:center; overflow:hidden; width:46px; }
+.pn-avatar img { height:100%; object-fit:cover; width:100%; }
+.pn-person-row .ui-button,.pn-person-card .ui-button,.pn-error .ui-button { border-radius:999px; }
 .pn-person-row button:disabled,.pn-person-card button:disabled { cursor:not-allowed; opacity:.55; }
 .pn-disabled-action { background:#eef2f4 !important; color:#6b7888 !important; }
 .pn-grid { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); }
@@ -24,9 +25,9 @@
 .pn-status,.pn-error { background:white; border:1px dashed #c9d9e0; border-radius:16px; color:#6b7888; padding:28px; text-align:center; }
 .pn-error { color:#8d2d1e; }
 .pn-notice { background:#eaf6ef; border:1px solid #badfc9; border-radius:12px; color:#256541; padding:11px 14px; }
-.pn-dialog-backdrop { align-items:center; background:rgba(16,27,34,.58); display:flex; inset:0; justify-content:center; padding:18px; position:fixed; z-index:50; }
-.pn-dialog { background:white; border-radius:20px; max-height:82vh; max-width:590px; overflow:auto; padding:20px; width:100%; }
-.pn-dialog header>button { background:#eef2f4; border:0; border-radius:999px; cursor:pointer; padding:8px 12px; }
+.pn-dialog-backdrop { background:rgba(16,27,34,.58); inset:0; position:fixed; z-index:50; }
+.pn-dialog { background:white; border-radius:20px; box-sizing:border-box; left:50%; max-height:82vh; max-width:590px; overflow:auto; padding:20px; position:fixed; top:50%; transform:translate(-50%,-50%); width:calc(100% - 36px); z-index:51; }
+.pn-dialog header .ui-button { border-radius:999px; }
 @media (max-width:680px) {
   .pn-page-heading { align-items:flex-start; flex-direction:column; gap:12px; }
   .pn-person-row { grid-template-columns:42px 1fr; }

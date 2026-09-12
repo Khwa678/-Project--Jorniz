@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { Dialog, Tabs } from "radix-ui";
+import { Button } from "../../components/ui/Button";
 import type { SignedInAccount } from "../../lib/auth/accountTypes";
 import { JobApplicationForm } from "./components/JobApplicationForm";
 import { JobCatalogue } from "./components/JobCatalogue";
@@ -64,7 +66,6 @@ export function HealthcareJobsPage({ signedInAccount }: HealthcareJobsPageProps)
   }, [jobType, jobs, location, searchText]);
 
   const removeOwnedJob = async (job: HealthcareJob) => {
-    if (!window.confirm(`Remove ${job.title}?`)) return;
     setDeletingJobId(job.id);
     try { await deleteOwnedHealthcareJob(job.id); setJobs((current) => current.filter((item) => item.id !== job.id)); }
     catch (error) { setJobFailure(failureText(error)); }
@@ -75,18 +76,42 @@ export function HealthcareJobsPage({ signedInAccount }: HealthcareJobsPageProps)
     <section className="hj-page">
       <header className="hj-page-heading">
         <div><span>Healthcare careers</span><h1>Jobs</h1><p>Persisted roles and applications from the Jorniz backend.</p></div>
-        <button className="hj-primary-button" type="button" onClick={() => setShowPostingForm(true)}>Post a job</button>
+        <Button className="hj-primary-button" onClick={() => setShowPostingForm(true)}>Post a job</Button>
       </header>
-      <div className="hj-tabs"><button className={tab === "browse" ? "is-active" : ""} onClick={() => setTab("browse")}>Browse jobs</button><button className={tab === "applications" ? "is-active" : ""} onClick={() => setTab("applications")}>My applications</button></div>
-      {notice ? <div className="hj-notice">{notice}</div> : null}
-      {tab === "applications" ? <MyJobApplications applications={applications} failure={applicationFailure} loading={loadingApplications} /> : (
-        <>
+      <Tabs.Root className="hj-tabs-root" value={tab} onValueChange={(value) => setTab(value as JobsTab)}>
+        <Tabs.List className="hj-tabs" aria-label="Jobs sections">
+          <Tabs.Trigger value="browse">Browse jobs</Tabs.Trigger>
+          <Tabs.Trigger value="applications">My applications</Tabs.Trigger>
+        </Tabs.List>
+        {notice ? <div className="hj-notice">{notice}</div> : null}
+        <Tabs.Content className="hj-tab-content" value="applications">
+          <MyJobApplications applications={applications} failure={applicationFailure} loading={loadingApplications} />
+        </Tabs.Content>
+        <Tabs.Content className="hj-tab-content" value="browse">
           <JobSearchFilters searchText={searchText} jobType={jobType} location={location} availableTypes={types} availableLocations={locations} onSearchChange={setSearchText} onJobTypeChange={setJobType} onLocationChange={setLocation} />
-          {jobFailure ? <div className="hj-error" role="alert"><p>{jobFailure}</p><button onClick={() => void refreshJobs()}>Try again</button></div> : loadingJobs ? <p className="hj-status">Loading healthcare jobs...</p> : jobs.length === 0 ? <div className="hj-empty"><strong>No active jobs are available.</strong><span>New backend job postings will appear here.</span></div> : <JobCatalogue currentAccountId={String(signedInAccount.id)} deletingJobId={deletingJobId} jobs={visibleJobs} onApply={setApplyingTo} onDeleteOwnedJob={(job) => void removeOwnedJob(job)} />}
-        </>
-      )}
-      {showPostingForm ? <div className="hj-dialog-backdrop"><JobPostingForm onCancel={() => setShowPostingForm(false)} onPosted={(job) => { setJobs((current) => [job, ...current]); setShowPostingForm(false); setNotice("Job published successfully."); }} /></div> : null}
-      {applyingTo ? <div className="hj-dialog-backdrop"><JobApplicationForm job={applyingTo} onCancel={() => setApplyingTo(null)} onApplied={(message) => { setApplyingTo(null); setNotice(message); setTab("applications"); void refreshApplications(); void refreshJobs(); }} /></div> : null}
+          {jobFailure ? <div className="hj-error" role="alert"><p>{jobFailure}</p><Button variant="secondary" onClick={() => void refreshJobs()}>Try again</Button></div> : loadingJobs ? <p className="hj-status">Loading healthcare jobs...</p> : jobs.length === 0 ? <div className="hj-empty"><strong>No active jobs are available.</strong><span>New backend job postings will appear here.</span></div> : <JobCatalogue currentAccountId={String(signedInAccount.id)} deletingJobId={deletingJobId} jobs={visibleJobs} onApply={setApplyingTo} onDeleteOwnedJob={(job) => void removeOwnedJob(job)} />}
+        </Tabs.Content>
+      </Tabs.Root>
+      <Dialog.Root open={showPostingForm} onOpenChange={setShowPostingForm}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="hj-dialog-backdrop" />
+          <Dialog.Content className="hj-dialog-content">
+            <Dialog.Title className="hj-visually-hidden">Post a healthcare job</Dialog.Title>
+            <Dialog.Description className="hj-visually-hidden">Create a healthcare job listing for the Jorniz network.</Dialog.Description>
+            <JobPostingForm onPosted={(job) => { setJobs((current) => [job, ...current]); setShowPostingForm(false); setNotice("Job published successfully."); }} />
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+      <Dialog.Root open={Boolean(applyingTo)} onOpenChange={(open) => { if (!open) setApplyingTo(null); }}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="hj-dialog-backdrop" />
+          <Dialog.Content className="hj-dialog-content">
+            <Dialog.Title className="hj-visually-hidden">Apply for {applyingTo?.title}</Dialog.Title>
+            <Dialog.Description className="hj-visually-hidden">Choose a CV and submit your application to this healthcare role.</Dialog.Description>
+            {applyingTo ? <JobApplicationForm job={applyingTo} onApplied={(message) => { setApplyingTo(null); setNotice(message); setTab("applications"); void refreshApplications(); void refreshJobs(); }} /> : null}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </section>
   );
 }

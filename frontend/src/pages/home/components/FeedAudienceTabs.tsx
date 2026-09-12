@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+import { Tabs } from "radix-ui";
 import type { FeedAudience } from "../types";
 
 const feedChoices: ReadonlyArray<{ value: FeedAudience; label: string }> = [
@@ -7,25 +9,30 @@ const feedChoices: ReadonlyArray<{ value: FeedAudience; label: string }> = [
 ];
 
 export interface FeedAudienceTabsProps {
+  action?: ReactNode;
+  children: ReactNode;
   selectedAudience: FeedAudience;
   onAudienceChange: (audience: FeedAudience) => void;
 }
 
-export function FeedAudienceTabs({ selectedAudience, onAudienceChange }: FeedAudienceTabsProps) {
+export function FeedAudienceTabs({ action, children, selectedAudience, onAudienceChange }: FeedAudienceTabsProps) {
   return (
-    <div className="feed-audience-tabs" role="tablist" aria-label="Home feed">
+    <Tabs.Root value={selectedAudience} onValueChange={(value) => onAudienceChange(value as FeedAudience)}>
+      <div className="home-feed-controls">
+        <Tabs.List className="feed-audience-tabs" aria-label="Home feed">
+          {feedChoices.map((choice) => (
+            <Tabs.Trigger className="feed-audience-tab" key={choice.value} value={choice.value}>
+              {choice.label}
+            </Tabs.Trigger>
+          ))}
+        </Tabs.List>
+        {action}
+      </div>
       {feedChoices.map((choice) => (
-        <button
-          key={choice.value}
-          type="button"
-          role="tab"
-          aria-selected={selectedAudience === choice.value}
-          className={selectedAudience === choice.value ? "active" : ""}
-          onClick={() => onAudienceChange(choice.value)}
-        >
-          {choice.label}
-        </button>
+        <Tabs.Content className="feed-audience-content" key={choice.value} value={choice.value}>
+          {selectedAudience === choice.value ? children : null}
+        </Tabs.Content>
       ))}
-    </div>
+    </Tabs.Root>
   );
 }

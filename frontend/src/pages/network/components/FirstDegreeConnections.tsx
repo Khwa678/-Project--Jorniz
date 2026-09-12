@@ -1,4 +1,6 @@
+import { Button } from "../../../components/ui/Button";
 import type { ProfessionalConnection } from "../api/requests";
+import { NetworkMemberAvatar } from "./NetworkMemberAvatar";
 
 export interface FirstDegreeConnectionsProps {
   connections: ProfessionalConnection[];
@@ -13,10 +15,10 @@ export function FirstDegreeConnections({ connections, onViewMutualConnections }:
         <div className="pn-grid">
           {connections.map((connection) => (
             <article className="pn-person-card" key={connection.id}>
-              <span className="pn-avatar">{connection.name.slice(0, 1).toUpperCase()}</span>
+              <NetworkMemberAvatar avatarUrl={connection.avatar_url} name={connection.name} />
               <h3>{connection.name}</h3>
               <p>{connection.user_type || "Jorniz member"}</p>
-              <button type="button" onClick={() => onViewMutualConnections(connection)}>View mutual connections</button>
+              <Button size="small" onClick={() => onViewMutualConnections(connection)}>View mutual connections</Button>
               <span className="pn-unavailable">Removing a connection is not available yet.</span>
             </article>
           ))}

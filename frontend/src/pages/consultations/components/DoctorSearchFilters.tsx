@@ -1,3 +1,6 @@
+import { Check, ChevronDown } from "lucide-react";
+import { Select, ToggleGroup } from "radix-ui";
+
 export type DoctorSort = "rating" | "price-low" | "price-high" | "experience";
 
 export interface DoctorSearchFiltersProps {
@@ -27,24 +30,46 @@ export function DoctorSearchFilters({
         onChange={(event) => onSearchChange(event.target.value)}
         placeholder="Search doctor, specialty, hospital or location"
       />
-      <select value={sortBy} onChange={(event) => onSortChange(event.target.value as DoctorSort)}>
-        <option value="rating">Top rated</option>
-        <option value="price-low">Lowest fee</option>
-        <option value="price-high">Highest fee</option>
-        <option value="experience">Most experienced</option>
-      </select>
-      <div className="dc-specialties" aria-label="Doctor specialties">
+      <Select.Root value={sortBy} onValueChange={(value) => onSortChange(value as DoctorSort)}>
+        <Select.Trigger className="dc-sort-trigger" aria-label="Sort doctors">
+          <Select.Value />
+          <Select.Icon><ChevronDown aria-hidden="true" size={16} /></Select.Icon>
+        </Select.Trigger>
+        <Select.Portal>
+          <Select.Content className="dc-sort-content" position="popper" sideOffset={6}>
+            <Select.Viewport>
+              {[
+                ["rating", "Top rated"],
+                ["price-low", "Lowest fee"],
+                ["price-high", "Highest fee"],
+                ["experience", "Most experienced"],
+              ].map(([value, label]) => (
+                <Select.Item className="dc-sort-item" key={value} value={value}>
+                  <Select.ItemText>{label}</Select.ItemText>
+                  <Select.ItemIndicator><Check aria-hidden="true" size={15} /></Select.ItemIndicator>
+                </Select.Item>
+              ))}
+            </Select.Viewport>
+          </Select.Content>
+        </Select.Portal>
+      </Select.Root>
+      <ToggleGroup.Root
+        aria-label="Doctor specialties"
+        className="dc-specialties"
+        type="single"
+        value={selectedSpecialty}
+        onValueChange={(value) => value && onSpecialtyChange(value)}
+      >
         {["All", ...specialties].map((specialty) => (
-          <button
-            type="button"
-            className={selectedSpecialty === specialty ? "is-active" : ""}
+          <ToggleGroup.Item
+            aria-label={`Show ${specialty} doctors`}
             key={specialty}
-            onClick={() => onSpecialtyChange(specialty)}
+            value={specialty}
           >
             {specialty}
-          </button>
+          </ToggleGroup.Item>
         ))}
-      </div>
+      </ToggleGroup.Root>
     </div>
   );
 }

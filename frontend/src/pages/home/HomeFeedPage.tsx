@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Plus } from "lucide-react";
+import { Button } from "../../components/ui/Button";
 import type { SignedInAccount } from "../../lib/auth/accountTypes";
 import { FeedAudienceTabs } from "./components/FeedAudienceTabs";
 import { PostTimeline } from "./components/PostTimeline";
@@ -49,16 +51,19 @@ export function HomeFeedPage({ signedInAccount, onOpenCreatePost, onOpenMember, 
           <p>Health insights from professionals and people you follow.</p>
         </div>
       </header>
-      <div className="home-feed-controls">
-        <FeedAudienceTabs selectedAudience={audience} onAudienceChange={setAudience} />
-        <button className="home-create-post-button" type="button" onClick={onOpenCreatePost}>
+      <FeedAudienceTabs
+        selectedAudience={audience}
+        onAudienceChange={setAudience}
+        action={(
+          <Button className="home-create-post-button" onClick={onOpenCreatePost}>
           <Plus size={16} aria-hidden="true" />
           Create post
-        </button>
-      </div>
-      {notice ? <p className="feed-notice">{notice}</p> : null}
-      <PostTimeline posts={posts} loading={loading} error={error} emptyMessage={emptyMessage} currentAccountId={String(signedInAccount.id)} onRetry={() => setReloadNumber((value) => value + 1)} onOpenMember={onOpenMember} onEditPost={onEditPost} onDeletePost={onDeletePost} />
+          </Button>
+        )}
+      >
+        {notice ? <p className="feed-notice">{notice}</p> : null}
+        <PostTimeline posts={posts} loading={loading} error={error} emptyMessage={emptyMessage} currentAccountId={String(signedInAccount.id)} onRetry={() => setReloadNumber((value) => value + 1)} onOpenMember={onOpenMember} onEditPost={onEditPost} onDeletePost={onDeletePost} />
+      </FeedAudienceTabs>
     </main>
   );
 }
-import { Plus } from "lucide-react";

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Button } from "../../../components/ui/Button";
 import type { SignedInAccount } from "../../../lib/auth/accountTypes";
 import type { ProfileSettingsInput } from "../api/requests";
 
@@ -83,7 +84,7 @@ export function ProfileSettings({
         {failure && <p className="settings-request-error" role="alert">{failure}</p>}
         {confirmation && <p className="settings-request-confirmation" role="status">{confirmation}</p>}
         <div className="settings-form-actions">
-          <button type="submit" disabled={saving}>{saving ? "Saving..." : "Save profile"}</button>
+          <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save profile"}</Button>
         </div>
       </form>
     </section>

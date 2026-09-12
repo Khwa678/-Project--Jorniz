@@ -1,3 +1,5 @@
+import { Avatar } from "radix-ui";
+import { Button } from "../../../components/ui/Button";
 import type { DoctorProfile } from "../api/requests";
 
 export interface DoctorDirectoryProps {
@@ -20,7 +22,10 @@ export function DoctorDirectory({ doctors, onChooseDoctor }: DoctorDirectoryProp
       {doctors.map((doctor) => (
         <article className="dc-doctor-card" key={doctor.id}>
           <div className="dc-doctor-heading">
-            {doctor.avatar ? <img src={doctor.avatar} alt="" /> : <span>{doctor.name.slice(0, 1)}</span>}
+            <Avatar.Root className="dc-doctor-avatar">
+              {doctor.avatar ? <Avatar.Image src={doctor.avatar} alt="" /> : null}
+              <Avatar.Fallback>{doctor.name.slice(0, 1)}</Avatar.Fallback>
+            </Avatar.Root>
             <div>
               <h2>{doctor.name}</h2>
               <p>{doctor.specialty}</p>
@@ -36,7 +41,7 @@ export function DoctorDirectory({ doctors, onChooseDoctor }: DoctorDirectoryProp
           {doctor.available_days.length > 0 ? (
             <p className="dc-days">Listed days: {doctor.available_days.join(", ")}</p>
           ) : null}
-          <button type="button" onClick={() => onChooseDoctor(doctor)}>Check booking availability</button>
+          <Button className="dc-book-button" onClick={() => onChooseDoctor(doctor)}>Check booking availability</Button>
         </article>
       ))}
     </div>

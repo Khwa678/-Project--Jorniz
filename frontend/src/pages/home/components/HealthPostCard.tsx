@@ -1,3 +1,6 @@
+import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Avatar, DropdownMenu, Separator } from "radix-ui";
+import { Button } from "../../../components/ui/Button";
 import type { HealthPost } from "../types";
 
 export interface HealthPostCardProps {
@@ -25,22 +28,47 @@ export function HealthPostCard({ post, currentAccountId, onOpenMember, onEditPos
   return (
     <article className="health-post-card">
       <header className="health-post-author">
-        {avatar ? <img src={avatar} alt="" /> : <span aria-hidden="true">{authorName.slice(0, 1).toUpperCase()}</span>}
-        <button type="button" disabled={!authorId || !onOpenMember} onClick={() => authorId && onOpenMember?.(authorId)}>
+        <Avatar.Root className="health-post-avatar">
+          {avatar ? <Avatar.Image className="health-post-avatar-image" src={avatar} alt="" /> : null}
+          <Avatar.Fallback className="health-post-avatar-fallback" delayMs={avatar ? 300 : 0}>
+            {authorName.slice(0, 1).toUpperCase()}
+          </Avatar.Fallback>
+        </Avatar.Root>
+        <Button className="health-post-author-button" variant="ghost" disabled={!authorId || !onOpenMember} onClick={() => authorId && onOpenMember?.(authorId)}>
           <strong>{authorName}</strong>
           <small>{post.author?.professional_label ?? post.author?.role ?? displayPostDate(post.created_at)}</small>
-        </button>
+        </Button>
         {isOwner ? (
-          <div className="health-post-owner-actions">
-            {onEditPost ? <button type="button" onClick={() => onEditPost(post)}>Edit</button> : null}
-            {onDeletePost ? <button type="button" onClick={() => onDeletePost(post)}>Delete</button> : null}
-          </div>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <Button className="health-post-owner-menu-trigger" size="small" variant="ghost" aria-label="Post options">
+                <MoreHorizontal size={19} aria-hidden="true" />
+              </Button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content className="health-post-owner-menu" align="end" sideOffset={6}>
+                {onEditPost ? (
+                  <DropdownMenu.Item className="health-post-owner-menu-item" onSelect={() => onEditPost(post)}>
+                    <Pencil size={15} aria-hidden="true" />
+                    Edit post
+                  </DropdownMenu.Item>
+                ) : null}
+                {onDeletePost ? (
+                  <DropdownMenu.Item className="health-post-owner-menu-item danger" onSelect={() => onDeletePost(post)}>
+                    <Trash2 size={15} aria-hidden="true" />
+                    Delete post
+                  </DropdownMenu.Item>
+                ) : null}
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
         ) : null}
       </header>
       {post.category ? <p className="health-post-category">{post.category}</p> : null}
       {post.content ? <p className="health-post-content">{post.content}</p> : null}
       {post.media_url && post.media_type === "video" ? <video className="health-post-media" src={post.media_url} controls preload="metadata" /> : null}
       {post.media_url && post.media_type !== "video" ? <img className="health-post-media" src={post.media_url} alt="Post media" loading="lazy" /> : null}
+      <Separator.Root className="health-post-separator" decorative />
       <footer className="health-post-statistics" aria-label="Post activity">
         <span>{likes} likes</span><span>{comments} comments</span><span>{post.shares ?? 0} shares</span>
       </footer>

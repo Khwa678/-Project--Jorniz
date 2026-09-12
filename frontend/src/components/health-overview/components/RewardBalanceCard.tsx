@@ -1,4 +1,5 @@
 import { CircleDollarSign } from "lucide-react";
+import { Button } from "../../ui/Button";
 
 export interface RewardBalanceCardProps {
   confirmedCoins: number | null;
@@ -18,7 +19,9 @@ export function RewardBalanceCard({
         <strong>
           {loading ? "Loading" : confirmedCoins === null ? "Unavailable" : confirmedCoins.toLocaleString()}
         </strong>
-        <button type="button" onClick={onOpenWallet} disabled={!onOpenWallet}>View wallet</button>
+        <Button variant="secondary" size="small" onClick={onOpenWallet} disabled={!onOpenWallet}>
+          View wallet
+        </Button>
       </div>
       <p>Redeem HU Coins on consultations, medicines, and more.</p>
     </section>

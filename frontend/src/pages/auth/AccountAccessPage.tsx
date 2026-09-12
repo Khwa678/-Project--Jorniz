@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Tabs } from "radix-ui";
 import type { SignedInAccount } from "../../lib/auth/accountTypes";
 import {
   getSignedInAccount,
@@ -47,18 +48,21 @@ export function AccountAccessPage({
         </p>
       </section>
       <section className="account-form-panel">
-        {!resettingPassword ? (
-          <div className="account-mode-tabs" aria-label="Account access options">
-            <button type="button" className={mode === "sign-in" ? "active" : ""} onClick={() => setMode("sign-in")}>Sign in</button>
-            <button type="button" className={mode === "create-account" ? "active" : ""} onClick={() => setMode("create-account")}>Create account</button>
-          </div>
-        ) : null}
         {resettingPassword ? (
           <PasswordResetForm onReturnToSignIn={() => setResettingPassword(false)} />
-        ) : mode === "sign-in" ? (
-          <SignInForm onSignedIn={acceptAccountAccess} onChooseCreateAccount={() => setMode("create-account")} onRequestPasswordReset={() => setResettingPassword(true)} />
         ) : (
-          <CreateAccountForm onAccountCreated={acceptAccountAccess} onChooseSignIn={() => setMode("sign-in")} />
+          <Tabs.Root value={mode} onValueChange={(value) => setMode(value as AccountAccessMode)}>
+            <Tabs.List className="account-mode-tabs" aria-label="Account access options">
+              <Tabs.Trigger value="sign-in">Sign in</Tabs.Trigger>
+              <Tabs.Trigger value="create-account">Create account</Tabs.Trigger>
+            </Tabs.List>
+            <Tabs.Content value="sign-in">
+              <SignInForm onSignedIn={acceptAccountAccess} onChooseCreateAccount={() => setMode("create-account")} onRequestPasswordReset={() => setResettingPassword(true)} />
+            </Tabs.Content>
+            <Tabs.Content value="create-account">
+              <CreateAccountForm onAccountCreated={acceptAccountAccess} onChooseSignIn={() => setMode("sign-in")} />
+            </Tabs.Content>
+          </Tabs.Root>
         )}
       </section>
     </main>

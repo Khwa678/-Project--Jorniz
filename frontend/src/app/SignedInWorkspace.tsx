@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Toast } from "radix-ui";
 import { HealthAssistant } from "../components/health-assistant/HealthAssistant";
 import { HealthOverviewPanel } from "../components/health-overview/HealthOverviewPanel";
 import { PostEditorDialog, type EditablePost, type PostWriteResult } from "../components/post-editor";
@@ -13,6 +14,7 @@ import type {
 } from "../components/navigation/components/NavigationDestinations";
 import { JornizRouteMap } from "./JornizRouteMap";
 import { destinationById, destinationForPath } from "./routeAddresses";
+import { Button } from "../components/ui/Button";
 
 export interface SignedInWorkspaceProps {
   account: SignedInAccount;
@@ -67,12 +69,6 @@ export function SignedInWorkspace({ account, onAccountUpdated, onSignOut }: Sign
     setPostEditorOpen(true);
   }
 
-  useEffect(() => {
-    if (!postNotice) return;
-    const timeout = window.setTimeout(() => setPostNotice(""), 6000);
-    return () => window.clearTimeout(timeout);
-  }, [postNotice]);
-
   function acceptPostChange(result: PostWriteResult) {
     setPostEditorOpen(false);
     setEditingPost(null);
@@ -82,7 +78,8 @@ export function SignedInWorkspace({ account, onAccountUpdated, onSignOut }: Sign
   }
 
   return (
-    <div className={`signed-in-workspace${leftSidebarCollapsed ? " left-sidebar-collapsed" : ""}${rightSidebarCollapsed ? " right-sidebar-collapsed" : ""}`}>
+    <Toast.Provider duration={6000} swipeDirection="up">
+      <div className={`signed-in-workspace${leftSidebarCollapsed ? " left-sidebar-collapsed" : ""}${rightSidebarCollapsed ? " right-sidebar-collapsed" : ""}`}>
       <WorkspaceNavigation
         account={account}
         activeDestination={destination.id}
@@ -107,6 +104,7 @@ export function SignedInWorkspace({ account, onAccountUpdated, onSignOut }: Sign
             onSignOut={onSignOut}
             postRevision={postRevision}
             onPostDeleted={() => setPostRevision((value) => value + 1)}
+            onPostNotice={setPostNotice}
           />
         </section>
         <HealthOverviewPanel
@@ -115,13 +113,26 @@ export function SignedInWorkspace({ account, onAccountUpdated, onSignOut }: Sign
           suggestedMembers={[]}
           trendingTopics={[]}
           onOpenWallet={() => navigateById("wallet")}
+          onBookConsultation={() => navigateById("consultations")}
           onOpenAllSuggestions={() => navigateById("network")}
           onOpenTrendingTopic={() => navigateById("explore")}
           collapsed={rightSidebarCollapsed}
           onToggleCollapsed={() => setRightSidebarCollapsed((collapsed) => !collapsed)}
         />
       </div>
-      {postNotice ? <button type="button" className="workspace-notice" aria-live="polite" onClick={() => setPostNotice("")}>{postNotice}</button> : null}
+      <Toast.Root
+        className="workspace-toast"
+        open={Boolean(postNotice)}
+        onOpenChange={(open) => {
+          if (!open) setPostNotice("");
+        }}
+      >
+        <Toast.Description className="workspace-toast-description">{postNotice}</Toast.Description>
+        <Toast.Close asChild>
+          <Button className="workspace-toast-close" variant="ghost" size="small">Dismiss</Button>
+        </Toast.Close>
+      </Toast.Root>
+      <Toast.Viewport className="workspace-toast-viewport" />
       <HealthAssistant />
       <PostEditorDialog
         open={postEditorOpen}
@@ -129,6 +140,7 @@ export function SignedInWorkspace({ account, onAccountUpdated, onSignOut }: Sign
         onClose={() => setPostEditorOpen(false)}
         onPostSaved={acceptPostChange}
       />
-    </div>
+      </div>
+    </Toast.Provider>
   );
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Tabs } from "radix-ui";
 import type { SignedInAccount } from "../../lib/auth/accountTypes";
 import { AccountDataControls } from "./components/AccountDataControls";
 import { AppearanceSettings } from "./components/AppearanceSettings";
@@ -108,8 +109,16 @@ export function AccountSettingsPage({
         <h1>Settings</h1>
         <p>Only settings supported by a real backend endpoint can be saved.</p>
       </header>
-      <div className="account-settings-layout">
-        <nav className="account-settings-navigation" aria-label="Settings sections">
+      <Tabs.Root
+        className="account-settings-layout"
+        value={section}
+        onValueChange={(value) => {
+          setFailure("");
+          setConfirmation("");
+          setSection(value as SettingsSection);
+        }}
+      >
+        <Tabs.List className="account-settings-navigation" aria-label="Settings sections">
           {([
             ["profile", "Profile"],
             ["notifications", "Notifications"],
@@ -117,23 +126,13 @@ export function AccountSettingsPage({
             ["appearance", "Appearance"],
             ["account-data", "Sessions and data"],
           ] as Array<[SettingsSection, string]>).map(([id, label]) => (
-            <button
-              type="button"
-              className={section === id ? "active" : ""}
-              aria-current={section === id ? "page" : undefined}
-              onClick={() => {
-                setFailure("");
-                setConfirmation("");
-                setSection(id);
-              }}
-              key={id}
-            >
+            <Tabs.Trigger value={id} key={id}>
               {label}
-            </button>
+            </Tabs.Trigger>
           ))}
-        </nav>
+        </Tabs.List>
         <div>
-          {section === "profile" && (
+          <Tabs.Content value="profile">
             <ProfileSettings
               account={account}
               saving={savingProfile}
@@ -141,11 +140,11 @@ export function AccountSettingsPage({
               confirmation={confirmation}
               onSave={persistProfile}
             />
-          )}
-          {section === "notifications" && <NotificationSettings />}
-          {section === "privacy" && <PrivacySettings />}
-          {section === "appearance" && <AppearanceSettings />}
-          {section === "account-data" && (
+          </Tabs.Content>
+          <Tabs.Content value="notifications"><NotificationSettings /></Tabs.Content>
+          <Tabs.Content value="privacy"><PrivacySettings /></Tabs.Content>
+          <Tabs.Content value="appearance"><AppearanceSettings /></Tabs.Content>
+          <Tabs.Content value="account-data">
             <AccountDataControls
               sessions={sessions}
               sessionsLoading={sessionsLoading}
@@ -155,9 +154,9 @@ export function AccountSettingsPage({
               onExportAccount={downloadAccountExport}
               onDeactivateAccount={submitAccountDeactivation}
             />
-          )}
+          </Tabs.Content>
         </div>
-      </div>
+      </Tabs.Root>
     </main>
   );
 }

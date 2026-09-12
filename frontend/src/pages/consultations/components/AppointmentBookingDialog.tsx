@@ -1,3 +1,5 @@
+import { Dialog } from "radix-ui";
+import { Button } from "../../../components/ui/Button";
 import { ConsultationPaymentChoice } from "./ConsultationPaymentChoice";
 import type { DoctorProfile } from "../api/requests";
 
@@ -10,18 +12,28 @@ export function AppointmentBookingDialog({ doctor, onClose }: AppointmentBooking
   if (!doctor) return null;
 
   return (
-    <div className="dc-dialog-backdrop" role="presentation" onMouseDown={onClose}>
-      <section className="dc-dialog" role="dialog" aria-modal="true" aria-labelledby="dc-booking-title" onMouseDown={(event) => event.stopPropagation()}>
-        <header>
-          <div><span>Appointment request</span><h2 id="dc-booking-title">{doctor.name}</h2></div>
-          <button type="button" onClick={onClose}>Close</button>
-        </header>
-        <div className="dc-unavailable-block">
-          <strong>Online booking is temporarily unavailable.</strong>
-          <span>Jorniz can list approved doctors, but the backend has no endpoint that returns trustworthy available slots for this doctor. No appointment has been created.</span>
-        </div>
-        <ConsultationPaymentChoice />
-      </section>
-    </div>
+    <Dialog.Root open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="dc-dialog-backdrop" />
+        <Dialog.Content className="dc-dialog">
+          <header>
+            <div>
+              <span>Appointment request</span>
+              <Dialog.Title id="dc-booking-title">{doctor.name}</Dialog.Title>
+            </div>
+            <Dialog.Close asChild>
+              <Button size="small" variant="secondary">Close</Button>
+            </Dialog.Close>
+          </header>
+          <Dialog.Description asChild>
+            <div className="dc-unavailable-block">
+              <strong>Online booking is temporarily unavailable.</strong>
+              <span>Jorniz can list approved doctors, but the backend has no endpoint that returns trustworthy available slots for this doctor. No appointment has been created.</span>
+            </div>
+          </Dialog.Description>
+          <ConsultationPaymentChoice />
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

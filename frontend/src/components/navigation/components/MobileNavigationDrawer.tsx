@@ -1,5 +1,8 @@
 import { useRef, type TouchEvent } from "react";
+import { X } from "lucide-react";
+import { Dialog } from "radix-ui";
 import type { SignedInAccount } from "../../../lib/auth/accountTypes";
+import { Button } from "../../ui/Button";
 import { NavigationDestinations, type WorkspaceDestination, type WorkspaceDestinationId } from "./NavigationDestinations";
 import { NavigationMemberSummary } from "./NavigationMemberSummary";
 import { NavigationRewardBalance } from "./NavigationRewardBalance";
@@ -59,49 +62,52 @@ export function MobileNavigationDrawer({
   }
 
   return (
-    <div className={open ? "mobile-navigation-layer open" : "mobile-navigation-layer"} aria-hidden={!open}>
-      <button
-        type="button"
-        className="mobile-navigation-overlay"
-        aria-label="Close navigation"
-        onClick={onClose}
-        tabIndex={open ? 0 : -1}
-      />
-      <aside
-        className="mobile-navigation-drawer"
-        aria-label="Mobile navigation"
-        onTouchStart={rememberTouch}
-        onTouchEnd={closeAfterLeftSwipe}
-      >
-        <header>
-          <div><strong>Jorniz</strong><small>AI-Native Social and Participation Platform</small></div>
-          <button type="button" onClick={onClose} aria-label="Close navigation">X</button>
-        </header>
-        <NavigationDestinations
-          activeDestination={activeDestination}
-          onNavigate={navigateAndClose}
-          onCreatePost={createPostAndClose}
-        />
-        <NavigationRewardBalance
-          confirmedCoins={confirmedCoins}
-          loading={rewardBalanceLoading}
-          onOpenWallet={() => {
-            onOpenWallet();
-            onClose();
-          }}
-        />
-        <NavigationMemberSummary
-          account={account}
-          onOpenAccountOptions={() => {
-            onOpenAccountOptions?.();
-            onClose();
-          }}
-          onSignOut={() => {
-            onClose();
-            onSignOut();
-          }}
-        />
-      </aside>
-    </div>
+    <Dialog.Root open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="mobile-navigation-overlay" />
+        <Dialog.Content
+          className="mobile-navigation-drawer"
+          aria-label="Mobile navigation"
+          onTouchStart={rememberTouch}
+          onTouchEnd={closeAfterLeftSwipe}
+        >
+          <header>
+            <div>
+              <Dialog.Title asChild><strong>Jorniz</strong></Dialog.Title>
+              <Dialog.Description asChild><small>AI-Native Social and Participation Platform</small></Dialog.Description>
+            </div>
+            <Dialog.Close asChild>
+              <Button className="mobile-navigation-close" size="small" variant="ghost" aria-label="Close navigation">
+                <X aria-hidden="true" />
+              </Button>
+            </Dialog.Close>
+          </header>
+          <NavigationDestinations
+            activeDestination={activeDestination}
+            onNavigate={navigateAndClose}
+            onCreatePost={createPostAndClose}
+          />
+          <NavigationRewardBalance
+            confirmedCoins={confirmedCoins}
+            loading={rewardBalanceLoading}
+            onOpenWallet={() => {
+              onOpenWallet();
+              onClose();
+            }}
+          />
+          <NavigationMemberSummary
+            account={account}
+            onOpenAccountOptions={() => {
+              onOpenAccountOptions?.();
+              onClose();
+            }}
+            onSignOut={() => {
+              onClose();
+              onSignOut();
+            }}
+          />
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

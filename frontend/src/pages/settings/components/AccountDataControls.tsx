@@ -1,3 +1,5 @@
+import { AlertDialog } from "radix-ui";
+import { Button } from "../../../components/ui/Button";
 import type { SignedInSession } from "../api/requests";
 
 export interface AccountDataControlsProps {
@@ -19,11 +21,6 @@ export function AccountDataControls({
   onExportAccount,
   onDeactivateAccount,
 }: AccountDataControlsProps) {
-  async function confirmAccountDeactivation() {
-    if (!window.confirm("Deactivate this Jorniz account? This changes the account record.")) return;
-    await onDeactivateAccount();
-  }
-
   return (
     <section className="account-settings-section">
       <div className="settings-section-heading">
@@ -34,9 +31,9 @@ export function AccountDataControls({
 
       <div className="signed-in-session-heading">
         <h3>Signed-in sessions</h3>
-        <button type="button" onClick={() => void onRefreshSessions()} disabled={sessionsLoading}>
+        <Button type="button" onClick={() => void onRefreshSessions()} disabled={sessionsLoading}>
           {sessionsLoading ? "Loading..." : "Refresh"}
-        </button>
+        </Button>
       </div>
       {sessions.length === 0 && !sessionsLoading ? (
         <p className="settings-empty-state">No active sessions were returned.</p>
@@ -53,20 +50,36 @@ export function AccountDataControls({
       )}
 
       <div className="account-data-actions">
-        <button type="button" onClick={() => void onExportAccount()} disabled={busyAction !== null}>
+        <Button type="button" onClick={() => void onExportAccount()} disabled={busyAction !== null}>
           {busyAction === "export" ? "Preparing export..." : "Export account data"}
-        </button>
-        <button type="button" disabled title="The backend currently returns Not Implemented">
+        </Button>
+        <Button type="button" disabled title="The backend currently returns Not Implemented">
           Enable two-factor authentication - unavailable
-        </button>
-        <button
-          type="button"
-          className="deactivate-account-button"
-          onClick={() => void confirmAccountDeactivation()}
-          disabled={busyAction !== null}
-        >
-          {busyAction === "delete" ? "Deactivating..." : "Deactivate account"}
-        </button>
+        </Button>
+        <AlertDialog.Root>
+          <AlertDialog.Trigger asChild>
+            <Button type="button" className="deactivate-account-button" disabled={busyAction !== null}>
+              {busyAction === "delete" ? "Deactivating..." : "Deactivate account"}
+            </Button>
+          </AlertDialog.Trigger>
+          <AlertDialog.Portal>
+            <AlertDialog.Overlay className="settings-dialog-overlay" />
+            <AlertDialog.Content className="settings-confirm-dialog">
+              <AlertDialog.Title>Deactivate this Jorniz account?</AlertDialog.Title>
+              <AlertDialog.Description>
+                This changes the account record and signs you out of the active account.
+              </AlertDialog.Description>
+              <div className="settings-dialog-actions">
+                <AlertDialog.Cancel asChild><Button type="button">Cancel</Button></AlertDialog.Cancel>
+                <AlertDialog.Action asChild>
+                  <Button type="button" className="deactivate-account-button" onClick={() => void onDeactivateAccount()}>
+                    Deactivate account
+                  </Button>
+                </AlertDialog.Action>
+              </div>
+            </AlertDialog.Content>
+          </AlertDialog.Portal>
+        </AlertDialog.Root>
       </div>
       {failure && <p className="settings-request-error" role="alert">{failure}</p>}
     </section>

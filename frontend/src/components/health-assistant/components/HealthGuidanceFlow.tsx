@@ -1,3 +1,4 @@
+import { ToggleGroup } from "radix-ui";
 import {
   healthGuidanceTopics,
   type HealthGuidanceTopic,
@@ -20,22 +21,24 @@ const topicIcons: Record<HealthGuidanceTopicId, string> = {
 };
 
 export function HealthGuidanceFlow({ selectedTopicId, onSelectTopic }: HealthGuidanceFlowProps) {
+  function selectTopic(topicId: string) {
+    const topic = healthGuidanceTopics.find((candidate) => candidate.id === topicId);
+    if (topic) onSelectTopic(topic);
+  }
+
   return (
-    <div className="health-guidance-topic-list" aria-label="Health guidance topics">
+    <ToggleGroup.Root className="health-guidance-topic-list" type="single" value={selectedTopicId ?? ""} onValueChange={selectTopic} aria-label="Health guidance topics">
       {healthGuidanceTopics.map((topic) => {
         return (
-          <button
-            type="button"
-            className={selectedTopicId === topic.id ? "active" : ""}
-            aria-pressed={selectedTopicId === topic.id}
-            onClick={() => onSelectTopic(topic)}
+          <ToggleGroup.Item
+            value={topic.id}
             key={topic.id}
           >
             <span className="health-guidance-topic-icon" aria-hidden="true">{topicIcons[topic.id]}</span>
             <span>{topic.title}</span>
-          </button>
+          </ToggleGroup.Item>
         );
       })}
-    </div>
+    </ToggleGroup.Root>
   );
 }

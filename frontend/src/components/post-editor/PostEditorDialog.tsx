@@ -1,4 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { ChevronDown, X } from "lucide-react";
+import { Dialog, Select } from "radix-ui";
+import { Button } from "../ui/Button";
 import { PostMediaPicker } from "./components/PostMediaPicker";
 import { createPost } from "./api/createPost";
 import { updatePost } from "./api/updatePost";
@@ -26,8 +29,6 @@ export function PostEditorDialog({ open, post, onClose, onPostSaved }: PostEdito
     setError("");
   }, [open, post]);
 
-  if (!open) return null;
-
   async function savePost(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -49,5 +50,55 @@ export function PostEditorDialog({ open, post, onClose, onPostSaved }: PostEdito
     }
   }
 
-  return <div className="post-editor-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><section className="post-editor-dialog" role="dialog" aria-modal="true" aria-labelledby="post-editor-title"><header><div><p>{post ? "Edit post" : "Create post"}</p><h2 id="post-editor-title">{post ? "Update your post" : "Share with Jorniz"}</h2></div><button type="button" onClick={onClose} aria-label="Close post editor">Close</button></header><form onSubmit={savePost}><label><span>Post text</span><textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder="Share a healthcare insight" rows={7} /></label><label><span>Category</span><select value={category} onChange={(event) => setCategory(event.target.value)}>{postCategories.map((value) => <option key={value}>{value}</option>)}</select></label><PostMediaPicker selectedFile={mediaFile} existingMediaUrl={post?.media_url} existingMediaType={post?.media_type} removeExistingMedia={removeMedia} onFileChange={setMediaFile} onRemoveExistingMediaChange={setRemoveMedia} />{error ? <p className="post-editor-message post-editor-error">{error}</p> : null}<footer><button type="button" onClick={onClose}>Cancel</button><button type="submit" disabled={saving}>{saving ? "Saving..." : post ? "Save changes" : "Publish post"}</button></footer></form></section></div>;
+  return (
+    <Dialog.Root open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="post-editor-backdrop" />
+        <Dialog.Content className="post-editor-dialog">
+          <header>
+            <div>
+              <p>{post ? "Edit post" : "Create post"}</p>
+              <Dialog.Title asChild><h2 id="post-editor-title">{post ? "Update your post" : "Share with Jorniz"}</h2></Dialog.Title>
+            </div>
+            <Dialog.Close asChild>
+              <Button variant="secondary" size="small" aria-label="Close post editor"><X size={17} aria-hidden="true" /></Button>
+            </Dialog.Close>
+          </header>
+          <Dialog.Description className="post-editor-description">Share text, an image, or a video with your Jorniz network.</Dialog.Description>
+          <form onSubmit={savePost}>
+            <label>
+              <span>Post text</span>
+              <textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder="Share a healthcare insight" rows={7} />
+            </label>
+            <label>
+              <span>Category</span>
+              <Select.Root value={category} onValueChange={setCategory}>
+                <Select.Trigger className="post-category-trigger" aria-label="Post category">
+                  <Select.Value />
+                  <Select.Icon><ChevronDown size={17} aria-hidden="true" /></Select.Icon>
+                </Select.Trigger>
+                <Select.Portal>
+                  <Select.Content className="post-category-menu" position="popper" sideOffset={5}>
+                    <Select.Viewport>
+                      {postCategories.map((value) => (
+                        <Select.Item className="post-category-option" key={value} value={value}>
+                          <Select.ItemText>{value}</Select.ItemText>
+                        </Select.Item>
+                      ))}
+                    </Select.Viewport>
+                  </Select.Content>
+                </Select.Portal>
+              </Select.Root>
+            </label>
+            <PostMediaPicker selectedFile={mediaFile} existingMediaUrl={post?.media_url} existingMediaType={post?.media_type} removeExistingMedia={removeMedia} onFileChange={setMediaFile} onRemoveExistingMediaChange={setRemoveMedia} />
+            {error ? <p className="post-editor-message post-editor-error">{error}</p> : null}
+            <footer>
+              <Dialog.Close asChild><Button variant="secondary">Cancel</Button></Dialog.Close>
+              <Button type="submit" disabled={saving}>{saving ? "Saving..." : post ? "Save changes" : "Publish post"}</Button>
+            </footer>
+          </form>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
 }

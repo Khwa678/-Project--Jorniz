@@ -1,4 +1,7 @@
+import { Dialog } from "radix-ui";
+import { Button } from "../../../components/ui/Button";
 import type { MutualConnection, ProfessionalConnection } from "../api/requests";
+import { NetworkMemberAvatar } from "./NetworkMemberAvatar";
 
 export interface MutualConnectionsDialogProps {
   connection: ProfessionalConnection | null;
@@ -9,15 +12,23 @@ export interface MutualConnectionsDialogProps {
 }
 
 export function MutualConnectionsDialog({ connection, failure, loading, mutualConnections, onClose }: MutualConnectionsDialogProps) {
-  if (!connection) return null;
   return (
-    <div className="pn-dialog-backdrop" role="presentation" onMouseDown={onClose}>
-      <section className="pn-dialog" role="dialog" aria-modal="true" aria-labelledby="pn-mutual-title" onMouseDown={(event) => event.stopPropagation()}>
-        <header><div><span>Shared network</span><h2 id="pn-mutual-title">Mutual connections with {connection.name}</h2></div><button type="button" onClick={onClose}>Close</button></header>
-        {loading ? <p>Loading mutual connections...</p> : failure ? <p className="pn-error" role="alert">{failure}</p> : mutualConnections.length === 0 ? <p className="pn-empty-line">No mutual connections found.</p> : mutualConnections.map((member) => (
-          <article className="pn-person-row" key={member.id}><span className="pn-avatar">{member.name.slice(0, 1)}</span><div><strong>{member.name}</strong><small>{[member.specialty, member.hospital].filter(Boolean).join(" | ") || member.role || "Jorniz member"}</small></div></article>
-        ))}
-      </section>
-    </div>
+    <Dialog.Root open={connection !== null} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="pn-dialog-backdrop" />
+        <Dialog.Content className="pn-dialog" aria-describedby={undefined}>
+          <header>
+            <div><span>Shared network</span><Dialog.Title id="pn-mutual-title">Mutual connections with {connection?.name}</Dialog.Title></div>
+            <Dialog.Close asChild><Button size="small" variant="secondary">Close</Button></Dialog.Close>
+          </header>
+          {loading ? <p>Loading mutual connections...</p> : failure ? <p className="pn-error" role="alert">{failure}</p> : mutualConnections.length === 0 ? <p className="pn-empty-line">No mutual connections found.</p> : mutualConnections.map((member) => (
+            <article className="pn-person-row" key={member.id}>
+              <NetworkMemberAvatar avatarUrl={member.avatar_url} name={member.name} />
+              <div><strong>{member.name}</strong><small>{[member.specialty, member.hospital].filter(Boolean).join(" | ") || member.role || "Jorniz member"}</small></div>
+            </article>
+          ))}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

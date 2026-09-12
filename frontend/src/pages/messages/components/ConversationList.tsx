@@ -1,3 +1,4 @@
+import { Avatar, DropdownMenu, ScrollArea } from "radix-ui";
 import type { ConversationSummary } from "../api/requests";
 
 export interface ConversationListProps {
@@ -39,16 +40,19 @@ export function ConversationList({
   }
 
   return (
-    <div className="dm-conversation-list">
+    <ScrollArea.Root className="dm-conversation-scroll">
+      <ScrollArea.Viewport className="dm-conversation-scroll-viewport">
+      <div className="dm-conversation-list">
       {visible.map((conversation) => (
         <div
           className={`dm-conversation-row ${currentConversationId === conversation.id ? "is-active" : ""}`}
           key={conversation.id}
         >
           <button type="button" className="dm-conversation-main" onClick={() => onOpenConversation(conversation)}>
-            <span className="dm-avatar" aria-hidden="true">
-              {conversation.other_user.name.slice(0, 1).toUpperCase()}
-            </span>
+            <Avatar.Root className="dm-avatar">
+              {conversation.other_user.avatar ? <Avatar.Image src={conversation.other_user.avatar} alt="" /> : null}
+              <Avatar.Fallback>{conversation.other_user.name.slice(0, 1).toUpperCase()}</Avatar.Fallback>
+            </Avatar.Root>
             <span className="dm-conversation-copy">
               <span className="dm-conversation-name">
                 {conversation.other_user.name}
@@ -60,16 +64,23 @@ export function ConversationList({
               <span className="dm-unread-count">{conversation.unread_count}</span>
             ) : null}
           </button>
-          <button
-            type="button"
-            className="dm-pin-button"
-            disabled={pinningConversationId === conversation.id}
-            onClick={() => onTogglePin(conversation)}
-          >
-            {conversation.is_pinned ? "Unpin" : "Pin"}
-          </button>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <button type="button" className="dm-pin-button" disabled={pinningConversationId === conversation.id} aria-label={`Actions for ${conversation.other_user.name}`}>...</button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content className="dm-action-menu" align="end" sideOffset={4}>
+                <DropdownMenu.Item className="dm-action-menu-item" onSelect={() => onTogglePin(conversation)}>
+                  {conversation.is_pinned ? "Unpin conversation" : "Pin conversation"}
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
         </div>
       ))}
-    </div>
+      </div>
+      </ScrollArea.Viewport>
+      <ScrollArea.Scrollbar className="dm-scrollbar" orientation="vertical"><ScrollArea.Thumb className="dm-scroll-thumb" /></ScrollArea.Scrollbar>
+    </ScrollArea.Root>
   );
 }

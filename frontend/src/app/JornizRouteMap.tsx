@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AlertDialog } from "radix-ui";
 import { AccountSettingsPage } from "../pages/settings/AccountSettingsPage";
 import { NotificationsPage } from "../pages/notifications";
 import { AdvertisingCampaignsPage } from "../pages/ads/AdvertisingCampaignsPage";
@@ -15,6 +16,7 @@ import { RewardsWalletPage } from "../pages/wallet/RewardsWalletPage";
 import { getSignedInAccessToken } from "../lib/auth/signedInAccount";
 import type { SignedInAccount } from "../lib/auth/accountTypes";
 import type { WorkspaceDestinationId } from "../components/navigation/components/NavigationDestinations";
+import { Button } from "../components/ui/Button";
 
 export interface JornizRouteMapProps {
   account: SignedInAccount;
@@ -26,6 +28,7 @@ export interface JornizRouteMapProps {
   onSignOut: () => void;
   postRevision: number;
   onPostDeleted: () => void;
+  onPostNotice: (message: string) => void;
 }
 
 function editablePost(post: HealthPost): EditablePost {
@@ -48,18 +51,26 @@ export function JornizRouteMap({
   onSignOut,
   postRevision,
   onPostDeleted,
+  onPostNotice,
 }: JornizRouteMapProps) {
   const [postActionError, setPostActionError] = useState("");
+  const [postToDelete, setPostToDelete] = useState<HealthPost | null>(null);
+  const [deleteError, setDeleteError] = useState("");
+  const [deletingPost, setDeletingPost] = useState(false);
 
   async function removePost(post: HealthPost) {
-    if (!window.confirm("Delete this post and its stored media?")) return;
     setPostActionError("");
+    setDeleteError("");
+    setDeletingPost(true);
     try {
       const result = await deletePost(String(post.id));
-      setPostActionError(result.warning ?? "");
+      if (result.warning) onPostNotice(result.warning);
+      setPostToDelete(null);
       onPostDeleted();
     } catch (error) {
-      setPostActionError(error instanceof Error ? error.message : "The post could not be deleted.");
+      setDeleteError(error instanceof Error ? error.message : "The post could not be deleted.");
+    } finally {
+      setDeletingPost(false);
     }
   }
 
@@ -89,7 +100,7 @@ export function JornizRouteMap({
     return (
       <div className="settings-route">
         <AccountSettingsPage account={account} onAccountUpdated={onAccountUpdated} onAccountDeactivated={onSignOut} />
-        <button className="workspace-sign-out" type="button" onClick={onSignOut}>Sign out</button>
+        <Button className="workspace-sign-out" variant="danger" onClick={onSignOut}>Sign out</Button>
       </div>
     );
   }
@@ -102,8 +113,45 @@ export function JornizRouteMap({
         signedInAccount={account}
         onOpenCreatePost={() => onOpenPostEditor()}
         onEditPost={(post) => onOpenPostEditor(editablePost(post))}
-        onDeletePost={(post) => void removePost(post)}
+        onDeletePost={(post) => {
+          setDeleteError("");
+          setPostToDelete(post);
+        }}
       />
+      <AlertDialog.Root
+        open={postToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open && !deletingPost) setPostToDelete(null);
+        }}
+      >
+        <AlertDialog.Portal>
+          <AlertDialog.Overlay className="workspace-alert-overlay" />
+          <AlertDialog.Content className="workspace-alert-dialog">
+            <AlertDialog.Title className="workspace-alert-title">Delete post?</AlertDialog.Title>
+            <AlertDialog.Description className="workspace-alert-description">
+              This permanently deletes the post and its stored media.
+            </AlertDialog.Description>
+            {deleteError ? <p className="workspace-action-error" role="alert">{deleteError}</p> : null}
+            <div className="workspace-alert-actions">
+              <AlertDialog.Cancel asChild>
+                <Button variant="secondary" disabled={deletingPost}>Cancel</Button>
+              </AlertDialog.Cancel>
+              <AlertDialog.Action asChild>
+                <Button
+                  variant="danger"
+                  disabled={deletingPost}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    if (postToDelete) void removePost(postToDelete);
+                  }}
+                >
+                  {deletingPost ? "Deleting..." : "Delete post"}
+                </Button>
+              </AlertDialog.Action>
+            </div>
+          </AlertDialog.Content>
+        </AlertDialog.Portal>
+      </AlertDialog.Root>
     </>
   );
 }

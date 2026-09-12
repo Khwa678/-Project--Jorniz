@@ -1,4 +1,5 @@
 import type { JornizAccountType } from "../types";
+import { AccountSelect } from "./AccountSelect";
 
 const specialties = [
   "General Medicine",
@@ -49,16 +50,15 @@ export function ProfessionalVerificationFields({
   return (
     <>
       {accountType === "doctor" ? (
-        <label className="account-field">
-          <span>Specialization</span>
-          <select value={specialty} onChange={(event) => onSpecialtyChange(event.target.value)}>
-            {specialties.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="account-field">
+          <span id="professional-specialty-label">Specialization</span>
+          <AccountSelect
+            ariaLabelledBy="professional-specialty-label"
+            options={specialties.map((value) => ({ label: value, value }))}
+            value={specialty}
+            onValueChange={onSpecialtyChange}
+          />
+        </div>
       ) : null}
 
       {organizationLabel ? (

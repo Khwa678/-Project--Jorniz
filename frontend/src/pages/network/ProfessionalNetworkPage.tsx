@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Button } from "../../components/ui/Button";
 import { ConnectionInvitations } from "./components/ConnectionInvitations";
 import { FirstDegreeConnections } from "./components/FirstDegreeConnections";
 import { MutualConnectionsDialog } from "./components/MutualConnectionsDialog";
@@ -101,7 +102,7 @@ export function ProfessionalNetworkPage() {
     <section className="pn-page">
       <header className="pn-page-heading"><div><span>Professional relationships</span><h1>My network</h1><p>Manage persisted connection invitations and first-degree healthcare connections.</p></div><strong>{network.connections.length} connections</strong></header>
       {notice ? <div className="pn-notice">{notice}</div> : null}
-      {failure ? <div className="pn-error" role="alert"><p>{failure}</p><button type="button" onClick={() => void refreshNetwork()}>Try again</button></div> : loading ? <p className="pn-status">Loading your professional network...</p> : (
+      {failure ? <div className="pn-error" role="alert"><p>{failure}</p><Button size="small" onClick={() => void refreshNetwork()}>Try again</Button></div> : loading ? <p className="pn-status">Loading your professional network...</p> : (
         <>
           <ConnectionInvitations acceptingConnectionId={acceptingConnectionId} invitations={network.pending_requests} onAccept={(invitation) => void acceptInvitation(invitation)} />
           <FirstDegreeConnections connections={network.connections} onViewMutualConnections={(connection) => void showMutualConnections(connection)} />

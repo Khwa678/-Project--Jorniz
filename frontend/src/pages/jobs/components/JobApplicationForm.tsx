@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import { Dialog } from "radix-ui";
+import { Button } from "../../../components/ui/Button";
+import { JobSelect } from "./JobSelect";
 import {
   createCandidateCvRecord,
   loadCandidateCvs,
@@ -10,10 +13,9 @@ import {
 export interface JobApplicationFormProps {
   job: HealthcareJob;
   onApplied: (message: string) => void;
-  onCancel: () => void;
 }
 
-export function JobApplicationForm({ job, onApplied, onCancel }: JobApplicationFormProps) {
+export function JobApplicationForm({ job, onApplied }: JobApplicationFormProps) {
   const [cvs, setCvs] = useState<CandidateCv[]>([]);
   const [selectedCvId, setSelectedCvId] = useState("");
   const [cvTitle, setCvTitle] = useState("");
@@ -54,9 +56,17 @@ export function JobApplicationForm({ job, onApplied, onCancel }: JobApplicationF
 
   return (
     <form className="hj-form" onSubmit={(event) => void submit(event)}>
-      <header><div><span>Application</span><h2>{job.title}</h2><p>{job.company}</p></div><button type="button" onClick={onCancel}>Close</button></header>
+      <header><div><span>Application</span><h2>{job.title}</h2><p>{job.company}</p></div><Dialog.Close asChild><Button size="small" type="button" variant="secondary">Close</Button></Dialog.Close></header>
       {loadingCvs ? <p>Loading saved CVs...</p> : cvs.length > 0 ? (
-        <label>Saved CV<select value={selectedCvId} onChange={(event) => setSelectedCvId(event.target.value)}>{cvs.map((cv) => <option value={cv.id} key={cv.id}>{cv.cv_title}</option>)}</select></label>
+        <div className="hj-select-field">
+          <span>Saved CV</span>
+          <JobSelect
+            ariaLabel="Saved CV"
+            value={selectedCvId}
+            onValueChange={setSelectedCvId}
+            options={cvs.map((cv) => ({ label: cv.cv_title, value: cv.id }))}
+          />
+        </div>
       ) : (
         <div className="hj-cv-fields">
           <p>No saved CV record was found. Jorniz currently stores a link; it does not upload CV files.</p>
@@ -66,7 +76,7 @@ export function JobApplicationForm({ job, onApplied, onCancel }: JobApplicationF
       )}
       <label>Cover letter<textarea rows={6} value={coverLetter} onChange={(event) => setCoverLetter(event.target.value)} /></label>
       {failure ? <p className="hj-error" role="alert">{failure}</p> : null}
-      <button className="hj-primary-button" disabled={loadingCvs || submitting} type="submit">{submitting ? "Submitting..." : "Submit application"}</button>
+      <Button className="hj-primary-button" disabled={loadingCvs || submitting} type="submit">{submitting ? "Submitting..." : "Submit application"}</Button>
     </form>
   );
 }

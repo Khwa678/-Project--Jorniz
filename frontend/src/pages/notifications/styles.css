@@ -3,8 +3,6 @@
 .notifications-page header p, .notifications-page header h1 { margin: 0; }
 .notifications-page header p { color: #2367f2; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .notifications-page header h1 { display: flex; align-items: center; gap: 9px; margin-top: 4px; font-size: clamp(28px,5vw,42px); }
-.notifications-page header > button, .notification-actions button, .notifications-state button { border: 1px solid #cfdcd6; border-radius: 10px; padding: 9px 12px; background: white; color: #1d5bd8; font: inherit; font-weight: 800; cursor: pointer; }
-.notifications-page button:disabled { cursor: default; opacity: .55; }
 .unread-notification-count { min-width: 27px; border-radius: 999px; padding: 4px 7px; background: #e34d43; color: white; font-size: 13px; text-align: center; }
 .notification-list { overflow: hidden; border: 1px solid #dce5e1; border-radius: 17px; background: white; box-shadow: 0 7px 24px rgba(33,53,45,.06); }
 .notification-row { display: grid; grid-template-columns: 46px minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 16px; border-bottom: 1px solid #e8eeeb; }

@@ -1,5 +1,6 @@
 import { HealthScoreCard } from "./components/HealthScoreCard";
 import { RewardBalanceCard } from "./components/RewardBalanceCard";
+import { ConsultationBookingCard } from "./components/ConsultationBookingCard";
 import { SuggestedMembersCard, type SuggestedMember } from "./components/SuggestedMembersCard";
 import { TrendingTopicsCard, type TrendingHealthTopic } from "./components/TrendingTopicsCard";
 import { SidebarCollapseButton } from "../sidebar-collapse-button/SidebarCollapseButton";
@@ -11,6 +12,7 @@ export interface HealthOverviewPanelProps {
   suggestedMembers: SuggestedMember[];
   trendingTopics: TrendingHealthTopic[];
   onOpenWallet?: () => void;
+  onBookConsultation?: () => void;
   onOpenAllSuggestions?: () => void;
   onFollowSuggestedMember?: (memberId: string) => Promise<void>;
   onOpenTrendingTopic?: (topic: TrendingHealthTopic) => void;
@@ -24,6 +26,7 @@ export function HealthOverviewPanel({
   suggestedMembers,
   trendingTopics,
   onOpenWallet,
+  onBookConsultation,
   onOpenAllSuggestions,
   onFollowSuggestedMember,
   onOpenTrendingTopic,
@@ -45,6 +48,7 @@ export function HealthOverviewPanel({
         onFollow={onFollowSuggestedMember}
       />
       <TrendingTopicsCard topics={trendingTopics} onOpenTopic={onOpenTrendingTopic} />
+      <ConsultationBookingCard onBookConsultation={onBookConsultation} />
     </aside>
   );
 }

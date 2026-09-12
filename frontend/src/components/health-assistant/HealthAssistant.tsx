@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Dialog } from "radix-ui";
 import { HealthAssistantButton } from "./components/HealthAssistantButton";
 import { HealthAssistantDialog } from "./components/HealthAssistantDialog";
 import {
@@ -8,11 +9,8 @@ import {
 } from "./content/healthGuidanceContent";
 import "./styles.css";
 
-const ASSISTANT_CLOSE_ANIMATION_MS = 180;
-
 export function HealthAssistant() {
   const [open, setOpen] = useState(false);
-  const [closing, setClosing] = useState(false);
   const [notificationCount, setNotificationCount] = useState(1);
   const [selectedTopicId, setSelectedTopicId] = useState<HealthGuidanceTopicId | null>(null);
   const [question, setQuestion] = useState("");
@@ -37,34 +35,27 @@ export function HealthAssistant() {
   }
 
   function openHealthAssistant() {
-    setClosing(false);
     setOpen(true);
     setNotificationCount(0);
   }
 
-  function closeHealthAssistant() {
-    setClosing(true);
-    window.setTimeout(() => {
-      setOpen(false);
-      setClosing(false);
-    }, ASSISTANT_CLOSE_ANIMATION_MS);
-  }
-
   return (
     <div className="health-assistant">
-      {!open && <HealthAssistantButton notificationCount={notificationCount} onOpen={openHealthAssistant} />}
-      {open && (
+      <Dialog.Root open={open} onOpenChange={(nextOpen) => nextOpen ? openHealthAssistant() : setOpen(false)} modal={false}>
+        {!open ? (
+          <Dialog.Trigger asChild>
+            <HealthAssistantButton notificationCount={notificationCount} />
+          </Dialog.Trigger>
+        ) : null}
         <HealthAssistantDialog
-          closing={closing}
           selectedTopicId={selectedTopicId}
           question={question}
           assistantReply={assistantReply}
           onSelectTopic={(topic) => void showHealthGuidance(topic)}
           onSubmitQuestion={(nextQuestion) => void submitHealthQuestion(nextQuestion)}
           onRestart={restartHealthAssistant}
-          onClose={closeHealthAssistant}
         />
-      )}
+      </Dialog.Root>
     </div>
   );
 }

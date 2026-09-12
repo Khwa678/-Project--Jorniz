@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { AlertDialog, Dialog } from "radix-ui";
+import { Button } from "../../components/ui/Button";
 import { CampaignCreationForm } from "./components/CampaignCreationForm";
 import { CampaignPerformance } from "./components/CampaignPerformance";
 import {
@@ -61,7 +63,6 @@ export function AdvertisingCampaignsPage() {
   }
 
   async function removeCampaign(campaignId: string) {
-    if (!window.confirm("Delete this advertising campaign?")) return;
     setActionFailure("");
     try {
       await deleteAdvertisingCampaign(campaignId);
@@ -79,24 +80,25 @@ export function AdvertisingCampaignsPage() {
           <h1>Advertising Campaigns</h1>
           <p>Create campaigns and review only metrics returned by the backend.</p>
         </div>
-        <button type="button" onClick={() => setShowCreationForm(true)}>Create campaign</button>
+        <Dialog.Root open={showCreationForm} onOpenChange={setShowCreationForm}>
+          <Dialog.Trigger asChild>
+            <Button type="button">Create campaign</Button>
+          </Dialog.Trigger>
+          <CampaignCreationForm
+            submitting={submitting}
+            failure={actionFailure}
+            onCancel={() => setShowCreationForm(false)}
+            onCreate={submitAdvertisingCampaign}
+          />
+        </Dialog.Root>
       </header>
-
-      {showCreationForm && (
-        <CampaignCreationForm
-          submitting={submitting}
-          failure={actionFailure}
-          onCancel={() => setShowCreationForm(false)}
-          onCreate={submitAdvertisingCampaign}
-        />
-      )}
 
       {status === "loading" && <p>Loading advertising campaigns…</p>}
       {status === "error" && (
         <section className="campaign-error-state" role="alert">
           <strong>Campaigns are unavailable.</strong>
           <p>{failure}</p>
-          <button type="button" onClick={() => void refreshAdvertisingCampaigns()}>Try again</button>
+          <Button type="button" onClick={() => void refreshAdvertisingCampaigns()}>Try again</Button>
         </section>
       )}
       {status === "ready" && (
@@ -125,10 +127,37 @@ export function AdvertisingCampaignsPage() {
                     <progress value={campaign.spent} max={Math.max(campaign.budget, 1)} />
                   </div>
                   <div className="campaign-card-actions">
-                    <button type="button" onClick={() => void updateCampaign(campaign)}>
+                    <Button type="button" onClick={() => void updateCampaign(campaign)}>
                       {campaign.status.toLowerCase() === "active" ? "Pause" : "Activate"}
-                    </button>
-                    <button type="button" className="campaign-delete-button" onClick={() => void removeCampaign(campaign.id)}>Delete</button>
+                    </Button>
+                    <AlertDialog.Root>
+                      <AlertDialog.Trigger asChild>
+                        <Button type="button" className="campaign-delete-button">Delete</Button>
+                      </AlertDialog.Trigger>
+                      <AlertDialog.Portal>
+                        <AlertDialog.Overlay className="campaign-dialog-overlay" />
+                        <AlertDialog.Content className="campaign-confirm-dialog">
+                          <AlertDialog.Title>Delete campaign?</AlertDialog.Title>
+                          <AlertDialog.Description>
+                            This permanently removes the advertising campaign.
+                          </AlertDialog.Description>
+                          <div className="campaign-dialog-actions">
+                            <AlertDialog.Cancel asChild>
+                              <Button type="button" className="campaign-secondary-button">Cancel</Button>
+                            </AlertDialog.Cancel>
+                            <AlertDialog.Action asChild>
+                              <Button
+                                type="button"
+                                className="campaign-delete-button"
+                                onClick={() => void removeCampaign(campaign.id)}
+                              >
+                                Delete campaign
+                              </Button>
+                            </AlertDialog.Action>
+                          </div>
+                        </AlertDialog.Content>
+                      </AlertDialog.Portal>
+                    </AlertDialog.Root>
                   </div>
                 </article>
               ))}
