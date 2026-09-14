@@ -9,6 +9,7 @@ import { ExploreSearchPage } from "../pages/explore";
 import { HealthMarketplacePage } from "../pages/store";
 import { HealthcareJobsPage } from "../pages/jobs/HealthcareJobsPage";
 import { HomeFeedPage, type HealthPost } from "../pages/home";
+import { PostDetailsPage } from "../pages/post/PostDetailsPage";
 import { MemberProfilePage } from "../pages/profile";
 import { deletePost, type EditablePost } from "../components/post-editor";
 import { ProfessionalNetworkPage } from "../pages/network/ProfessionalNetworkPage";
@@ -29,6 +30,11 @@ export interface JornizRouteMapProps {
   postRevision: number;
   onPostDeleted: () => void;
   onPostNotice: (message: string) => void;
+  postId: string | null;
+  memberId: string | null;
+  onOpenPost: (postId: string) => void;
+  onOpenMember: (memberId: string) => void;
+  onClosePost: () => void;
 }
 
 function editablePost(post: HealthPost): EditablePost {
@@ -54,6 +60,11 @@ export function JornizRouteMap({
   postRevision,
   onPostDeleted,
   onPostNotice,
+  postId,
+  memberId,
+  onOpenPost,
+  onOpenMember,
+  onClosePost,
 }: JornizRouteMapProps) {
   const [postActionError, setPostActionError] = useState("");
   const [postToDelete, setPostToDelete] = useState<HealthPost | null>(null);
@@ -76,8 +87,16 @@ export function JornizRouteMap({
     }
   }
 
+  if (postId) {
+    return <PostDetailsPage postId={postId} signedInAccount={account} onBack={onClosePost} onPostNotice={onPostNotice} onOpenMember={onOpenMember} />;
+  }
+
+  if (memberId) {
+    return <MemberProfilePage signedInAccount={account} memberId={memberId} onOpenPost={onOpenPost} onOpenSettings={() => onNavigate("settings")} />;
+  }
+
   if (destination === "explore") {
-    return <ExploreSearchPage onOpenPost={() => onNavigate("home")} onOpenJob={() => onNavigate("jobs")} onOpenProduct={() => onNavigate("store")} />;
+    return <ExploreSearchPage onOpenMember={onOpenMember} onOpenPost={onOpenPost} onOpenJob={() => onNavigate("jobs")} onOpenProduct={() => onNavigate("store")} />;
   }
   if (destination === "notifications") {
     return <NotificationsPage onOpenPost={() => onNavigate("home")} />;
@@ -114,6 +133,9 @@ export function JornizRouteMap({
           setDeleteError("");
           setPostToDelete(post);
         }}
+        onOpenPost={onOpenPost}
+        onPostNotice={onPostNotice}
+        onOpenMember={onOpenMember}
       />
       <AlertDialog.Root
         open={postToDelete !== null}

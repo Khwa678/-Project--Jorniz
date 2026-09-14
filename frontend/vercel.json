@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/posts/:postId", "destination": "/index.html" },
+    { "source": "/members/:memberId", "destination": "/index.html" }
+  ]
+}

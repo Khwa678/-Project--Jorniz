@@ -157,13 +157,16 @@ def install_hardened_rewards(ns):
             if not post:
                 conn.rollback()
                 return jsonify({"detail": "Post not found"}), 404
-            existing = one(conn, "SELECT id FROM post_likes WHERE post_id=%s AND user_id=%s", (post_id, uid))
-            if existing:
-                execute(conn, "DELETE FROM post_likes WHERE id=%s", (existing["id"],))
-            else:
-                execute(conn, "INSERT INTO post_likes (id,post_id,user_id) VALUES (%s,%s,%s)", (str(uuid.uuid4()), post_id, uid))
+            existing = one(conn, "SELECT id,action_value FROM post_actions WHERE post_id=%s AND user_id=%s AND action_type='reaction'", (post_id, uid))
+            if existing and existing["action_value"] == "like":
+                execute(conn, "DELETE FROM post_actions WHERE id=%s", (existing["id"],))
+            elif existing:
+                execute(conn, "UPDATE post_actions SET action_value='like',updated_at=CURRENT_TIMESTAMP WHERE id=%s", (existing["id"],))
                 liked = True
-            count = one(conn, "SELECT COUNT(*) AS count FROM post_likes WHERE post_id=%s", (post_id,))["count"]
+            else:
+                execute(conn, "INSERT INTO post_actions (id,post_id,user_id,action_type,action_value) VALUES (%s,%s,%s,'reaction','like')", (str(uuid.uuid4()), post_id, uid))
+                liked = True
+            count = one(conn, "SELECT COUNT(*) AS count FROM post_actions WHERE post_id=%s AND action_type='reaction'", (post_id,))["count"]
             execute(conn, "UPDATE posts SET likes=%s WHERE id=%s", (count, post_id))
             conn.commit()
         except Exception:
@@ -188,10 +191,11 @@ def install_hardened_rewards(ns):
                 return jsonify({"counted": False, "views": post.get("views") or 0})
 
             view_id = "view_" + uuid.uuid4().hex
+            request_id = f"view:{post_id}:{uid}"
             if isinstance(conn, sqlite3.Connection):
-                cursor = execute(conn, "INSERT OR IGNORE INTO post_views (id,post_id,user_id) VALUES (%s,%s,%s)", (view_id, post_id, uid))
+                cursor = execute(conn, "INSERT OR IGNORE INTO post_actions (id,post_id,user_id,action_type,request_id) VALUES (%s,%s,%s,'view',%s)", (view_id, post_id, uid, request_id))
             else:
-                cursor = execute(conn, "INSERT INTO post_views (id,post_id,user_id) VALUES (%s,%s,%s) ON CONFLICT(post_id,user_id) DO NOTHING", (view_id, post_id, uid))
+                cursor = execute(conn, "INSERT INTO post_actions (id,post_id,user_id,action_type,request_id) VALUES (%s,%s,%s,'view',%s) ON CONFLICT DO NOTHING", (view_id, post_id, uid, request_id))
             counted = cursor.rowcount == 1
             if counted:
                 execute(conn, "UPDATE posts SET views=COALESCE(views,0)+1 WHERE id=%s", (post_id,))
@@ -237,15 +241,15 @@ def install_hardened_rewards(ns):
             if not post:
                 conn.rollback()
                 return jsonify({"detail": "Post not found"}), 404
-            existing = one(conn, "SELECT id,reaction_type FROM post_reactions WHERE post_id=%s AND user_id=%s", (post_id, uid))
-            old_type = existing["reaction_type"] if existing else None
+            existing = one(conn, "SELECT id,action_value FROM post_actions WHERE post_id=%s AND user_id=%s AND action_type='reaction'", (post_id, uid))
+            old_type = existing["action_value"] if existing else None
             new_type = None if old_type == reaction_type else reaction_type
             if new_type is None:
-                execute(conn, "DELETE FROM post_reactions WHERE id=%s", (existing["id"],))
+                execute(conn, "DELETE FROM post_actions WHERE id=%s", (existing["id"],))
             elif existing:
-                execute(conn, "UPDATE post_reactions SET reaction_type=%s WHERE id=%s", (new_type, existing["id"]))
+                execute(conn, "UPDATE post_actions SET action_value=%s,updated_at=CURRENT_TIMESTAMP WHERE id=%s", (new_type, existing["id"]))
             else:
-                execute(conn, "INSERT INTO post_reactions (id,post_id,user_id,reaction_type) VALUES (%s,%s,%s,%s)", ("rx_" + uuid.uuid4().hex, post_id, uid, new_type))
+                execute(conn, "INSERT INTO post_actions (id,post_id,user_id,action_type,action_value) VALUES (%s,%s,%s,'reaction',%s)", ("rx_" + uuid.uuid4().hex, post_id, uid, new_type))
 
             author_id = str(post["creator_user_id"])
             old_rewarding = old_type in eligible and author_id != uid
@@ -256,7 +260,8 @@ def install_hardened_rewards(ns):
             elif old_rewarding and not new_rewarding:
                 apply_coin_entry(conn, author_id, "DEBIT", 5, "POST_REACTION_REVERSAL", post_id, f"reaction_reversal:{post_id}:{uid}")
 
-            counts = rows(conn, "SELECT reaction_type,COUNT(*) AS count FROM post_reactions WHERE post_id=%s GROUP BY reaction_type", (post_id,))
+            counts = rows(conn, """SELECT action_value AS reaction_type,COUNT(*) AS count FROM post_actions
+                                  WHERE post_id=%s AND action_type='reaction' GROUP BY action_value""", (post_id,))
             breakdown = {name: 0 for name in valid}
             for item in counts:
                 breakdown[item["reaction_type"]] = item["count"]
@@ -306,8 +311,7 @@ def install_hardened_rewards(ns):
             reversed_amount = max(0, float(net or 0))
             if reversed_amount:
                 apply_coin_entry(conn, uid, "DEBIT", reversed_amount, "POST_DELETE_REVERSAL", post_id, f"post_delete:{post_id}")
-            for table in ("post_views", "post_likes", "post_comments", "post_reactions"):
-                execute(conn, f"DELETE FROM {table} WHERE post_id=%s", (post_id,))
+            execute(conn, "DELETE FROM post_actions WHERE post_id=%s", (post_id,))
             execute(conn, "DELETE FROM creator_analytics WHERE post_id=%s", (post_id,))
             execute(conn, "DELETE FROM posts WHERE id=%s", (post_id,))
             conn.commit()

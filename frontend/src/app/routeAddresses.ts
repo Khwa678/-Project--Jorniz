@@ -14,6 +14,16 @@ export function destinationById(id: WorkspaceDestinationId): WorkspaceDestinatio
     ?? workspaceDestinations[0];
 }
 
+export function postIdForPath(pathname: string): string | null {
+  const match = /^\/posts\/([^/]+)\/?$/.exec(pathname);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+export function memberIdForPath(pathname: string): string | null {
+  const match = /^\/members\/([^/]+)\/?$/.exec(pathname);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 export function accountAccessModeForPath(pathname: string) {
   return pathname === "/sign-up" ? "create-account" as const : "sign-in" as const;
 }

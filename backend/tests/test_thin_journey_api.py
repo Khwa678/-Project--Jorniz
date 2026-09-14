@@ -22,11 +22,9 @@ CREATE TABLE users (
  is_banned INTEGER DEFAULT 0,account_status TEXT DEFAULT 'active',created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE user_sessions (id TEXT PRIMARY KEY,user_id TEXT,device_info TEXT,ip_address TEXT,refresh_token TEXT UNIQUE,is_revoked INTEGER DEFAULT 0,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE posts (id TEXT PRIMARY KEY,user_id TEXT,content TEXT,category TEXT,media_url TEXT,media_type TEXT,likes INTEGER DEFAULT 0,likes_count INTEGER DEFAULT 0,views INTEGER DEFAULT 0,shares INTEGER DEFAULT 0,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE post_comments (id TEXT PRIMARY KEY,post_id TEXT,user_id TEXT,content TEXT,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE post_likes (id TEXT PRIMARY KEY,post_id TEXT,user_id TEXT,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE post_views (id TEXT PRIMARY KEY,post_id TEXT,user_id TEXT,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE post_reactions (id TEXT PRIMARY KEY,post_id TEXT,user_id TEXT,reaction_type TEXT,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE posts (id TEXT PRIMARY KEY,creator_user_id TEXT,title TEXT DEFAULT '',content TEXT,hashtags TEXT DEFAULT '',trust_status TEXT DEFAULT 'unreviewed',category TEXT,media_url TEXT,media_type TEXT,likes INTEGER DEFAULT 0,likes_count INTEGER DEFAULT 0,views INTEGER DEFAULT 0,shares INTEGER DEFAULT 0,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE post_actions (id TEXT PRIMARY KEY,post_id TEXT,user_id TEXT,action_type TEXT,action_value TEXT,request_id TEXT UNIQUE,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+CREATE UNIQUE INDEX uq_post_action_state ON post_actions(post_id,user_id,action_type) WHERE action_type IN ('reaction','save','view');
 CREATE TABLE creator_analytics (id TEXT PRIMARY KEY,user_id TEXT,post_id TEXT,engagement_count INTEGER DEFAULT 0);
 CREATE TABLE notifications (id TEXT PRIMARY KEY,user_id TEXT,actor_id TEXT,type TEXT,post_id TEXT,message TEXT,is_read INTEGER DEFAULT 0,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE wallet_ledger (id TEXT PRIMARY KEY,user_id TEXT,credit_debit TEXT,value_type TEXT,amount NUMERIC,currency TEXT,source_type TEXT,source_id TEXT,idempotency_key TEXT UNIQUE,balance_before NUMERIC,balance_after NUMERIC,status TEXT,action TEXT,reversal_of_id TEXT,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);

@@ -12,6 +12,14 @@ export function loadSignedInMemberPosts(signal?: AbortSignal) {
   return requestJornizApi<MemberPost[]>("/api/posts/mine", { signal });
 }
 
+export function loadMemberProfile(memberId: string, signal?: AbortSignal) {
+  return requestJornizApi<SignedInAccount>(`/api/users/${encodeURIComponent(memberId)}/profile`, { signal });
+}
+
+export function loadMemberPosts(memberId: string, signal?: AbortSignal) {
+  return requestJornizApi<MemberPost[]>(`/api/posts?creator_id=${encodeURIComponent(memberId)}&limit=50`, { signal });
+}
+
 export async function loadMemberExperiences(memberId: string, signal?: AbortSignal) {
   const response = await requestJornizApi<{ experiences: ProfessionalExperience[] }>(`/api/profile/experience/${encodeURIComponent(memberId)}`, { signal });
   return response.experiences ?? [];

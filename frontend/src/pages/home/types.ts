@@ -1,5 +1,30 @@
 export type FeedAudience = "for-you" | "following" | "trending";
 
+export type PostActionType =
+  | "like"
+  | "comment"
+  | "share"
+  | "save"
+  | "view"
+  | "celebrate"
+  | "support"
+  | "insightful"
+  | "mindblowing";
+
+export interface PostActionRequest {
+  postId: string;
+  actionType: PostActionType;
+  actionValue?: string;
+}
+
+export interface PostActionResult {
+  postId: string;
+  actionType: PostActionType;
+  active: boolean;
+  count: number;
+  reaction?: PostActionType | null;
+}
+
 export interface PostAuthor {
   id?: string;
   name?: string;
@@ -26,6 +51,9 @@ export interface HealthPost {
   comments?: number;
   comments_count?: number;
   shares?: number;
+  views?: number;
+  liked_by_me?: boolean;
+  my_reaction?: PostActionType | null;
   created_at?: string;
   author?: PostAuthor;
   author_name?: string;

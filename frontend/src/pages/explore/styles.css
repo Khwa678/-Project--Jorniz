@@ -14,6 +14,9 @@
 .explore-result-card { display: grid; align-items: initial; justify-content: initial; min-height: 0; gap: 6px; border: 1px solid #dce5e1; border-radius: 14px; padding: 16px; background: white; color: #142033; text-align: left; white-space: normal; }
 .explore-result-card span { color: #566760; line-height: 1.45; }
 .explore-result-card small { color: #7a8781; }
+.explore-person-card { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 10px; border: 1px solid #dce5e1; border-radius: 14px; padding: 10px; background: white; }
+.explore-person-open { display: grid; justify-content: initial; min-width: 0; min-height: 0; gap: 4px; padding: 6px; color: #142033; text-align: left; white-space: normal; }
+.explore-person-open span,.explore-person-open small { color: #6c7973; }
 .explore-state { border: 1px dashed #cbd8d2; border-radius: 15px; padding: 28px 18px; background: #f8fbf9; color: #65736c; text-align: center; }
 .explore-state-error { border-color: #efc5c1; background: #fff3f2; color: #a62d28; }
 @media (max-width: 560px) { .explore-search-bar > div { grid-template-columns: 1fr; } }

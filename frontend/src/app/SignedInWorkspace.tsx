@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { Toast } from "radix-ui";
 import { HealthAssistant } from "../components/health-assistant/HealthAssistant";
 import { HealthOverviewPanel } from "../components/health-overview/HealthOverviewPanel";
+import type { SuggestedMember } from "../components/health-overview/components/SuggestedMembersCard";
+import { loadSuggestedMembers } from "../components/health-overview/api/loadSuggestedMembers";
+import { updateFollow } from "../components/follow/api/updateFollow";
 import { PostEditorDialog, type EditablePost, type PostWriteResult } from "../components/post-editor";
 import { loadRewardBalance } from "../pages/wallet/api/requests";
 import type { SignedInAccount } from "../lib/auth/accountTypes";
@@ -13,7 +16,7 @@ import type {
   WorkspaceDestinationId,
 } from "../components/navigation/components/NavigationDestinations";
 import { JornizRouteMap } from "./JornizRouteMap";
-import { destinationById, destinationForPath } from "./routeAddresses";
+import { destinationById, destinationForPath, memberIdForPath, postIdForPath } from "./routeAddresses";
 import { Button } from "../components/ui/Button";
 
 export interface SignedInWorkspaceProps {
@@ -29,6 +32,7 @@ function accountCoins(account: SignedInAccount): number | null {
 
 export function SignedInWorkspace({ account, onAccountUpdated, onSignOut }: SignedInWorkspaceProps) {
   const [destination, setDestination] = useState(() => destinationForPath(window.location.pathname));
+  const [pathname, setPathname] = useState(() => window.location.pathname);
   const [confirmedCoins, setConfirmedCoins] = useState<number | null>(() => accountCoins(account));
   const [rewardBalanceLoading, setRewardBalanceLoading] = useState(true);
   const [postEditorOpen, setPostEditorOpen] = useState(false);
@@ -37,9 +41,13 @@ export function SignedInWorkspace({ account, onAccountUpdated, onSignOut }: Sign
   const [postNotice, setPostNotice] = useState("");
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
+  const [suggestedMembers, setSuggestedMembers] = useState<SuggestedMember[]>([]);
 
   useEffect(() => {
-    const showBrowserDestination = () => setDestination(destinationForPath(window.location.pathname));
+    const showBrowserDestination = () => {
+      setPathname(window.location.pathname);
+      setDestination(destinationForPath(window.location.pathname));
+    };
     window.addEventListener("popstate", showBrowserDestination);
     return () => window.removeEventListener("popstate", showBrowserDestination);
   }, []);
@@ -54,14 +62,43 @@ export function SignedInWorkspace({ account, onAccountUpdated, onSignOut }: Sign
     return () => { active = false; };
   }, [account]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    loadSuggestedMembers(controller.signal).then(setSuggestedMembers).catch(() => setSuggestedMembers([]));
+    return () => controller.abort();
+  }, [account.id]);
+
   function navigate(destinationToOpen: WorkspaceDestination) {
     window.history.pushState({}, "", destinationToOpen.route);
+    setPathname(destinationToOpen.route);
     setDestination(destinationToOpen);
     window.scrollTo({ top: 0, behavior: "auto" });
   }
 
   function navigateById(id: WorkspaceDestinationId) {
     navigate(destinationById(id));
+  }
+
+  function openPost(postId: string) {
+    const route = `/posts/${encodeURIComponent(postId)}`;
+    window.history.pushState({}, "", route);
+    setPathname(route);
+    setDestination(destinationById("home"));
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+
+  function openMember(memberId: string) {
+    const route = `/members/${encodeURIComponent(memberId)}`;
+    window.history.pushState({}, "", route);
+    setPathname(route);
+    setDestination(destinationById("profile"));
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+
+  async function followSuggestedMember(memberId: string) {
+    await updateFollow(memberId, true);
+    setSuggestedMembers((members) => members.filter((member) => member.id !== memberId));
+    setPostNotice("Following member");
   }
 
   function openPostEditor(post?: EditablePost) {
@@ -105,16 +142,22 @@ export function SignedInWorkspace({ account, onAccountUpdated, onSignOut }: Sign
             postRevision={postRevision}
             onPostDeleted={() => setPostRevision((value) => value + 1)}
             onPostNotice={setPostNotice}
+            postId={postIdForPath(pathname)}
+            memberId={memberIdForPath(pathname)}
+            onOpenPost={openPost}
+            onOpenMember={openMember}
+            onClosePost={() => navigateById("home")}
           />
         </section>
         <HealthOverviewPanel
           confirmedCoins={confirmedCoins}
           rewardBalanceLoading={rewardBalanceLoading}
-          suggestedMembers={[]}
+          suggestedMembers={suggestedMembers}
           trendingTopics={[]}
           onOpenWallet={() => navigateById("wallet")}
           onBookConsultation={() => navigateById("consultations")}
           onOpenAllSuggestions={() => navigateById("network")}
+          onFollowSuggestedMember={followSuggestedMember}
           onOpenTrendingTopic={() => navigateById("explore")}
           collapsed={rightSidebarCollapsed}
           onToggleCollapsed={() => setRightSidebarCollapsed((collapsed) => !collapsed)}

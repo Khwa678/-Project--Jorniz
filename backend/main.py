@@ -334,13 +334,20 @@ def post_with_author(post, viewer_id=None) -> dict:
         "specialty": profile.get("specialty", ""),
         "avatar":    a.get("avatar_url",""),
         "is_verified": bool(a.get("is_verified", False)),
+        "is_following": False,
     }
-    cc = db_one("SELECT COUNT(*) AS n FROM post_comments WHERE post_id=%s", (post["id"],))
+    cc = db_one("SELECT COUNT(*) AS n FROM post_actions WHERE post_id=%s AND action_type='comment'", (post["id"],))
     post["comments_count"] = cc["n"] if cc else 0
     post["shares"] = post.get("shares", 0) or 0
     if viewer_id:
-        liked = db_one("SELECT id FROM post_likes WHERE post_id=%s AND user_id=%s", (post["id"], viewer_id))
-        post["liked_by_me"] = bool(liked)
+        following = db_one(
+            "SELECT 1 AS found FROM follows WHERE follower_id=%s AND followed_id=%s AND status='Active'",
+            (viewer_id, post.get("creator_user_id")),
+        )
+        post["author"]["is_following"] = bool(following)
+        reaction = db_one("SELECT action_value FROM post_actions WHERE post_id=%s AND user_id=%s AND action_type='reaction'", (post["id"], viewer_id))
+        post["my_reaction"] = reaction.get("action_value") if reaction else None
+        post["liked_by_me"] = post["my_reaction"] == "like"
     else:
         post["liked_by_me"] = False
     return post
@@ -868,11 +875,36 @@ def get_posts():
     except ValueError:
         return jsonify({"detail": "limit and offset must be integers"}), 400
     viewer_id = optional_uid_from_request()
-    posts  = db_all(
-        "SELECT * FROM posts ORDER BY created_at DESC LIMIT %s OFFSET %s",
-        (limit, offset)
-    )
+    feed = (request.args.get("feed") or "").strip().lower()
+    creator_id = (request.args.get("creator_id") or "").strip()
+    if feed == "following":
+        if not viewer_id:
+            return jsonify([])
+        posts = db_all(
+            """SELECT p.* FROM posts p JOIN follows f ON f.followed_id=p.creator_user_id
+               WHERE f.follower_id=%s AND f.status='Active'
+               ORDER BY p.created_at DESC LIMIT %s OFFSET %s""",
+            (viewer_id, limit, offset),
+        )
+    elif creator_id:
+        posts = db_all(
+            "SELECT * FROM posts WHERE creator_user_id=%s ORDER BY created_at DESC LIMIT %s OFFSET %s",
+            (creator_id, limit, offset),
+        )
+    else:
+        posts = db_all(
+            "SELECT * FROM posts ORDER BY created_at DESC LIMIT %s OFFSET %s",
+            (limit, offset),
+        )
     return jsonify([post_with_author(p, viewer_id) for p in posts])
+
+
+@app.route("/api/posts/<post_id>", methods=["GET"])
+def get_post(post_id):
+    post = db_one("SELECT * FROM posts WHERE id=%s", (post_id,))
+    if not post:
+        return jsonify({"detail": "Post not found"}), 404
+    return jsonify(post_with_author(post, optional_uid_from_request()))
 
 
 @app.route("/api/posts/mine")
@@ -894,15 +926,16 @@ def like_post(post_id):
     if not db_one("SELECT id FROM posts WHERE id=%s", (post_id,)):
         return jsonify({"detail": "Post not found"}), 404
 
-    existing = db_one("SELECT id FROM post_likes WHERE post_id=%s AND user_id=%s", (post_id, uid))
-    if existing:
-        db_run("DELETE FROM post_likes WHERE id=%s", (existing["id"],))
-        db_run("UPDATE posts SET likes=GREATEST(likes-1,0) WHERE id=%s", (post_id,))
+    existing = db_one("SELECT id,action_value FROM post_actions WHERE post_id=%s AND user_id=%s AND action_type='reaction'", (post_id, uid))
+    if existing and existing["action_value"] == "like":
+        db_run("DELETE FROM post_actions WHERE id=%s", (existing["id"],))
         liked = False
+    elif existing:
+        db_run("UPDATE post_actions SET action_value='like',updated_at=CURRENT_TIMESTAMP WHERE id=%s", (existing["id"],))
+        liked = True
     else:
-        db_run("INSERT INTO post_likes (id, post_id, user_id) VALUES (%s,%s,%s)",
+        db_run("INSERT INTO post_actions (id,post_id,user_id,action_type,action_value) VALUES (%s,%s,%s,'reaction','like')",
                (str(uuid.uuid4()), post_id, uid))
-        db_run("UPDATE posts SET likes=likes+1 WHERE id=%s", (post_id,))
         liked = True
         # Notify ONLY the post's owner (not on unlike, and never notify yourself).
         post_row = db_one("SELECT creator_user_id FROM posts WHERE id=%s", (post_id,))
@@ -910,18 +943,31 @@ def like_post(post_id):
         if post_row:
             create_notification(post_row["creator_user_id"], uid, "like", post_id, f"{actor_name} liked your post")
 
-    updated = db_one("SELECT likes FROM posts WHERE id=%s", (post_id,))
-    return jsonify({"likes": updated["likes"], "liked": liked})
+    count = db_one("SELECT COUNT(*) AS n FROM post_actions WHERE post_id=%s AND action_type='reaction'", (post_id,))["n"]
+    db_run("UPDATE posts SET likes=%s WHERE id=%s", (count, post_id))
+    return jsonify({"likes": count, "liked": liked})
 
 
 @app.route("/api/posts/<post_id>/share", methods=["POST"])
+@require_auth
 def share_post(post_id):
-    """Log a share/reshare. Works for logged-out viewers too (just bumps the count)."""
+    """Record one authenticated share action and return the canonical count."""
+    uid = str(request.current_user["id"])
     if not db_one("SELECT id FROM posts WHERE id=%s", (post_id,)):
         return jsonify({"detail": "Post not found"}), 404
-    db_run("UPDATE posts SET shares=COALESCE(shares,0)+1 WHERE id=%s", (post_id,))
-    updated = db_one("SELECT shares FROM posts WHERE id=%s", (post_id,))
-    return jsonify({"shares": updated["shares"]})
+
+    request_id = (request.headers.get("Idempotency-Key") or f"share:{uuid.uuid4()}")[:128]
+    existing = db_one("SELECT id FROM post_actions WHERE request_id=%s", (request_id,))
+    if not existing:
+        db_run(
+            """INSERT INTO post_actions (id,post_id,user_id,action_type,request_id)
+               VALUES (%s,%s,%s,'share',%s)""",
+            (str(uuid.uuid4()), post_id, uid, request_id),
+        )
+
+    count = db_one("SELECT COUNT(*) AS n FROM post_actions WHERE post_id=%s AND action_type='share'", (post_id,))["n"]
+    db_run("UPDATE posts SET shares=%s WHERE id=%s", (count, post_id))
+    return jsonify({"shares": count, "shared": True})
 
 
 @app.route("/api/posts/<post_id>/comments", methods=["GET"])
@@ -929,7 +975,8 @@ def get_comments(post_id):
     if not db_one("SELECT id FROM posts WHERE id=%s", (post_id,)):
         return jsonify({"detail": "Post not found"}), 404
     rows = db_all(
-        "SELECT * FROM post_comments WHERE post_id=%s ORDER BY created_at ASC", (post_id,)
+        """SELECT id,post_id,user_id,action_value AS content,created_at,updated_at
+           FROM post_actions WHERE post_id=%s AND action_type='comment' ORDER BY created_at DESC""", (post_id,)
     )
     out = []
     for c in rows:
@@ -959,8 +1006,9 @@ def add_comment(post_id):
 
     cid = str(uuid.uuid4())
     db_run(
-        "INSERT INTO post_comments (id, post_id, user_id, content) VALUES (%s,%s,%s,%s)",
-        (cid, post_id, uid, content)
+        """INSERT INTO post_actions (id,post_id,user_id,action_type,action_value,request_id)
+           VALUES (%s,%s,%s,'comment',%s,%s)""",
+        (cid, post_id, uid, content, (request.headers.get("Idempotency-Key") or f"comment:{cid}")[:128])
     )
 
     # Notify ONLY the post's owner (not everyone) — never notify yourself.
@@ -970,7 +1018,8 @@ def add_comment(post_id):
         snippet = (content[:60] + "…") if len(content) > 60 else content
         create_notification(post_row["creator_user_id"], uid, "comment", post_id, f'{actor_name} commented: "{snippet}"')
 
-    comment = dict(db_one("SELECT * FROM post_comments WHERE id=%s", (cid,)))
+    comment = dict(db_one("""SELECT id,post_id,user_id,action_value AS content,created_at,updated_at
+                            FROM post_actions WHERE id=%s""", (cid,)))
     for k, v in comment.items():
         if isinstance(v, datetime): comment[k] = v.isoformat()
     comment["author"] = {
@@ -978,6 +1027,8 @@ def add_comment(post_id):
         "avatar": request.current_user.get("avatar_url", ""),
         "verified": bool(request.current_user.get("is_verified", False)),
     }
+    count = db_one("SELECT COUNT(*) AS n FROM post_actions WHERE post_id=%s AND action_type='comment'", (post_id,))["n"]
+    comment["comments_count"] = count
     return jsonify(comment), 201
 
 
@@ -1433,6 +1484,84 @@ def search_users():
             (uid,)
         )
     return jsonify([dict(r) for r in rows])
+
+
+def follow_counts(user_id):
+    followers = db_one("SELECT COUNT(*) AS n FROM follows WHERE followed_id=%s AND status='Active'", (user_id,))
+    following = db_one("SELECT COUNT(*) AS n FROM follows WHERE follower_id=%s AND status='Active'", (user_id,))
+    return (followers["n"] if followers else 0, following["n"] if following else 0)
+
+
+@app.route("/api/users/<other_user_id>/profile", methods=["GET"])
+def get_public_user_profile(other_user_id):
+    user = db_one("SELECT * FROM users WHERE id=%s", (other_user_id,))
+    if not user:
+        return jsonify({"detail": "Member not found"}), 404
+    data = user_payload(user)
+    viewer_id = optional_uid_from_request()
+    followers, following = follow_counts(other_user_id)
+    public = {
+        "id": str(data.get("id", "")),
+        "email": "",
+        "name": data.get("name", "Jorniz member"),
+        "user_type": data.get("user_type", "general_user"),
+        "system_role": "member",
+        "avatar_url": data.get("avatar_url", ""),
+        "bio": data.get("bio", ""),
+        "location": data.get("location", ""),
+        "is_verified": bool(data.get("is_verified", False)),
+        "profile": data.get("profile") or {},
+        "followers_count": followers,
+        "following_count": following,
+        "is_following": False,
+    }
+    if viewer_id and viewer_id != str(other_user_id):
+        public["is_following"] = bool(db_one(
+            "SELECT 1 AS found FROM follows WHERE follower_id=%s AND followed_id=%s AND status='Active'",
+            (viewer_id, other_user_id),
+        ))
+    return jsonify(public)
+
+
+@app.route("/api/users/<other_user_id>/follow", methods=["PUT", "DELETE"])
+@require_auth
+def update_follow(other_user_id):
+    uid = str(request.current_user["id"])
+    if uid == str(other_user_id):
+        return jsonify({"detail": "You cannot follow yourself"}), 400
+    if not db_one("SELECT id FROM users WHERE id=%s", (other_user_id,)):
+        return jsonify({"detail": "Member not found"}), 404
+
+    existing = db_one("SELECT status FROM follows WHERE follower_id=%s AND followed_id=%s", (uid, other_user_id))
+    if request.method == "PUT":
+        if existing:
+            db_run("UPDATE follows SET status='Active' WHERE follower_id=%s AND followed_id=%s", (uid, other_user_id))
+        else:
+            db_run("INSERT INTO follows (follower_id,followed_id,status) VALUES (%s,%s,'Active')", (uid, other_user_id))
+        if not existing or existing.get("status") != "Active":
+            create_notification(other_user_id, uid, "follow", message=f'{request.current_user.get("name", "Someone")} followed you')
+        followed = True
+    else:
+        db_run("DELETE FROM follows WHERE follower_id=%s AND followed_id=%s", (uid, other_user_id))
+        followed = False
+
+    followers, _ = follow_counts(other_user_id)
+    return jsonify({"followed": followed, "followers_count": followers})
+
+
+@app.route("/api/users/follow-suggestions", methods=["GET"])
+@require_auth
+def get_follow_suggestions():
+    uid = str(request.current_user["id"])
+    users = db_all(
+        """SELECT id,name,user_type,specialty,avatar_url,is_verified FROM users
+           WHERE id!=%s AND id NOT IN (
+             SELECT followed_id FROM follows WHERE follower_id=%s AND status='Active'
+           )
+           ORDER BY is_verified DESC,created_at DESC LIMIT 3""",
+        (uid, uid),
+    )
+    return jsonify({"suggestions": [dict(user) for user in users]})
 
 
 @app.route("/api/messages/conversations")
@@ -3246,20 +3375,20 @@ def react_to_post(post_id):
     if not post:
         return jsonify({"detail": "Post not found"}), 404
 
-    existing = db_one("SELECT * FROM post_reactions WHERE post_id=%s AND user_id=%s", (post_id, uid))
+    existing = db_one("SELECT * FROM post_actions WHERE post_id=%s AND user_id=%s AND action_type='reaction'", (post_id, uid))
     
-    if existing and existing["reaction_type"] == reaction_type:
+    if existing and existing["action_value"] == reaction_type:
         # Toggle off
-        db_run("DELETE FROM post_reactions WHERE id=%s", (existing["id"],))
+        db_run("DELETE FROM post_actions WHERE id=%s", (existing["id"],))
         user_reaction = None
     elif existing:
         # Change reaction type
-        db_run("UPDATE post_reactions SET reaction_type=%s WHERE id=%s", (reaction_type, existing["id"]))
+        db_run("UPDATE post_actions SET action_value=%s,updated_at=CURRENT_TIMESTAMP WHERE id=%s", (reaction_type, existing["id"]))
         user_reaction = reaction_type
     else:
         # Insert new reaction
         rid = "rx_" + str(uuid.uuid4())[:8]
-        db_run("INSERT INTO post_reactions (id, post_id, user_id, reaction_type) VALUES (%s,%s,%s,%s)",
+        db_run("INSERT INTO post_actions (id,post_id,user_id,action_type,action_value) VALUES (%s,%s,%s,'reaction',%s)",
                (rid, post_id, uid, reaction_type))
         user_reaction = reaction_type
 
@@ -3274,7 +3403,8 @@ def react_to_post(post_id):
 
     # Calculate reaction breakdown counts
     counts = db_all(
-        "SELECT reaction_type, COUNT(*) as cnt FROM post_reactions WHERE post_id=%s GROUP BY reaction_type",
+        """SELECT action_value AS reaction_type,COUNT(*) AS cnt FROM post_actions
+           WHERE post_id=%s AND action_type='reaction' GROUP BY action_value""",
         (post_id,)
     )
     breakdown = {r: 0 for r in valid_reactions}
@@ -3511,7 +3641,13 @@ def search_advanced():
 
     q_pattern = f"%{query}%"
 
+    viewer_id = optional_uid_from_request()
     res_people = db_all("SELECT id, name, role, specialty, hospital, avatar_url, is_verified FROM users WHERE name LIKE %s OR specialty LIKE %s OR hospital LIKE %s LIMIT 10", (q_pattern, q_pattern, q_pattern))
+    for person in res_people:
+        person["is_following"] = bool(viewer_id and db_one(
+            "SELECT 1 AS found FROM follows WHERE follower_id=%s AND followed_id=%s AND status='Active'",
+            (viewer_id, person["id"]),
+        ))
     res_posts = db_all("SELECT p.*, u.name as author_name FROM posts p JOIN users u ON p.creator_user_id=u.id WHERE p.title LIKE %s OR p.content LIKE %s OR p.category LIKE %s LIMIT 10", (q_pattern, q_pattern, q_pattern))
     res_jobs = db_all("SELECT * FROM jobs WHERE title LIKE %s OR company LIKE %s LIMIT 10", (q_pattern, q_pattern))
     res_prods = db_all("SELECT * FROM products WHERE name LIKE %s OR description LIKE %s LIMIT 10", (q_pattern, q_pattern))

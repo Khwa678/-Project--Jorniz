@@ -1,7 +1,17 @@
-import { BadgeCheck, MoreHorizontal, Pencil, ShieldCheck, Trash2 } from "lucide-react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
+import { BadgeCheck, Brain, HandHeart, Heart, Lightbulb, MessageCircle, MoreHorizontal, PartyPopper, Pencil, Send, Share2, ShieldCheck, Trash2 } from "lucide-react";
 import { Avatar, DropdownMenu, Separator } from "radix-ui";
 import { Button } from "../../../components/ui/Button";
-import type { HealthPost } from "../types";
+import type { HealthPost, PostActionRequest, PostActionType } from "../types";
+import "../styles.css";
+
+const POST_REACTIONS = [
+  { type: "like", label: "Like", Icon: Heart },
+  { type: "celebrate", label: "Celebrate", Icon: PartyPopper },
+  { type: "support", label: "Support", Icon: HandHeart },
+  { type: "insightful", label: "Insightful", Icon: Lightbulb },
+  { type: "mindblowing", label: "Mind-blowing", Icon: Brain },
+] as const satisfies ReadonlyArray<{ type: PostActionType; label: string; Icon: typeof Heart }>;
 
 export interface HealthPostCardProps {
   post: HealthPost;
@@ -9,6 +19,12 @@ export interface HealthPostCardProps {
   onOpenMember?: (memberId: string) => void;
   onEditPost?: (post: HealthPost) => void;
   onDeletePost?: (post: HealthPost) => void;
+  onPostAction?: (action: PostActionRequest) => Promise<void>;
+  onOpenPost?: (postId: string) => void;
+  expanded?: boolean;
+  showInlineCommentComposer?: boolean;
+  onCommentRequested?: () => void;
+  onPostNotice?: (message: string) => void;
 }
 
 function displayPostAge(value?: string) {
@@ -31,7 +47,14 @@ function postHashtags(value?: string) {
   return (value ?? "").split(",").map((tag) => tag.trim().replace(/^#+/, "")).filter(Boolean);
 }
 
-export function HealthPostCard({ post, currentAccountId, onOpenMember, onEditPost, onDeletePost }: HealthPostCardProps) {
+export function HealthPostCard({ post, currentAccountId, onOpenMember, onEditPost, onDeletePost, onPostAction, onOpenPost, expanded = false, showInlineCommentComposer = true, onCommentRequested, onPostNotice }: HealthPostCardProps) {
+  const cardRef = useRef<HTMLElement>(null);
+  const viewRecorded = useRef(false);
+  const [reactionPending, setReactionPending] = useState(false);
+  const [commentOpen, setCommentOpen] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [commentPending, setCommentPending] = useState(false);
+  const [sharePending, setSharePending] = useState(false);
   const authorId = post.author?.id ?? post.creator_user_id;
   const authorName = post.author?.name ?? post.author_name ?? "Jorniz member";
   const avatar = post.author?.avatar ?? post.author?.avatar_url ?? post.author_avatar;
@@ -40,9 +63,78 @@ export function HealthPostCard({ post, currentAccountId, onOpenMember, onEditPos
   const comments = post.comments ?? post.comments_count ?? 0;
   const authorDetails = [post.author?.specialty || displayAccountType(post.author?.user_type), displayPostAge(post.created_at)].filter(Boolean).join(" · ");
   const hashtags = postHashtags(post.hashtags);
+  const selectedReaction = POST_REACTIONS.find(({ type }) => type === post.my_reaction);
+  const SelectedReactionIcon = selectedReaction?.Icon ?? Heart;
+
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card || !onPostAction || viewRecorded.current) return;
+    let viewTimer: ReturnType<typeof setTimeout> | undefined;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && entry.intersectionRatio >= 0.5 && !viewRecorded.current) {
+        viewTimer = setTimeout(() => {
+          viewRecorded.current = true;
+          void onPostAction({ postId: post.id, actionType: "view" }).catch(() => {
+            viewRecorded.current = false;
+          });
+        }, 5000);
+      } else if (viewTimer) {
+        clearTimeout(viewTimer);
+        viewTimer = undefined;
+      }
+    }, { threshold: [0, 0.5] });
+    observer.observe(card);
+    return () => {
+      if (viewTimer) clearTimeout(viewTimer);
+      observer.disconnect();
+    };
+  }, [onPostAction, post.id]);
+
+  async function handleReaction(reactionType: PostActionType) {
+    if (!onPostAction || reactionPending) return;
+    setReactionPending(true);
+    try {
+      await onPostAction({ postId: post.id, actionType: reactionType });
+    } finally {
+      setReactionPending(false);
+    }
+  }
+
+  async function handleComment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const content = commentText.trim();
+    if (!onPostAction || !content || commentPending) return;
+    setCommentPending(true);
+    try {
+      await onPostAction({ postId: post.id, actionType: "comment", actionValue: content });
+      setCommentText("");
+      setCommentOpen(false);
+    } finally {
+      setCommentPending(false);
+    }
+  }
+
+  async function handleShare() {
+    if (!onPostAction || sharePending) return;
+    setSharePending(true);
+    try {
+      const postUrl = new URL(`/posts/${encodeURIComponent(post.id)}`, window.location.origin).toString();
+      await navigator.clipboard.writeText(postUrl);
+      onPostNotice?.("Copied post");
+      await onPostAction({ postId: post.id, actionType: "share" });
+    } finally {
+      setSharePending(false);
+    }
+  }
+
+  function openPostFromCard(target: EventTarget | null) {
+    if (!onOpenPost || !(target instanceof Element)) return;
+    if (target.closest("button, a, input, textarea, select, video, [role='menuitem']")) return;
+    onOpenPost(post.id);
+  }
 
   return (
-    <article className="health-post-card">
+    <article ref={cardRef} className={`health-post-card${onOpenPost ? " health-post-card-clickable" : ""}${expanded ? " health-post-card-expanded" : ""}`} onClick={(event) => openPostFromCard(event.target)}>
       <header className="health-post-author">
         <Avatar.Root className="health-post-avatar">
           {avatar ? <Avatar.Image className="health-post-avatar-image" src={avatar} alt="" /> : null}
@@ -88,10 +180,32 @@ export function HealthPostCard({ post, currentAccountId, onOpenMember, onEditPos
         {post.media_type === "video" ? <video className="health-post-media" src={post.media_url} controls preload="metadata" /> : <img className="health-post-media" src={post.media_url} alt="Post media" loading="lazy" />}
       </div> : null}
       <Separator.Root className="health-post-separator" decorative />
-      <footer className="health-post-statistics" aria-label="Post activity">
-        <span>{likes} likes</span><span>{comments} comments</span><span>{post.shares ?? 0} shares</span>
+      <footer className="health-post-actions" aria-label="Post actions">
+        <div className="health-post-reaction-control">
+          <Button className={`health-post-action health-post-reaction-trigger${selectedReaction ? ` is-reacted reaction-${selectedReaction.type}` : ""}`} type="button" variant="ghost" aria-pressed={Boolean(selectedReaction)} aria-haspopup="menu" disabled={!onPostAction || reactionPending} onClick={() => void handleReaction("like")}>
+            <SelectedReactionIcon size={18} fill="currentColor" aria-hidden="true" />
+            <span>{reactionPending ? "Updating" : selectedReaction?.label ?? "Like"}</span>
+            <small>{likes}</small>
+          </Button>
+          <div className="health-post-reaction-picker" role="menu" aria-label="Choose a reaction">
+            {POST_REACTIONS.map(({ type, label, Icon }) => (
+              <Button className={`health-post-reaction-option reaction-${type}`} key={type} type="button" size="small" variant="ghost" role="menuitemradio" aria-checked={post.my_reaction === type} aria-label={label} title={label} disabled={!onPostAction || reactionPending} onClick={() => void handleReaction(type)}>
+                <Icon size={19} fill="currentColor" aria-hidden="true" />
+              </Button>
+            ))}
+          </div>
+        </div>
+        <Button className="health-post-action" type="button" variant="ghost" aria-expanded={showInlineCommentComposer ? commentOpen : undefined} onClick={() => showInlineCommentComposer ? setCommentOpen((open) => !open) : onCommentRequested?.()}><MessageCircle size={18} aria-hidden="true" /><span>Comment</span><small>{comments}</small></Button>
+        <Button className="health-post-action" type="button" variant="ghost" disabled={!onPostAction || sharePending} onClick={handleShare}><Share2 size={18} aria-hidden="true" /><span>{sharePending ? "Sharing" : "Share"}</span><small>{post.shares ?? 0}</small></Button>
       </footer>
-      {hashtags.length ? <div className="health-post-hashtags">{hashtags.map((tag) => <span key={tag}>#{tag}</span>)}</div> : null}
+      {showInlineCommentComposer && commentOpen ? <form className="health-post-comment-form" onSubmit={handleComment}>
+        <textarea value={commentText} onChange={(event) => setCommentText(event.target.value)} placeholder="Write a comment..." rows={2} autoFocus />
+        <Button type="submit" size="small" disabled={!commentText.trim() || commentPending} aria-label="Send comment"><Send size={16} aria-hidden="true" />{commentPending ? "Sending" : "Send"}</Button>
+      </form> : null}
+      <div className="health-post-meta">
+        {hashtags.length ? <div className="health-post-hashtags">{hashtags.map((tag) => <span key={tag}>#{tag}</span>)}</div> : <span />}
+        <small>{post.views ?? 0} views</small>
+      </div>
     </article>
   );
 }

@@ -284,25 +284,18 @@ def init_db(db_path="healthy_universe.db"):
     """)
 
     cur.execute("""
-    CREATE TABLE IF NOT EXISTS post_comments (
+    CREATE TABLE IF NOT EXISTS post_actions (
         id TEXT PRIMARY KEY,
         post_id TEXT NOT NULL,
         user_id TEXT NOT NULL,
-        content TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (post_id) REFERENCES posts(id),
-        FOREIGN KEY (user_id) REFERENCES users(id)
-    );
-    """)
-
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS post_likes (
-        id TEXT PRIMARY KEY,
-        post_id TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (post_id) REFERENCES posts(id),
-        FOREIGN KEY (user_id) REFERENCES users(id)
+        action_type TEXT NOT NULL
+            CHECK (action_type IN ('reaction', 'comment', 'share', 'view', 'save')),
+        action_value TEXT,
+        request_id TEXT UNIQUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
     """)
 
@@ -420,16 +413,6 @@ def init_db(db_path="healthy_universe.db"):
         status TEXT DEFAULT 'Active',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (follower_id, followed_id)
-    );
-    """)
-
-    # 18. Post Saves & Reposts (Module A - 4.2)
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS post_saves (
-        user_id TEXT NOT NULL,
-        post_id TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (user_id, post_id)
     );
     """)
 
@@ -742,19 +725,6 @@ def init_db(db_path="healthy_universe.db"):
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (endorser_id) REFERENCES users(id),
         FOREIGN KEY (recipient_id) REFERENCES users(id)
-    );
-    """)
-
-    # 36. 5-Type Post Reactions (Like, Celebrate, Support, Insightful, Mindblowing)
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS post_reactions (
-        id TEXT PRIMARY KEY,
-        post_id TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        reaction_type TEXT DEFAULT 'like',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (post_id) REFERENCES posts(id),
-        FOREIGN KEY (user_id) REFERENCES users(id)
     );
     """)
 
