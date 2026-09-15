@@ -48,8 +48,6 @@ export function PostEditorDialog({ open, post, onClose, onPostSaved }: PostEdito
       setError("Add a description before saving the post.");
       return;
     }
-    const existingMediaRemains = Boolean(post?.media_url && !removeMedia);
-
     setSaving(true);
     try {
       const pendingHashtag = cleanHashtag(hashtagInput);
