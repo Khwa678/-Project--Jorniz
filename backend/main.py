@@ -1032,6 +1032,67 @@ def add_comment(post_id):
     return jsonify(comment), 201
 
 
+@app.route("/api/posts/<post_id>/comments/<comment_id>", methods=["PATCH"])
+@require_auth
+def update_comment(post_id, comment_id):
+    uid = str(request.current_user["id"])
+    comment = db_one(
+        """SELECT id,user_id FROM post_actions
+           WHERE id=%s AND post_id=%s AND action_type='comment'""",
+        (comment_id, post_id),
+    )
+    if not comment:
+        return jsonify({"detail": "Comment not found"}), 404
+    if str(comment["user_id"]) != uid:
+        return jsonify({"detail": "You can only edit your own comments"}), 403
+
+    data = request.get_json(force=True) or {}
+    content = (data.get("content") or "").strip()
+    if not content:
+        return jsonify({"detail": "Comment cannot be empty"}), 400
+
+    db_run(
+        "UPDATE post_actions SET action_value=%s,updated_at=CURRENT_TIMESTAMP WHERE id=%s",
+        (content, comment_id),
+    )
+    updated = dict(db_one(
+        """SELECT id,post_id,user_id,action_value AS content,created_at,updated_at
+           FROM post_actions WHERE id=%s""",
+        (comment_id,),
+    ))
+    for key, value in updated.items():
+        if isinstance(value, datetime):
+            updated[key] = value.isoformat()
+    updated["author"] = {
+        "name": request.current_user.get("name", "Unknown"),
+        "avatar": request.current_user.get("avatar_url", ""),
+        "verified": bool(request.current_user.get("is_verified", False)),
+    }
+    return jsonify(updated)
+
+
+@app.route("/api/posts/<post_id>/comments/<comment_id>", methods=["DELETE"])
+@require_auth
+def delete_comment(post_id, comment_id):
+    uid = str(request.current_user["id"])
+    comment = db_one(
+        """SELECT id,user_id FROM post_actions
+           WHERE id=%s AND post_id=%s AND action_type='comment'""",
+        (comment_id, post_id),
+    )
+    if not comment:
+        return jsonify({"detail": "Comment not found"}), 404
+    if str(comment["user_id"]) != uid:
+        return jsonify({"detail": "You can only delete your own comments"}), 403
+
+    db_run("DELETE FROM post_actions WHERE id=%s", (comment_id,))
+    count = db_one(
+        "SELECT COUNT(*) AS n FROM post_actions WHERE post_id=%s AND action_type='comment'",
+        (post_id,),
+    )["n"]
+    return jsonify({"deleted": True, "comments_count": count})
+
+
 @app.route("/api/posts/<post_id>", methods=["PUT"])
 @require_auth
 def update_post(post_id):

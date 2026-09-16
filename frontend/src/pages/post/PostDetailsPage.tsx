@@ -6,6 +6,7 @@ import { HealthPostCard } from "../home/components/HealthPostCard";
 import { sendPostAction } from "../home/api/sendPostAction";
 import type { HealthPost, PostActionRequest } from "../home/types";
 import { loadPostDetails } from "./api/loadPostDetails";
+import { deletePostComment, updatePostComment } from "./api/managePostComment";
 import { PostCommentsList } from "./components/PostCommentsList";
 import type { PostComment } from "./types";
 import "./styles.css";
@@ -67,6 +68,17 @@ export function PostDetailsPage({ postId, signedInAccount, onBack, onPostNotice,
     }
   }
 
+  async function handleUpdateComment(commentId: string, content: string) {
+    const updatedComment = await updatePostComment(postId, commentId, content);
+    setComments((currentComments) => currentComments.map((item) => item.id === commentId ? updatedComment : item));
+  }
+
+  async function handleDeleteComment(commentId: string) {
+    const result = await deletePostComment(postId, commentId);
+    setComments((currentComments) => currentComments.filter((item) => item.id !== commentId));
+    setPost((currentPost) => currentPost ? { ...currentPost, comments_count: result.comments_count } : currentPost);
+  }
+
   return <main className="post-details-page">
     <header className="post-details-heading workspace-page-heading">
       <Button variant="ghost" size="small" onClick={onBack}><ArrowLeft size={17} aria-hidden="true" />Back to feed</Button>
@@ -82,7 +94,7 @@ export function PostDetailsPage({ postId, signedInAccount, onBack, onPostNotice,
           <Button type="submit" size="small" disabled={!comment.trim() || sending}><Send size={16} aria-hidden="true" />{sending ? "Sending" : "Send"}</Button>
         </form>
         <header><h2 id="post-comments-title">Comments</h2><span>{comments.length}</span></header>
-        <PostCommentsList comments={comments} />
+        <PostCommentsList comments={comments} currentUserId={String(signedInAccount.id)} onUpdateComment={handleUpdateComment} onDeleteComment={handleDeleteComment} />
       </section>
     </> : null}
   </main>;
