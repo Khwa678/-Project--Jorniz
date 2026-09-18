@@ -1,6 +1,9 @@
 .right-overview-panel { position:fixed; inset:0 0 0 auto; z-index:90; display:grid; align-content:start; gap:14px; box-sizing:border-box; width:var(--right-sidebar-width); max-width:100vw; min-width:0; height:100dvh; overflow-y:auto; border-left:1px solid #dfe5e8; padding:24px 16px; background:var(--jorniz-canvas); color:#172033; transition:width .2s ease,padding .2s ease; }
 .right-overview-panel.collapsed { width:0; padding:0; border-left:0; overflow:visible; }
 .right-overview-panel.collapsed .health-overview-card { display:none; }
+.overview-reward-loading { display:block; animation:overviewRewardLoading .75s linear infinite; }
+@keyframes overviewRewardLoading { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion:reduce) { .overview-reward-loading { animation:none; } }
 .health-overview-card { display:grid; gap:12px; box-sizing:border-box; width:100%; min-width:0; border:1px solid #dfe6e2; border-radius:18px; padding:16px; background:#fff; box-shadow:0 4px 12px rgba(17,32,51,.05); }
 .health-overview-card>* { min-width:0; }
 .health-overview-card h2 { margin:0; font-size:16px; }

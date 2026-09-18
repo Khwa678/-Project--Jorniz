@@ -308,7 +308,7 @@ def init_db(db_path="healthy_universe.db"):
         type TEXT NOT NULL,
         post_id TEXT,
         message TEXT,
-        is_read INTEGER DEFAULT 0,
+        is_read BOOLEAN NOT NULL DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """)

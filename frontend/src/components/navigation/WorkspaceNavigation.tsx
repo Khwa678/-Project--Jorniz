@@ -16,6 +16,7 @@ export interface WorkspaceNavigationProps {
   activeDestination: WorkspaceDestinationId;
   confirmedCoins: number | null;
   rewardBalanceLoading?: boolean;
+  unreadNotificationCount: number;
   onNavigate: (destination: WorkspaceDestination) => void;
   onCreatePost: () => void;
   onOpenAccountOptions?: () => void;
@@ -29,6 +30,7 @@ export function WorkspaceNavigation({
   activeDestination,
   confirmedCoins,
   rewardBalanceLoading,
+  unreadNotificationCount,
   onNavigate,
   onCreatePost,
   onOpenAccountOptions,
@@ -93,6 +95,7 @@ export function WorkspaceNavigation({
           onNavigate={onNavigate}
           onCreatePost={onCreatePost}
           compact={collapsed}
+          unreadNotificationCount={unreadNotificationCount}
         />
         <NavigationRewardBalance
           confirmedCoins={confirmedCoins}
@@ -108,6 +111,7 @@ export function WorkspaceNavigation({
         activeDestination={activeDestination}
         confirmedCoins={confirmedCoins}
         rewardBalanceLoading={rewardBalanceLoading}
+        unreadNotificationCount={unreadNotificationCount}
         onClose={() => setDrawerOpen(false)}
         onNavigate={onNavigate}
         onCreatePost={onCreatePost}

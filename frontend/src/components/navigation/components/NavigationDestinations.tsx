@@ -73,6 +73,7 @@ export interface NavigationDestinationsProps {
   onNavigate: (destination: WorkspaceDestination) => void;
   onCreatePost: () => void;
   compact?: boolean;
+  unreadNotificationCount?: number;
 }
 
 export function NavigationDestinations({
@@ -80,6 +81,7 @@ export function NavigationDestinations({
   onNavigate,
   onCreatePost,
   compact = false,
+  unreadNotificationCount = 0,
 }: NavigationDestinationsProps) {
   return (
     <Tooltip.Provider delayDuration={300} skipDelayDuration={150}>
@@ -90,6 +92,7 @@ export function NavigationDestinations({
             active={activeDestination === destination.id}
             onNavigate={onNavigate}
             compact={compact}
+            badgeCount={destination.id === "notifications" ? unreadNotificationCount : 0}
             key={destination.id}
           />
         ))}
@@ -105,6 +108,7 @@ export function NavigationDestinations({
             active={activeDestination === destination.id}
             onNavigate={onNavigate}
             compact={compact}
+            badgeCount={destination.id === "notifications" ? unreadNotificationCount : 0}
             key={destination.id}
           />
         ))}
@@ -140,9 +144,10 @@ interface DestinationButtonProps {
   active: boolean;
   onNavigate: (destination: WorkspaceDestination) => void;
   compact: boolean;
+  badgeCount: number;
 }
 
-function DestinationButton({ destination, active, onNavigate, compact }: DestinationButtonProps) {
+function DestinationButton({ destination, active, onNavigate, compact, badgeCount }: DestinationButtonProps) {
   const DestinationIcon = destinationIcons[destination.id];
 
   return (
@@ -155,7 +160,8 @@ function DestinationButton({ destination, active, onNavigate, compact }: Destina
         onClick={() => onNavigate(destination)}
       >
         <span className="destination-marker" aria-hidden="true"><DestinationIcon /></span>
-        {destination.label}
+        <span className="workspace-destination-label">{destination.label}</span>
+        {badgeCount > 0 ? <span className="navigation-unread-count" aria-label={`${badgeCount} unread notifications`}>{badgeCount > 99 ? "99+" : badgeCount}</span> : null}
       </button>
     </CompactNavigationTooltip>
   );

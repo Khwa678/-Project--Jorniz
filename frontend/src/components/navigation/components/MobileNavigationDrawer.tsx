@@ -13,6 +13,7 @@ export interface MobileNavigationDrawerProps {
   activeDestination: WorkspaceDestinationId;
   confirmedCoins: number | null;
   rewardBalanceLoading?: boolean;
+  unreadNotificationCount: number;
   onClose: () => void;
   onNavigate: (destination: WorkspaceDestination) => void;
   onCreatePost: () => void;
@@ -27,6 +28,7 @@ export function MobileNavigationDrawer({
   activeDestination,
   confirmedCoins,
   rewardBalanceLoading,
+  unreadNotificationCount,
   onClose,
   onNavigate,
   onCreatePost,
@@ -86,6 +88,7 @@ export function MobileNavigationDrawer({
             activeDestination={activeDestination}
             onNavigate={navigateAndClose}
             onCreatePost={createPostAndClose}
+            unreadNotificationCount={unreadNotificationCount}
           />
           <NavigationRewardBalance
             confirmedCoins={confirmedCoins}

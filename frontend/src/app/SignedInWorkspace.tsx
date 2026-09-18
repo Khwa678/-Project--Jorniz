@@ -7,6 +7,8 @@ import { loadSuggestedMembers } from "../components/health-overview/api/loadSugg
 import { updateFollow } from "../components/follow/api/updateFollow";
 import { PostEditorDialog, type EditablePost, type PostWriteResult } from "../components/post-editor";
 import { loadRewardBalance } from "../pages/wallet/api/requests";
+import { loadNotifications } from "../pages/notifications/api/loadNotifications";
+import { notificationIsUnread } from "../pages/notifications/types";
 import type { SignedInAccount } from "../lib/auth/accountTypes";
 import {
   WorkspaceNavigation,
@@ -42,6 +44,7 @@ export function SignedInWorkspace({ account, onAccountUpdated, onSignOut }: Sign
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false);
   const [suggestedMembers, setSuggestedMembers] = useState<SuggestedMember[]>([]);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
 
   useEffect(() => {
     const showBrowserDestination = () => {
@@ -65,6 +68,14 @@ export function SignedInWorkspace({ account, onAccountUpdated, onSignOut }: Sign
   useEffect(() => {
     const controller = new AbortController();
     loadSuggestedMembers(controller.signal).then(setSuggestedMembers).catch(() => setSuggestedMembers([]));
+    return () => controller.abort();
+  }, [account.id]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    loadNotifications(controller.signal)
+      .then((notifications) => setUnreadNotificationCount(notifications.filter(notificationIsUnread).length))
+      .catch(() => setUnreadNotificationCount(0));
     return () => controller.abort();
   }, [account.id]);
 
@@ -122,6 +133,7 @@ export function SignedInWorkspace({ account, onAccountUpdated, onSignOut }: Sign
         activeDestination={destination.id}
         confirmedCoins={confirmedCoins}
         rewardBalanceLoading={rewardBalanceLoading}
+        unreadNotificationCount={unreadNotificationCount}
         onNavigate={navigate}
         onCreatePost={() => openPostEditor()}
         onOpenAccountOptions={() => navigateById("settings")}
@@ -147,6 +159,7 @@ export function SignedInWorkspace({ account, onAccountUpdated, onSignOut }: Sign
             onOpenPost={openPost}
             onOpenMember={openMember}
             onClosePost={() => navigateById("home")}
+            onUnreadNotificationCountChange={setUnreadNotificationCount}
           />
         </section>
         <HealthOverviewPanel

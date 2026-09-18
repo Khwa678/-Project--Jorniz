@@ -35,6 +35,7 @@ export interface JornizRouteMapProps {
   onOpenPost: (postId: string) => void;
   onOpenMember: (memberId: string) => void;
   onClosePost: () => void;
+  onUnreadNotificationCountChange: (count: number) => void;
 }
 
 function editablePost(post: HealthPost): EditablePost {
@@ -65,6 +66,7 @@ export function JornizRouteMap({
   onOpenPost,
   onOpenMember,
   onClosePost,
+  onUnreadNotificationCountChange,
 }: JornizRouteMapProps) {
   const [postActionError, setPostActionError] = useState("");
   const [postToDelete, setPostToDelete] = useState<HealthPost | null>(null);
@@ -99,7 +101,7 @@ export function JornizRouteMap({
     return <ExploreSearchPage onOpenMember={onOpenMember} onOpenPost={onOpenPost} onOpenJob={() => onNavigate("jobs")} onOpenProduct={() => onNavigate("store")} />;
   }
   if (destination === "notifications") {
-    return <NotificationsPage onOpenPost={() => onNavigate("home")} />;
+    return <NotificationsPage onOpenPost={onOpenPost} onUnreadCountChange={onUnreadNotificationCountChange} />;
   }
   if (destination === "messages") {
     return <DirectMessagesPage accessToken={getSignedInAccessToken()} signedInAccount={account} />;

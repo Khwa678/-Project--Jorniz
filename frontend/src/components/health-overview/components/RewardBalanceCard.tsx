@@ -1,4 +1,4 @@
-import { CircleDollarSign } from "lucide-react";
+import { CircleDollarSign, LoaderCircle } from "lucide-react";
 import { Button } from "../../ui/Button";
 
 export interface RewardBalanceCardProps {
@@ -17,7 +17,7 @@ export function RewardBalanceCard({
       <h2><CircleDollarSign size={16} aria-hidden="true" />HU Coins</h2>
       <div>
         <strong>
-          {loading ? "Loading" : confirmedCoins === null ? "Unavailable" : confirmedCoins.toLocaleString()}
+          {loading ? <LoaderCircle className="overview-reward-loading" size={22} aria-label="Loading HU Coin balance" /> : confirmedCoins === null ? "Unavailable" : confirmedCoins.toLocaleString()}
         </strong>
         <Button variant="ghost" size="small" onClick={onOpenWallet} disabled={!onOpenWallet}>
           View wallet
