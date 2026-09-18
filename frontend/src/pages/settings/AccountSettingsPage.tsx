@@ -9,6 +9,7 @@ import { PrivacySettings } from "./components/PrivacySettings";
 import { ProfileSettings } from "./components/ProfileSettings";
 import {
   deactivateAccount,
+  deleteProfileImage,
   exportAccountData,
   loadSignedInSessions,
   saveProfileSettings,
@@ -68,6 +69,22 @@ export function AccountSettingsPage({
       setConfirmation("Profile saved by the Jorniz backend.");
     } catch (error) {
       setFailure(error instanceof Error ? error.message : "The profile was not saved.");
+    } finally {
+      setSavingProfile(false);
+    }
+  }
+
+  async function removeProfileImage() {
+    setSavingProfile(true);
+    setFailure("");
+    setConfirmation("");
+    try {
+      const updatedAccount = await deleteProfileImage();
+      onAccountUpdated(updatedAccount);
+      setConfirmation("Profile image removed.");
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : "The profile image was not removed.");
+      throw error;
     } finally {
       setSavingProfile(false);
     }
@@ -144,6 +161,7 @@ export function AccountSettingsPage({
               failure={failure}
               confirmation={confirmation}
               onSave={persistProfile}
+              onDeleteAvatar={removeProfileImage}
             />
           </Tabs.Content>
           <Tabs.Content value="notifications"><NotificationSettings /></Tabs.Content>

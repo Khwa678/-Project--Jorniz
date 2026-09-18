@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { ImageUploader } from "../../../components/image-uploader/ImageUploader";
 import { Button } from "../../../components/ui/Button";
 import type { SignedInAccount } from "../../../lib/auth/accountTypes";
 import type { ProfileSettingsInput } from "../api/requests";
@@ -18,6 +19,7 @@ export interface ProfileSettingsProps {
   failure?: string;
   confirmation?: string;
   onSave: (input: ProfileSettingsInput) => Promise<void>;
+  onDeleteAvatar: () => Promise<void>;
 }
 
 export function ProfileSettings({
@@ -26,9 +28,14 @@ export function ProfileSettings({
   failure,
   confirmation,
   onSave,
+  onDeleteAvatar,
 }: ProfileSettingsProps) {
   const readable = account as ReadableAccount;
-  const [avatarUrl, setAvatarUrl] = useState(readable.avatar_url ?? "");
+  const currentAvatarUrl = readable.avatar_url ?? readable.profile?.avatar ?? "";
+  const [avatarUrl, setAvatarUrl] = useState(currentAvatarUrl);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+
+  useEffect(() => { setAvatarUrl(currentAvatarUrl); }, [currentAvatarUrl]);
 
   async function submitProfileSettings(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -37,10 +44,22 @@ export function ProfileSettings({
       name: String(fields.get("name") ?? "").trim(),
       bio: String(fields.get("bio") ?? "").trim(),
       avatarUrl,
+      avatarFile,
       specialty: String(fields.get("specialty") ?? "").trim(),
       hospital: String(fields.get("hospital") ?? "").trim(),
       location: String(fields.get("location") ?? "").trim(),
     });
+    setAvatarFile(null);
+  }
+
+  async function deleteAvatar() {
+    try {
+      await onDeleteAvatar();
+      setAvatarFile(null);
+      setAvatarUrl("");
+    } catch {
+      // The parent displays the request error.
+    }
   }
 
   return (
@@ -51,27 +70,26 @@ export function ProfileSettings({
         <p>These fields are saved through the Jorniz profile endpoint.</p>
       </div>
       <form className="profile-settings-form" onSubmit={(event) => void submitProfileSettings(event)}>
-        <label>
-          Full name
-          <input name="name" defaultValue={readable.name ?? ""} required />
-        </label>
-        <label>
-          Avatar URL
-          <input
-            name="avatarUrl"
-            type="url"
-            value={avatarUrl}
-            onChange={(event) => setAvatarUrl(event.target.value)}
-            placeholder="https://"
-          />
-        </label>
-        <label>
-          Specialty
-          <input name="specialty" defaultValue={readable.specialty ?? ""} />
-        </label>
+        <div className="profile-settings-identity">
+          <ImageUploader currentImageUrl={avatarUrl} name={readable.name ?? ""} selectedFile={avatarFile} disabled={saving} onFileChange={setAvatarFile} onRemove={deleteAvatar} />
+          <div className="profile-settings-identity-fields">
+            <label>
+              Full name
+              <input name="name" defaultValue={readable.name ?? ""} required />
+            </label>
+            <label>
+              Avatar URL
+              <input name="avatarUrl" type="url" value={avatarUrl} onChange={(event) => setAvatarUrl(event.target.value)} placeholder="https://" />
+            </label>
+            <label className="settings-wide-field">
+              Specialty
+              <input name="specialty" defaultValue={readable.specialty ?? readable.profile?.specialty ?? ""} />
+            </label>
+          </div>
+        </div>
         <label>
           Hospital or organisation
-          <input name="hospital" defaultValue={readable.hospital ?? ""} />
+          <input name="hospital" defaultValue={readable.hospital ?? readable.profile?.hospital ?? ""} />
         </label>
         <label>
           Location

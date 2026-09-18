@@ -1,0 +1,17 @@
+.image-uploader { display:grid; justify-items:center; align-content:start; gap:8px; }
+.image-uploader-preview { position:relative; width:112px; height:112px; }
+.image-uploader-control { position:relative; display:block; width:112px; height:112px; border-radius:50%; cursor:pointer; }
+.image-uploader-control.disabled { cursor:not-allowed; opacity:.65; }
+.image-uploader-avatar { display:grid; width:112px; height:112px; overflow:hidden; place-items:center; border:3px solid #d9e5ff; border-radius:50%; background:#e8f1ff; color:#2367f2; font-size:36px; font-weight:850; box-sizing:border-box; }
+.image-uploader-avatar img { width:100%; height:100%; object-fit:cover; }
+.image-uploader-fallback { display:grid; width:100%; height:100%; place-items:center; }
+.image-uploader-empty { display:flex; width:100%; height:100%; align-items:center; justify-content:center; flex-direction:column; gap:6px; color:#2367f2; font-size:12px; font-weight:750; }
+.image-uploader-remove { position:absolute; top:-2px; right:-2px; display:grid; width:32px; height:32px; padding:0; place-items:center; border:3px solid #fff; border-radius:50%; background:#c83d35; color:#fff; box-sizing:border-box; cursor:pointer; box-shadow:0 3px 8px rgba(104,31,27,.18); transition:background-color .16s ease, box-shadow .16s ease, transform .16s ease; }
+.image-uploader-remove:hover { background:#ab302a; box-shadow:0 5px 12px rgba(104,31,27,.3); transform:scale(1.08); }
+.image-uploader-remove:focus-visible { outline:3px solid rgba(200,61,53,.24); outline-offset:2px; }
+.image-uploader-remove:disabled { cursor:not-allowed; opacity:.65; }
+.image-uploader-control input { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+.image-uploader-control:focus-within .image-uploader-avatar { border-color:#2367f2; box-shadow:0 0 0 4px rgba(35,103,242,.14); }
+.image-uploader small { max-width:150px; color:#77838e; font-size:11px; line-height:1.4; text-align:center; }
+.image-uploader-file { max-width:160px; overflow:hidden; color:#315044; font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
+.image-uploader-error { max-width:170px; color:#a9362a; font-size:11px; line-height:1.35; text-align:center; }

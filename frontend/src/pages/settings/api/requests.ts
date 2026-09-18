@@ -5,6 +5,7 @@ export interface ProfileSettingsInput {
   name: string;
   bio: string;
   avatarUrl?: string;
+  avatarFile?: File | null;
   specialty?: string;
   hospital?: string;
   location?: string;
@@ -27,19 +28,28 @@ export interface AccountExport {
 export async function saveProfileSettings(
   input: ProfileSettingsInput,
 ): Promise<SignedInAccount> {
+  const fields = new FormData();
+  fields.append("name", input.name);
+  fields.append("bio", input.bio);
+  fields.append("avatar_url", input.avatarUrl ?? "");
+  fields.append("specialty", input.specialty ?? "");
+  fields.append("hospital", input.hospital ?? "");
+  fields.append("location", input.location ?? "");
+  if (input.avatarFile) fields.append("avatar", input.avatarFile);
   const response = await requestJornizApi<
     SignedInAccount | { user: SignedInAccount }
   >("/api/auth/update", {
     method: "PUT",
-    body: JSON.stringify({
-      name: input.name,
-      bio: input.bio,
-      avatar_url: input.avatarUrl ?? "",
-      specialty: input.specialty ?? "",
-      hospital: input.hospital ?? "",
-      location: input.location ?? "",
-    }),
+    body: fields,
   });
+  const wrapped = response as { user?: SignedInAccount };
+  return wrapped.user ?? response as SignedInAccount;
+}
+
+export async function deleteProfileImage(): Promise<SignedInAccount> {
+  const response = await requestJornizApi<
+    SignedInAccount | { user: SignedInAccount }
+  >("/api/auth/avatar", { method: "DELETE" });
   const wrapped = response as { user?: SignedInAccount };
   return wrapped.user ?? response as SignedInAccount;
 }

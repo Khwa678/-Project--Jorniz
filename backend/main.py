@@ -614,22 +614,73 @@ def logout_all():
 @app.route("/api/auth/update", methods=["PUT"])
 @require_auth
 def update_profile():
-    data      = request.get_json(force=True) or {}
+    is_multipart = request.content_type and "multipart/form-data" in request.content_type
+    data      = request.form if is_multipart else (request.get_json(force=True, silent=True) or {})
     uid       = str(request.current_user["id"])
     name      = (data.get("name") or "").strip()
     bio       =  data.get("bio")       or ""
-    avatar_url = data.get("avatar_url") or request.current_user.get("avatar_url", "")
+    current_user = dict(request.current_user)
+    old_avatar_url = current_user.get("avatar_url", "") or ""
+    avatar_url = data.get("avatar_url") if "avatar_url" in data else old_avatar_url
+    avatar_file = request.files.get("avatar") if is_multipart else None
+    specialty = (data.get("specialty") or "").strip()
+    hospital = (data.get("hospital") or "").strip()
+    location = (data.get("location") or "").strip()
+    doctor = db_one("SELECT id FROM doctors WHERE user_id=%s", (uid,))
 
     if not name:
         return jsonify({"detail": "Name cannot be empty"}), 400
 
+    if avatar_file and avatar_file.filename:
+        content_type = avatar_file.content_type or ""
+        if content_type not in ALLOWED_IMAGES:
+            return jsonify({"detail": "Profile image must be a JPG, PNG, GIF, or WebP file"}), 400
+        image_bytes = avatar_file.read()
+        if len(image_bytes) > 5 * 1024 * 1024:
+            return jsonify({"detail": "Profile image must be smaller than 5 MB"}), 400
+        extension = os.path.splitext(avatar_file.filename)[1] or ".jpg"
+        pathname = f"profile-images/{uid}/{uuid.uuid4()}{extension}"
+        try:
+            avatar_url = upload_post_media_to_blob(image_bytes, pathname, content_type)
+        except Exception as upload_error:
+            return jsonify({"detail": f"Could not upload profile image: {upload_error}"}), 502
+
     db_run("UPDATE users SET name=%s,bio=%s,avatar_url=%s WHERE id=%s", (name, bio, avatar_url, uid))
-    if normalize_user_type(request.current_user.get("user_type") or request.current_user.get("role")) == "doctor":
+    if normalize_user_type(current_user.get("user_type") or current_user.get("role")) == "doctor":
         db_run("UPDATE doctors SET name=%s,specialty=%s,hospital=%s,location=%s,bio=%s,updated_at=CURRENT_TIMESTAMP WHERE user_id=%s",
-               (name, data.get("specialty") or "General Medicine", data.get("hospital") or "",
-                data.get("location") or "", bio, uid))
+               (name, specialty or "General Medicine", hospital, location, bio, uid))
+    cleanup_warning = ""
+    if avatar_url != old_avatar_url and old_avatar_url:
+        try:
+            delete_post_media_blob(old_avatar_url)
+        except Exception as cleanup_error:
+            print(f"[WARN] Could not remove previous profile image: {cleanup_error}")
+            cleanup_warning = "The profile was updated, but the previous profile image could not be removed."
     user = user_payload(db_one("SELECT * FROM users WHERE id=%s", (uid,)))
-    return jsonify({"user": user, "message": "Profile updated successfully ✅"})
+    response = {"user": user, "message": "Profile updated successfully ✅"}
+    if cleanup_warning:
+        response["warning"] = cleanup_warning
+    return jsonify(response)
+
+
+@app.route("/api/auth/avatar", methods=["DELETE"])
+@require_auth
+def delete_profile_avatar():
+    uid = str(request.current_user["id"])
+    user = db_one("SELECT avatar_url FROM users WHERE id=%s", (uid,))
+    if not user:
+        return jsonify({"detail": "User not found"}), 404
+
+    avatar_url = dict(user).get("avatar_url") or ""
+    if avatar_url:
+        try:
+            delete_post_media_blob(avatar_url)
+        except Exception as delete_error:
+            return jsonify({"detail": f"Could not remove profile image: {delete_error}"}), 502
+
+    db_run("UPDATE users SET avatar_url=NULL WHERE id=%s", (uid,))
+    updated_user = user_payload(db_one("SELECT * FROM users WHERE id=%s", (uid,)))
+    return jsonify({"user": updated_user, "message": "Profile image removed"})
 
 
 @app.route("/api/auth/change-password", methods=["PUT"])
