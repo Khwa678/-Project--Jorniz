@@ -1,6 +1,7 @@
 import {
   Bell,
   Briefcase,
+  CircleGauge,
   House,
   Megaphone,
   MessageSquare,
@@ -30,7 +31,8 @@ export type WorkspaceDestinationId =
   | "advertising"
   | "store"
   | "profile"
-  | "settings";
+  | "settings"
+  | "admin";
 
 export interface WorkspaceDestination {
   id: WorkspaceDestinationId;
@@ -51,6 +53,7 @@ export const workspaceDestinations: readonly WorkspaceDestination[] = [
   { id: "store", label: "Health Marketplace", route: "/store" },
   { id: "profile", label: "Profile", route: "/profile" },
   { id: "settings", label: "Settings", route: "/settings" },
+  { id: "admin", label: "Administrator", route: "/admin" },
 ];
 
 const destinationIcons: Record<WorkspaceDestinationId, LucideIcon> = {
@@ -66,6 +69,7 @@ const destinationIcons: Record<WorkspaceDestinationId, LucideIcon> = {
   store: ShoppingBag,
   profile: UserRound,
   settings: Settings,
+  admin: CircleGauge,
 };
 
 export interface NavigationDestinationsProps {
@@ -74,6 +78,7 @@ export interface NavigationDestinationsProps {
   onCreatePost: () => void;
   compact?: boolean;
   unreadNotificationCount?: number;
+  showAdmin?: boolean;
 }
 
 export function NavigationDestinations({
@@ -82,11 +87,13 @@ export function NavigationDestinations({
   onCreatePost,
   compact = false,
   unreadNotificationCount = 0,
+  showAdmin = false,
 }: NavigationDestinationsProps) {
+  const visibleDestinations = workspaceDestinations.filter((destination) => destination.id !== "admin" || showAdmin);
   return (
     <Tooltip.Provider delayDuration={300} skipDelayDuration={150}>
       <nav className="workspace-destination-list" aria-label="Jorniz sections">
-        {workspaceDestinations.slice(0, 2).map((destination) => (
+        {visibleDestinations.slice(0, 2).map((destination) => (
           <DestinationButton
             destination={destination}
             active={activeDestination === destination.id}
@@ -102,7 +109,7 @@ export function NavigationDestinations({
             Create post
           </Button>
         </CompactNavigationTooltip>
-        {workspaceDestinations.slice(2).map((destination) => (
+        {visibleDestinations.slice(2).map((destination) => (
           <DestinationButton
             destination={destination}
             active={activeDestination === destination.id}

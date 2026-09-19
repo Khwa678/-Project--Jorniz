@@ -2,6 +2,7 @@ import { useRef, type TouchEvent } from "react";
 import { X } from "lucide-react";
 import { Dialog } from "radix-ui";
 import type { SignedInAccount } from "../../../lib/auth/accountTypes";
+import { isAdministrator } from "../../../lib/auth/roles";
 import { Button } from "../../ui/Button";
 import { NavigationDestinations, type WorkspaceDestination, type WorkspaceDestinationId } from "./NavigationDestinations";
 import { NavigationMemberSummary } from "./NavigationMemberSummary";
@@ -89,6 +90,7 @@ export function MobileNavigationDrawer({
             onNavigate={navigateAndClose}
             onCreatePost={createPostAndClose}
             unreadNotificationCount={unreadNotificationCount}
+            showAdmin={isAdministrator(account.system_role)}
           />
           <NavigationRewardBalance
             confirmedCoins={confirmedCoins}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { SidebarCollapseButton } from "../sidebar-collapse-button/SidebarCollapseButton";
 import type { SignedInAccount } from "../../lib/auth/accountTypes";
+import { isAdministrator } from "../../lib/auth/roles";
 import { MobileNavigationDrawer } from "./components/MobileNavigationDrawer";
 import {
   NavigationDestinations,
@@ -96,6 +97,7 @@ export function WorkspaceNavigation({
           onCreatePost={onCreatePost}
           compact={collapsed}
           unreadNotificationCount={unreadNotificationCount}
+          showAdmin={isAdministrator(account.system_role)}
         />
         <NavigationRewardBalance
           confirmedCoins={confirmedCoins}

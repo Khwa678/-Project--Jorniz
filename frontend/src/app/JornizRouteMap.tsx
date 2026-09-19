@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AlertDialog } from "radix-ui";
 import { AccountSettingsPage } from "../pages/settings/AccountSettingsPage";
+import { AdminPage } from "../pages/admin/AdminPage";
 import { NotificationsPage } from "../pages/notifications";
 import { AdvertisingCampaignsPage } from "../pages/ads/AdvertisingCampaignsPage";
 import { DirectMessagesPage } from "../pages/messages/DirectMessagesPage";
@@ -16,6 +17,7 @@ import { ProfessionalNetworkPage } from "../pages/network/ProfessionalNetworkPag
 import { RewardsWalletPage } from "../pages/wallet/RewardsWalletPage";
 import { getSignedInAccessToken } from "../lib/auth/signedInAccount";
 import type { SignedInAccount } from "../lib/auth/accountTypes";
+import { isAdministrator } from "../lib/auth/roles";
 import type { WorkspaceDestinationId } from "../components/navigation/components/NavigationDestinations";
 import { Button } from "../components/ui/Button";
 
@@ -121,6 +123,11 @@ export function JornizRouteMap({
   }
   if (destination === "settings") {
     return <AccountSettingsPage account={account} onAccountUpdated={onAccountUpdated} onAccountDeactivated={onSignOut} onSignOut={onSignOut} />;
+  }
+  if (destination === "admin") {
+    return isAdministrator(account.system_role)
+      ? <AdminPage account={account} />
+      : <main className="admin-page"><header className="workspace-page-heading"><div><h1>Administrator</h1><p className="workspace-page-tagline">You do not have permission to access this page.</p></div></header></main>;
   }
 
   return (
