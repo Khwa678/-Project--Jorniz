@@ -8,6 +8,8 @@ import { NotificationSettings } from "./components/NotificationSettings";
 import { PrivacySettings } from "./components/PrivacySettings";
 import { ProfileSettings } from "./components/ProfileSettings";
 import {
+  clearOtherSignedInSessions,
+  clearSignedInSession,
   deactivateAccount,
   deleteProfileImage,
   exportAccountData,
@@ -36,6 +38,8 @@ export function AccountSettingsPage({
   const [section, setSection] = useState<SettingsSection>("profile");
   const [sessions, setSessions] = useState<SignedInSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [clearingSessionId, setClearingSessionId] = useState<string | null>(null);
+  const [clearingOtherSessions, setClearingOtherSessions] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [busyAction, setBusyAction] = useState<"export" | "delete" | null>(null);
   const [failure, setFailure] = useState("");
@@ -71,6 +75,36 @@ export function AccountSettingsPage({
       setFailure(error instanceof Error ? error.message : "The profile was not saved.");
     } finally {
       setSavingProfile(false);
+    }
+  }
+
+  async function clearSession(sessionId: string) {
+    setClearingSessionId(sessionId);
+    setFailure("");
+    setConfirmation("");
+    try {
+      await clearSignedInSession(sessionId);
+      await refreshSignedInSessions();
+      setConfirmation("Session cleared.");
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : "The session could not be cleared.");
+    } finally {
+      setClearingSessionId(null);
+    }
+  }
+
+  async function clearOtherSessions() {
+    setClearingOtherSessions(true);
+    setFailure("");
+    setConfirmation("");
+    try {
+      await clearOtherSignedInSessions();
+      await refreshSignedInSessions();
+      setConfirmation("Other sessions cleared.");
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : "Other sessions could not be cleared.");
+    } finally {
+      setClearingOtherSessions(false);
     }
   }
 
@@ -165,15 +199,20 @@ export function AccountSettingsPage({
             />
           </Tabs.Content>
           <Tabs.Content value="notifications"><NotificationSettings /></Tabs.Content>
-          <Tabs.Content value="privacy"><PrivacySettings /></Tabs.Content>
+          <Tabs.Content value="privacy"><PrivacySettings accountType={account.user_type} /></Tabs.Content>
           <Tabs.Content value="appearance"><AppearanceSettings /></Tabs.Content>
           <Tabs.Content value="account-data">
             <AccountDataControls
               sessions={sessions}
               sessionsLoading={sessionsLoading}
+              clearingSessionId={clearingSessionId}
+              clearingOtherSessions={clearingOtherSessions}
               busyAction={busyAction}
               failure={failure}
+              confirmation={confirmation}
               onRefreshSessions={refreshSignedInSessions}
+              onClearSession={clearSession}
+              onClearOtherSessions={clearOtherSessions}
               onExportAccount={downloadAccountExport}
               onDeactivateAccount={submitAccountDeactivation}
             />

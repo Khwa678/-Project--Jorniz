@@ -1,7 +1,9 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { ImageUploader } from "../../../components/image-uploader/ImageUploader";
 import { Button } from "../../../components/ui/Button";
+import { EditableTextDropdown } from "../../../components/ui/EditableTextDropdown";
 import type { SignedInAccount } from "../../../lib/auth/accountTypes";
+import { DOCTOR_SPECIALTIES } from "../../../lib/doctors/constants";
 import type { ProfileSettingsInput } from "../api/requests";
 
 type ReadableAccount = SignedInAccount & {
@@ -32,10 +34,13 @@ export function ProfileSettings({
 }: ProfileSettingsProps) {
   const readable = account as ReadableAccount;
   const currentAvatarUrl = readable.avatar_url ?? readable.profile?.avatar ?? "";
+  const currentSpecialty = readable.specialty ?? readable.profile?.specialty ?? "";
   const [avatarUrl, setAvatarUrl] = useState(currentAvatarUrl);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [specialty, setSpecialty] = useState(currentSpecialty);
 
   useEffect(() => { setAvatarUrl(currentAvatarUrl); }, [currentAvatarUrl]);
+  useEffect(() => { setSpecialty(currentSpecialty); }, [currentSpecialty]);
 
   async function submitProfileSettings(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,7 +50,7 @@ export function ProfileSettings({
       bio: String(fields.get("bio") ?? "").trim(),
       avatarUrl,
       avatarFile,
-      specialty: String(fields.get("specialty") ?? "").trim(),
+      specialty: specialty.trim(),
       hospital: String(fields.get("hospital") ?? "").trim(),
       location: String(fields.get("location") ?? "").trim(),
     });
@@ -78,12 +83,15 @@ export function ProfileSettings({
               <input name="name" defaultValue={readable.name ?? ""} required />
             </label>
             <label>
-              Avatar URL
-              <input name="avatarUrl" type="url" value={avatarUrl} onChange={(event) => setAvatarUrl(event.target.value)} placeholder="https://" />
-            </label>
-            <label className="settings-wide-field">
               Specialty
-              <input name="specialty" defaultValue={readable.specialty ?? readable.profile?.specialty ?? ""} />
+              <EditableTextDropdown
+                name="specialty"
+                value={specialty}
+                options={DOCTOR_SPECIALTIES}
+                onValueChange={setSpecialty}
+                placeholder="Search or enter a specialty"
+                disabled={saving}
+              />
             </label>
           </div>
         </div>
@@ -97,7 +105,12 @@ export function ProfileSettings({
         </label>
         <label className="settings-wide-field">
           Bio
-          <textarea name="bio" rows={5} defaultValue={readable.bio ?? ""} />
+          <textarea
+            name="bio"
+            rows={5}
+            defaultValue={readable.bio ?? ""}
+            placeholder="Example: Cardiologist with 10 years of experience in preventive heart care and patient education."
+          />
         </label>
         {failure && <p className="settings-request-error" role="alert">{failure}</p>}
         {confirmation && <p className="settings-request-confirmation" role="status">{confirmation}</p>}

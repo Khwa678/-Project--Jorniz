@@ -17,6 +17,7 @@ export interface SignedInSession {
   ipAddress: string;
   createdAt: string;
   revoked: boolean;
+  isCurrent: boolean;
 }
 
 export interface AccountExport {
@@ -64,7 +65,16 @@ export async function loadSignedInSessions(): Promise<SignedInSession[]> {
     ipAddress: String(session.ip_address ?? "Unknown address"),
     createdAt: String(session.created_at ?? ""),
     revoked: Boolean(session.is_revoked),
+    isCurrent: Boolean(session.is_current),
   }));
+}
+
+export async function clearSignedInSession(sessionId: string): Promise<void> {
+  await requestJornizApi(`/api/auth/sessions/${encodeURIComponent(sessionId)}`, { method: "DELETE" });
+}
+
+export async function clearOtherSignedInSessions(): Promise<void> {
+  await requestJornizApi("/api/auth/sessions", { method: "DELETE" });
 }
 
 export async function exportAccountData(): Promise<AccountExport> {

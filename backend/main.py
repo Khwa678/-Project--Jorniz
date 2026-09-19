@@ -2964,7 +2964,36 @@ def get_diagnostics():
 def get_active_sessions():
     uid = str(request.current_user["id"])
     sessions = db_all("SELECT id, device_info, ip_address, created_at, is_revoked FROM user_sessions WHERE user_id=%s AND is_revoked=0", (uid,))
-    return jsonify({"sessions": sessions})
+    active_sessions = []
+    for session in sessions:
+        item = dict(session)
+        item["is_current"] = str(item["id"]) == str(request.current_session_id)
+        active_sessions.append(item)
+    return jsonify({"sessions": active_sessions})
+
+
+@app.route("/api/auth/sessions", methods=["DELETE"])
+@require_auth
+def revoke_other_sessions():
+    uid = str(request.current_user["id"])
+    db_run(
+        "UPDATE user_sessions SET is_revoked=1 WHERE user_id=%s AND id<>%s AND is_revoked=0",
+        (uid, str(request.current_session_id)),
+    )
+    return jsonify({"message": "Other sessions cleared"})
+
+
+@app.route("/api/auth/sessions/<session_id>", methods=["DELETE"])
+@require_auth
+def revoke_session(session_id):
+    uid = str(request.current_user["id"])
+    session = db_one("SELECT id FROM user_sessions WHERE id=%s AND user_id=%s AND is_revoked=0", (session_id, uid))
+    if not session:
+        return jsonify({"detail": "Active session not found"}), 404
+    if str(session_id) == str(request.current_session_id):
+        return jsonify({"detail": "The current session cannot be cleared here"}), 400
+    db_run("UPDATE user_sessions SET is_revoked=1 WHERE id=%s", (session_id,))
+    return jsonify({"message": "Session cleared"})
 
 @app.route("/api/auth/2fa/enable", methods=["POST"])
 @require_auth

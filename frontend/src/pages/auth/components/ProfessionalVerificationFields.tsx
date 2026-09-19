@@ -1,21 +1,6 @@
 import type { JornizAccountType } from "../types";
-import { AccountSelect } from "./AccountSelect";
-
-const specialties = [
-  "General Medicine",
-  "Cardiology",
-  "Dermatology",
-  "Pediatrics",
-  "Orthopedics",
-  "Gynecology",
-  "Neurology",
-  "Psychiatry",
-  "Dentistry",
-  "Physiotherapy",
-  "Psychology",
-  "Nutrition",
-  "Other",
-];
+import { EditableTextDropdown } from "../../../components/ui/EditableTextDropdown";
+import { DOCTOR_SPECIALTIES } from "../../../lib/doctors/constants";
 
 const organizationLabels: Partial<Record<JornizAccountType, string>> = {
   doctor: "Hospital or Clinic",
@@ -52,11 +37,13 @@ export function ProfessionalVerificationFields({
       {accountType === "doctor" ? (
         <div className="account-field">
           <span id="professional-specialty-label">Specialization</span>
-          <AccountSelect
+          <EditableTextDropdown
             ariaLabelledBy="professional-specialty-label"
-            options={specialties.map((value) => ({ label: value, value }))}
+            options={DOCTOR_SPECIALTIES}
             value={specialty}
             onValueChange={onSpecialtyChange}
+            placeholder="Search or enter a specialty"
+            required
           />
         </div>
       ) : null}
