@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Tabs } from "radix-ui";
 
-export type AdminTab = "users" | "posts";
+export type AdminTab = "users" | "posts" | "rewards";
 
 export interface AdminTabsProps {
   value: AdminTab;
@@ -15,6 +15,7 @@ export function AdminTabs({ value, onValueChange, children }: AdminTabsProps) {
       <Tabs.List className="admin-tabs" aria-label="Administrator sections">
         <Tabs.Trigger value="users">Users</Tabs.Trigger>
         <Tabs.Trigger value="posts">Posts</Tabs.Trigger>
+        <Tabs.Trigger value="rewards">Rewards</Tabs.Trigger>
       </Tabs.List>
       {children}
     </Tabs.Root>

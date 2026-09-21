@@ -3,7 +3,9 @@ import { ImageUploader } from "../../../components/image-uploader/ImageUploader"
 import { Button } from "../../../components/ui/Button";
 import { EditableTextDropdown } from "../../../components/ui/EditableTextDropdown";
 import type { SignedInAccount } from "../../../lib/auth/accountTypes";
-import { DOCTOR_SPECIALTIES } from "../../../lib/doctors/constants";
+import { ACCOUNT_TYPE_OPTIONS } from "../../../lib/accounts/constants";
+import type { AccountType } from "../../../lib/accounts/types";
+import { DOCTOR_SPECIALTY_SUGGESTIONS } from "../../../lib/doctors/constants";
 import type { ProfileSettingsInput } from "../api/requests";
 
 type ReadableAccount = SignedInAccount & {
@@ -33,13 +35,15 @@ export function ProfileSettings({
   onDeleteAvatar,
 }: ProfileSettingsProps) {
   const readable = account as ReadableAccount;
-  const currentAvatarUrl = readable.avatar_url ?? readable.profile?.avatar ?? "";
+  const currentAvatarUrl = readable.avatar_url ?? "";
   const currentSpecialty = readable.specialty ?? readable.profile?.specialty ?? "";
   const [avatarUrl, setAvatarUrl] = useState(currentAvatarUrl);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [userType, setUserType] = useState<AccountType>(readable.user_type);
   const [specialty, setSpecialty] = useState(currentSpecialty);
 
   useEffect(() => { setAvatarUrl(currentAvatarUrl); }, [currentAvatarUrl]);
+  useEffect(() => { setUserType(readable.user_type); }, [readable.user_type]);
   useEffect(() => { setSpecialty(currentSpecialty); }, [currentSpecialty]);
 
   async function submitProfileSettings(event: FormEvent<HTMLFormElement>) {
@@ -47,12 +51,13 @@ export function ProfileSettings({
     const fields = new FormData(event.currentTarget);
     await onSave({
       name: String(fields.get("name") ?? "").trim(),
+      userType,
       bio: String(fields.get("bio") ?? "").trim(),
       avatarUrl,
       avatarFile,
-      specialty: specialty.trim(),
-      hospital: String(fields.get("hospital") ?? "").trim(),
-      location: String(fields.get("location") ?? "").trim(),
+      specialty: userType === "doctor" ? specialty.trim() : "",
+      hospital: userType === "doctor" ? String(fields.get("hospital") ?? "").trim() : "",
+      location: userType === "doctor" ? String(fields.get("location") ?? "").trim() : "",
     });
     setAvatarFile(null);
   }
@@ -83,26 +88,44 @@ export function ProfileSettings({
               <input name="name" defaultValue={readable.name ?? ""} required />
             </label>
             <label>
+              Account type
+              <select
+                name="user_type"
+                value={userType}
+                disabled={saving}
+                onChange={(event) => setUserType(event.target.value as AccountType)}
+              >
+                {ACCOUNT_TYPE_OPTIONS.map((option) => (
+                  <option value={option.value} key={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
+        {userType === "doctor" ? (
+          <div className="profile-settings-doctor-fields">
+            <label>
               Specialty
               <EditableTextDropdown
                 name="specialty"
                 value={specialty}
-                options={DOCTOR_SPECIALTIES}
+                options={DOCTOR_SPECIALTY_SUGGESTIONS}
                 onValueChange={setSpecialty}
                 placeholder="Search or enter a specialty"
                 disabled={saving}
+                required
               />
             </label>
+            <label>
+              Hospital or organisation
+              <input name="hospital" defaultValue={readable.hospital ?? readable.profile?.hospital ?? ""} />
+            </label>
+            <label>
+              Location
+              <input name="location" defaultValue={readable.location ?? String(readable.profile?.location ?? "")} />
+            </label>
           </div>
-        </div>
-        <label>
-          Hospital or organisation
-          <input name="hospital" defaultValue={readable.hospital ?? readable.profile?.hospital ?? ""} />
-        </label>
-        <label>
-          Location
-          <input name="location" defaultValue={readable.location ?? ""} />
-        </label>
+        ) : null}
         <label className="settings-wide-field">
           Bio
           <textarea

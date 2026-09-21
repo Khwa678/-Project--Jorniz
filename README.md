@@ -51,6 +51,33 @@ VITE_API_URL=http://127.0.0.1:8000
 
 Values that start with `VITE_` are visible in the browser. Do not put secrets in the frontend environment.
 
+## Running database migrations
+
+Run versioned migrations from the backend directory in numeric order. Use `local` for `backend/healthy_universe.db`, or `configured` for the PostgreSQL database in `DATABASE_URL`.
+
+Example for migration `001` against the local database:
+
+```bash
+cd "/Users/prateekpanwar/PP Work/-Project--Jorniz/backend"
+source .venv/bin/activate
+python3 migrations/001_separate_user_types_and_doctor_fields.py --target local
+```
+
+Run the same migration against the configured PostgreSQL database:
+
+```bash
+python3 migrations/001_separate_user_types_and_doctor_fields.py --target configured
+```
+
+Each migration is idempotent unless its help text explicitly requires a confirmation flag. For example, migration `010` removes validated legacy fields and must run only after the canonical API is deployed:
+
+```bash
+python3 migrations/009_canonicalize_users_and_doctors.py --target configured
+python3 migrations/010_remove_legacy_user_doctor_fields.py --target configured --confirm-api-updated
+```
+
+Do not run destructive cleanup migrations before the corresponding API version is deployed.
+
 ## Running locally
 
 ### 1. Run the backend

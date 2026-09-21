@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "../../components/ui/Button";
+import type { SignedInAccount } from "../../lib/auth/accountTypes";
 import { RewardBalance } from "./components/RewardBalance";
 import { RewardLedger } from "./components/RewardLedger";
 import { RewardRedemption } from "./components/RewardRedemption";
@@ -18,11 +19,13 @@ const emptyBalance: RewardBalanceSnapshot = {
 };
 
 export interface RewardsWalletPageProps {
+  account: SignedInAccount;
   onOpenMarketplace?: () => void;
   onConfirmedBalance?: (coins: number) => void;
 }
 
 export function RewardsWalletPage({
+  account,
   onOpenMarketplace,
   onConfirmedBalance,
 }: RewardsWalletPageProps) {
@@ -80,7 +83,7 @@ export function RewardsWalletPage({
             availableCoins={balance.availableCoins}
             onOpenMarketplace={onOpenMarketplace}
           />
-          <RewardLedger entries={entries} />
+          <RewardLedger entries={entries} account={account} />
         </>
       )}
     </main>

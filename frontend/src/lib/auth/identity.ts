@@ -59,7 +59,6 @@ export function normalizeUser(raw: Partial<JornizUser> | null): JornizUser | nul
   if (user.user_type === "doctor") {
     profile.specialty ||= user.specialty;
     profile.hospital ||= user.hospital;
-    profile.avatar ||= user.avatar_url;
   }
 
   return user;

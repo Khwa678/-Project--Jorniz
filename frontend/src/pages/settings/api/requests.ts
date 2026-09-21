@@ -1,8 +1,10 @@
 import { requestJornizApi } from "../../../lib/api/requestJornizApi";
 import type { SignedInAccount } from "../../../lib/auth/accountTypes";
+import type { AccountType } from "../../../lib/accounts/types";
 
 export interface ProfileSettingsInput {
   name: string;
+  userType: AccountType;
   bio: string;
   avatarUrl?: string;
   avatarFile?: File | null;
@@ -31,6 +33,7 @@ export async function saveProfileSettings(
 ): Promise<SignedInAccount> {
   const fields = new FormData();
   fields.append("name", input.name);
+  fields.append("user_type", input.userType);
   fields.append("bio", input.bio);
   fields.append("avatar_url", input.avatarUrl ?? "");
   fields.append("specialty", input.specialty ?? "");

@@ -14,8 +14,9 @@
 .profile-settings-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px; margin-top:20px; }
 .profile-settings-identity { display:grid; grid-template-columns:160px minmax(0,1fr); grid-column:1/-1; gap:22px; align-items:start; padding-bottom:10px; }
 .profile-settings-identity-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px; }
+.profile-settings-doctor-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-column:1/-1; gap:15px; }
 .profile-settings-form label { display:grid; gap:7px; font-size:13px; font-weight:700; }
-.profile-settings-form input,.profile-settings-form textarea { width:100%; box-sizing:border-box; border:1px solid #d9e1dd; border-radius:10px; padding:10px 12px; font:inherit; }
+.profile-settings-form input,.profile-settings-form select,.profile-settings-form textarea { width:100%; box-sizing:border-box; border:1px solid #d9e1dd; border-radius:10px; padding:10px 12px; background:#fff; color:#172033; font:inherit; }
 .settings-wide-field,.settings-form-actions,.settings-request-error,.settings-request-confirmation { grid-column:1/-1; }
 .settings-form-actions { display:flex; justify-content:flex-end; }
 .settings-form-actions button,.signed-in-session-heading button,.account-data-actions button { border:0; border-radius:10px; padding:10px 15px; background:#2367f2; color:#fff; font:inherit; font-weight:700; cursor:pointer; }
@@ -63,6 +64,7 @@
   .account-settings-layout,.profile-settings-form { grid-template-columns:1fr; }
   .profile-settings-identity { grid-template-columns:1fr; }
   .profile-settings-identity-fields { grid-template-columns:1fr; width:100%; }
+  .profile-settings-doctor-fields { grid-template-columns:1fr; }
   .profile-settings-identity-fields .settings-wide-field { grid-column:auto; }
   .account-settings-navigation-column { min-width:0; }
   .account-settings-navigation { display:flex; overflow-x:auto; }

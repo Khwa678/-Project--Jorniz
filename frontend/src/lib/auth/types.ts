@@ -15,7 +15,6 @@ export interface JornizProfile {
   hospital?: string;
   company_name?: string;
   store_name?: string;
-  avatar?: string;
   [key: string]: unknown;
 }
 

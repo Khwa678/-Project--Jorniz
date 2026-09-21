@@ -23,7 +23,7 @@ export function DoctorDirectory({ doctors, onChooseDoctor }: DoctorDirectoryProp
         <article className="dc-doctor-card" key={doctor.id}>
           <div className="dc-doctor-heading">
             <Avatar.Root className="dc-doctor-avatar">
-              {doctor.avatar ? <Avatar.Image src={doctor.avatar} alt="" /> : null}
+              {doctor.avatar_url ? <Avatar.Image src={doctor.avatar_url} alt="" /> : null}
               <Avatar.Fallback>{doctor.name.slice(0, 1)}</Avatar.Fallback>
             </Avatar.Root>
             <div>

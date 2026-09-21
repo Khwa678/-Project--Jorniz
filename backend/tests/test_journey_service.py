@@ -19,7 +19,7 @@ from services.journey_service import (  # noqa: E402
 
 
 SCHEMA = """
-CREATE TABLE users (id TEXT PRIMARY KEY, hu_coins INTEGER NOT NULL, coins INTEGER NOT NULL);
+CREATE TABLE users (id TEXT PRIMARY KEY, hu_coins INTEGER NOT NULL);
 CREATE TABLE products (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, price REAL NOT NULL, stock INTEGER NOT NULL,
   reward_coins_earn INTEGER NOT NULL DEFAULT 0
@@ -56,7 +56,7 @@ class JourneyServiceTest(unittest.TestCase):
         self.connection = sqlite3.connect(Path(self.temp_dir.name) / "journey.db")
         self.connection.row_factory = sqlite3.Row
         self.connection.executescript(SCHEMA)
-        self.connection.execute("INSERT INTO users VALUES ('u1',100,100)")
+        self.connection.execute("INSERT INTO users VALUES ('u1',100)")
         self.connection.execute(
             "INSERT INTO products VALUES ('p1','Protein',20,5,3)"
         )
@@ -137,4 +137,3 @@ class JourneyServiceTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
-

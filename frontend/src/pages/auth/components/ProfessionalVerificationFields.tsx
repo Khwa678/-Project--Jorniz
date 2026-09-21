@@ -1,6 +1,6 @@
 import type { JornizAccountType } from "../types";
 import { EditableTextDropdown } from "../../../components/ui/EditableTextDropdown";
-import { DOCTOR_SPECIALTIES } from "../../../lib/doctors/constants";
+import { DOCTOR_SPECIALTY_SUGGESTIONS } from "../../../lib/doctors/constants";
 
 const organizationLabels: Partial<Record<JornizAccountType, string>> = {
   doctor: "Hospital or Clinic",
@@ -39,7 +39,7 @@ export function ProfessionalVerificationFields({
           <span id="professional-specialty-label">Specialization</span>
           <EditableTextDropdown
             ariaLabelledBy="professional-specialty-label"
-            options={DOCTOR_SPECIALTIES}
+            options={DOCTOR_SPECIALTY_SUGGESTIONS}
             value={specialty}
             onValueChange={onSpecialtyChange}
             placeholder="Search or enter a specialty"

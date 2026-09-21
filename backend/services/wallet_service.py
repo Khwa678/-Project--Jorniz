@@ -101,7 +101,10 @@ def _result(row, current_balance, created):
     )
 
 
-def _validate_replay(row, user_id, direction, amount, action, source_type, source_id):
+def _validate_replay(
+    row, user_id, direction, amount, action, source_type, source_id,
+    actor_user_id=None, reason=None,
+):
     expected = (
         str(user_id), direction, amount, action, str(source_type), str(source_id), VALUE_TYPE
     )
@@ -112,11 +115,15 @@ def _validate_replay(row, user_id, direction, amount, action, source_type, sourc
     )
     if actual != expected:
         raise IdempotencyConflict("Idempotency key is already used for another wallet event")
+    if actor_user_id is not None and str(row.get("actor_user_id") or "") != str(actor_user_id):
+        raise IdempotencyConflict("Idempotency key is already used by another actor")
+    if reason is not None and str(row.get("reason") or "") != str(reason):
+        raise IdempotencyConflict("Idempotency key is already used with another reason")
 
 
 def _apply(
     conn, user_id, direction, amount, source_type, source_id, idempotency_key,
-    action, reversal_of_id=None,
+    action, reversal_of_id=None, actor_user_id=None, reason=None,
 ):
     user_id = _required(user_id, "user_id")
     source_type = _required(source_type, "source_type")
@@ -129,7 +136,10 @@ def _apply(
 
     existing = _one(conn, "SELECT * FROM wallet_ledger WHERE idempotency_key=%s", (idempotency_key,))
     if existing:
-        _validate_replay(existing, user_id, direction, amount, action, source_type, source_id)
+        _validate_replay(
+            existing, user_id, direction, amount, action, source_type, source_id,
+            actor_user_id, reason,
+        )
         return _result(existing, balance(conn, user_id), False)
 
     before = balance(conn, user_id)
@@ -138,27 +148,82 @@ def _apply(
         raise InsufficientCoins("Insufficient HU Coins")
 
     entry_id = "led_" + uuid.uuid4().hex
-    _execute(
-        conn,
-        """INSERT INTO wallet_ledger
-           (id,user_id,credit_debit,value_type,amount,currency,source_type,source_id,
-            idempotency_key,balance_before,balance_after,status,action,reversal_of_id)
-           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-        (
-            entry_id, user_id, direction, VALUE_TYPE, amount, "HU_COIN", source_type,
-            source_id, idempotency_key, before, after, "available", action, reversal_of_id,
-        ),
+    columns = (
+        "id,user_id,credit_debit,value_type,amount,currency,source_type,source_id,"
+        "idempotency_key,balance_before,balance_after,status,action,reversal_of_id"
     )
+    values = [
+        entry_id, user_id, direction, VALUE_TYPE, amount, "HU_COIN", source_type,
+        source_id, idempotency_key, before, after, "available", action, reversal_of_id,
+    ]
+    if actor_user_id is not None or reason is not None:
+        columns += ",actor_user_id,reason"
+        values.extend([actor_user_id, reason])
+    marks = ",".join(["%s"] * len(values))
+    _execute(conn, f"INSERT INTO wallet_ledger ({columns}) VALUES ({marks})", tuple(values))
     _execute(conn, "UPDATE users SET hu_coins=%s WHERE id=%s", (after, user_id))
     return WalletResult(entry_id, after, amount, direction, action, True)
 
 
-def credit(conn, user_id, amount, source_type, source_id, idempotency_key):
-    return _apply(conn, user_id, "CREDIT", amount, source_type, source_id, idempotency_key, "credit")
+def credit(
+    conn, user_id, amount, source_type, source_id, idempotency_key,
+    actor_user_id=None, reason=None,
+):
+    return _apply(
+        conn, user_id, "CREDIT", amount, source_type, source_id, idempotency_key,
+        "credit", actor_user_id=actor_user_id, reason=reason,
+    )
 
 
-def debit(conn, user_id, amount, source_type, source_id, idempotency_key):
-    return _apply(conn, user_id, "DEBIT", amount, source_type, source_id, idempotency_key, "debit")
+def debit(
+    conn, user_id, amount, source_type, source_id, idempotency_key,
+    actor_user_id=None, reason=None,
+):
+    return _apply(
+        conn, user_id, "DEBIT", amount, source_type, source_id, idempotency_key,
+        "debit", actor_user_id=actor_user_id, reason=reason,
+    )
+
+
+def reverse_entry(
+    conn, user_id, original_entry_id, idempotency_key,
+    source_type="REWARD_REVERSAL", source_id=None, actor_user_id=None, reason=None,
+):
+    """Create the opposite entry for either a credit or debit without editing history."""
+    user_id = _required(user_id, "user_id")
+    original_entry_id = _required(original_entry_id, "original_entry_id")
+    _lock_user(conn, user_id)
+    original = _one(
+        conn,
+        "SELECT * FROM wallet_ledger WHERE id=%s AND user_id=%s AND value_type=%s",
+        (original_entry_id, user_id, VALUE_TYPE),
+    )
+    if not original:
+        raise WalletError("Original wallet entry not found")
+    original_direction = str(original["credit_debit"]).upper()
+    if original_direction not in {"CREDIT", "DEBIT"}:
+        raise WalletError("Original wallet entry has an invalid direction")
+    previous = _one(
+        conn,
+        "SELECT * FROM wallet_ledger WHERE reversal_of_id=%s AND action='reverse'",
+        (original_entry_id,),
+    )
+    if previous and str(previous["idempotency_key"]) != str(idempotency_key):
+        raise IdempotencyConflict("Wallet entry is already reversed")
+    direction = "DEBIT" if original_direction == "CREDIT" else "CREDIT"
+    return _apply(
+        conn,
+        user_id,
+        direction,
+        original["amount"],
+        source_type,
+        source_id or original_entry_id,
+        idempotency_key,
+        "reverse",
+        original_entry_id,
+        actor_user_id,
+        reason,
+    )
 
 
 def _counter(conn, user_id, original_entry_id, idempotency_key, action, source_type, source_id):

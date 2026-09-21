@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import type { SignedInAccount } from "../../lib/auth/accountTypes";
-import { SearchBar } from "./components/SearchBar";
 import { AdminTabPanel, AdminTabs, type AdminTab } from "./components/AdminTabs";
-import { ResponsiveTable } from "./components/ResponsiveTable";
+import { UsersPanel } from "./components/UsersPanel";
+import { PostsPanel } from "./posts/components/PostsPanel";
+import { RewardsPanel } from "./rewards/components/RewardsPanel";
+import type { AdminUserRewardRequest } from "./types";
 import "./styles.css";
 
 function readable(value: string): string {
@@ -20,39 +22,41 @@ export interface AdminPageProps {
 
 export function AdminPage({ account }: AdminPageProps) {
   const [tab, setTab] = useState<AdminTab>("users");
-  const [query, setQuery] = useState("");
+  const [rewardRequest, setRewardRequest] = useState<AdminUserRewardRequest | null>(null);
+
+  function openRewardWorkflow(request: AdminUserRewardRequest) {
+    setRewardRequest(request);
+    setTab("rewards");
+  }
 
   return (
     <main className="admin-page">
       <header className="workspace-page-heading">
         <div>
-          <h1>Administrator</h1>
+          <div className="admin-title-row">
+            <h1>Administrator</h1>
+            <span className="admin-role-badge">
+              <ShieldCheck size={16} />
+              {readable(account.system_role ?? "admin")}
+            </span>
+          </div>
           <p className="workspace-page-tagline">Manage Jorniz users, posts, and platform access.</p>
         </div>
-        <span className="admin-role-badge">
-          <ShieldCheck size={16} />
-          {readable(account.system_role ?? "admin")}
-        </span>
       </header>
 
-      <AdminTabs
-        value={tab}
-        onValueChange={(value) => {
-          setTab(value);
-          setQuery("");
-        }}
-      >
-        <section className="admin-table-card">
-          <div className="admin-table-toolbar">
-            <SearchBar value={query} section={tab} onValueChange={setQuery} />
-          </div>
-          <AdminTabPanel value="users">
-            <ResponsiveTable rows={[]} columns={[]} getRowId={() => ""} emptyMessage="User table columns and data will be added next." />
-          </AdminTabPanel>
-          <AdminTabPanel value="posts">
-            <ResponsiveTable rows={[]} columns={[]} getRowId={() => ""} emptyMessage="Post table columns and data will be added next." />
-          </AdminTabPanel>
-        </section>
+      <AdminTabs value={tab} onValueChange={setTab}>
+        <AdminTabPanel value="users">
+          <UsersPanel
+            canManageRoles={account.system_role === "admin" || account.system_role === "super_admin"}
+            onRewardAction={openRewardWorkflow}
+          />
+        </AdminTabPanel>
+        <AdminTabPanel value="posts">
+          <PostsPanel canEdit={account.system_role === "admin" || account.system_role === "super_admin"} />
+        </AdminTabPanel>
+        <AdminTabPanel value="rewards">
+          <RewardsPanel systemRole={account.system_role ?? "admin"} request={rewardRequest} />
+        </AdminTabPanel>
       </AdminTabs>
     </main>
   );

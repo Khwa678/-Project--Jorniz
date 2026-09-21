@@ -19,66 +19,63 @@ def init_db(db_path="healthy_universe.db"):
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
 
-    # 1. Users Table (Patients, Doctors, Sellers, Admins)
+    # 1. Users Table (identity, account type, permissions, shared profile)
     cur.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
         password TEXT,
-        role TEXT NOT NULL DEFAULT 'Patient',
-        specialty TEXT,
-        hospital TEXT,
-        verification_doc TEXT,
-        verification_doc_url TEXT,
-        verification_status TEXT DEFAULT 'not_required',
-        is_verified INTEGER DEFAULT 0,
+        user_type TEXT NOT NULL DEFAULT 'general_user',
+        system_role TEXT NOT NULL DEFAULT 'member',
+        bio TEXT,
         avatar_url TEXT,
-        wallet_balance REAL DEFAULT 0.0,
-        coins INTEGER DEFAULT 0,
-        hu_coins INTEGER DEFAULT 500,
+        hu_coins INTEGER NOT NULL DEFAULT 0,
+        is_banned INTEGER NOT NULL DEFAULT 0,
+        account_status TEXT NOT NULL DEFAULT 'active',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """)
 
     # Ensure missing columns exist in existing table
     for col, col_type in [
-        ("role", "TEXT DEFAULT 'Patient'"),
-        ("specialty", "TEXT"),
-        ("hospital", "TEXT"),
-        ("verification_doc", "TEXT"),
-        ("verification_doc_url", "TEXT"),
-        ("verification_status", "TEXT DEFAULT 'not_required'"),
-        ("is_verified", "INTEGER DEFAULT 0"),
-        ("avatar_url", "TEXT"),
-        ("wallet_balance", "REAL DEFAULT 0.0"),
-        ("coins", "INTEGER DEFAULT 0"),
-        ("hu_coins", "INTEGER DEFAULT 500"),
         ("user_type", "TEXT DEFAULT 'general_user'"),
-        ("system_role", "TEXT DEFAULT 'member'")
+        ("system_role", "TEXT DEFAULT 'member'"),
+        ("bio", "TEXT"),
+        ("avatar_url", "TEXT"),
+        ("hu_coins", "INTEGER DEFAULT 0"),
+        ("is_banned", "INTEGER DEFAULT 0"),
+        ("account_status", "TEXT DEFAULT 'active'")
     ]:
         try:
             cur.execute(f"ALTER TABLE users ADD COLUMN {col} {col_type}")
         except sqlite3.OperationalError:
             pass
 
-    # 2. Doctors Profile Table
+    # 2. Doctors Profile Table (one professional profile per doctor account)
     cur.execute("""
     CREATE TABLE IF NOT EXISTS doctors (
         id TEXT PRIMARY KEY,
-        user_id TEXT,
-        name TEXT NOT NULL,
+        user_id TEXT UNIQUE NOT NULL,
+        name TEXT,
         specialty TEXT NOT NULL,
         qualification TEXT,
         experience_years INTEGER DEFAULT 5,
-        fee REAL DEFAULT 500.0,
         rating REAL DEFAULT 4.9,
         reviews_count INTEGER DEFAULT 120,
         hospital TEXT,
         location TEXT,
-        avatar TEXT,
         bio TEXT,
         available_days TEXT,
+        registration_number TEXT,
+        jurisdiction TEXT,
+        verification_document_url TEXT,
+        verification_status TEXT DEFAULT 'pending',
+        verified_by TEXT,
+        verified_at TIMESTAMP,
+        consultation_fee REAL DEFAULT 500.0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id)
     );
     """)
@@ -297,6 +294,38 @@ def init_db(db_path="healthy_universe.db"):
         FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
+    """)
+
+    # Admin moderation audit history. Actor IDs remain plain identifiers so
+    # deleting an administrator cannot erase or invalidate historical records.
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS admin_audit_log (
+        id TEXT PRIMARY KEY,
+        actor_user_id TEXT NOT NULL,
+        entity_type TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        action TEXT NOT NULL,
+        before_value TEXT,
+        after_value TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
+
+    cur.execute("""
+    CREATE INDEX IF NOT EXISTS idx_posts_recent
+    ON posts(created_at DESC, id DESC);
+    """)
+    cur.execute("""
+    CREATE INDEX IF NOT EXISTS idx_posts_title
+    ON posts(title);
+    """)
+    cur.execute("""
+    CREATE INDEX IF NOT EXISTS idx_post_actions_post_type
+    ON post_actions(post_id, action_type);
+    """)
+    cur.execute("""
+    CREATE INDEX IF NOT EXISTS idx_admin_audit_entity_created
+    ON admin_audit_log(entity_type, entity_id, created_at DESC);
     """)
 
     # 13. Notifications Table
@@ -680,6 +709,8 @@ def init_db(db_path="healthy_universe.db"):
         status TEXT DEFAULT 'available',
         action TEXT,
         reversal_of_id TEXT,
+        actor_user_id TEXT,
+        reason TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id),
         FOREIGN KEY (reversal_of_id) REFERENCES wallet_ledger(id)
@@ -862,13 +893,23 @@ def seed_initial_data(conn):
     cur.execute("SELECT COUNT(*) FROM doctors")
     if cur.fetchone()[0] == 0:
         print("[INFO] Seeding initial Doctors and Slots data...")
-        doctors_data = [
-            ("doc_1", "usr_doc1", "Dr. Rajesh Sharma", "Cardiology", "MD, DM (Cardiology)", 14, 800.0, 4.9, 320, "AIIMS New Delhi", "Delhi", "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=150", "Senior Cardiologist specializing in preventive heart care and hypertension management.", "Mon-Fri (10:00 AM - 4:00 PM)"),
-            ("doc_2", "usr_doc2", "Dr. Ananya Roy", "Dermatology", "MD (Dermatology), DNB", 9, 650.0, 4.8, 210, "Apollo Hospitals", "Mumbai", "https://images.unsplash.com/photo-1594824813566-88855ce78961?w=150", "Expert dermatologist specializing in skincare, acne treatment, and holistic wellness.", "Tue-Sat (11:00 AM - 5:00 PM)"),
-            ("doc_3", "usr_doc3", "Dr. Vikram Sethi", "Ayurvedic Doctor", "BAMS, MD (Ayurveda)", 12, 500.0, 4.9, 180, "Patanjali Wellness Center", "Bengaluru", "https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=150", "Holistic Ayurvedic physician dedicated to natural healing, Panchakarma, and dietary therapy.", "Mon-Sat (9:00 AM - 3:00 PM)"),
-            ("doc_4", "usr_doc4", "Dr. Sneha Verma", "Pediatrics", "MD (Pediatrics)", 8, 600.0, 4.7, 145, "Fortis Healthcare", "Gurugram", "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150", "Compassionate child specialist specializing in infant nutrition, immunization, and growth.", "Mon-Fri (2:00 PM - 7:00 PM)")
+        doctor_users = [
+            ("usr_doc1", "Dr. Rajesh Sharma", "doctor1@jorniz.local", "doctor", "member", "Senior Cardiologist specializing in preventive heart care and hypertension management.", "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=150"),
+            ("usr_doc2", "Dr. Ananya Roy", "doctor2@jorniz.local", "doctor", "member", "Expert dermatologist specializing in skincare, acne treatment, and holistic wellness.", "https://images.unsplash.com/photo-1594824813566-88855ce78961?w=150"),
+            ("usr_doc3", "Dr. Vikram Sethi", "doctor3@jorniz.local", "doctor", "member", "Holistic Ayurvedic physician dedicated to natural healing, Panchakarma, and dietary therapy.", "https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=150"),
+            ("usr_doc4", "Dr. Sneha Verma", "doctor4@jorniz.local", "doctor", "member", "Compassionate child specialist specializing in infant nutrition, immunization, and growth.", "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=150"),
         ]
-        cur.executemany("INSERT INTO doctors (id, user_id, name, specialty, qualification, experience_years, fee, rating, reviews_count, hospital, location, avatar, bio, available_days) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", doctors_data)
+        cur.executemany(
+            "INSERT OR IGNORE INTO users (id,name,email,user_type,system_role,bio,avatar_url) VALUES (?,?,?,?,?,?,?)",
+            doctor_users,
+        )
+        doctors_data = [
+            ("doc_1", "usr_doc1", "Cardiology", "MD, DM (Cardiology)", 14, 800.0, 4.9, 320, "AIIMS New Delhi", "Delhi"),
+            ("doc_2", "usr_doc2", "Dermatology", "MD (Dermatology), DNB", 9, 650.0, 4.8, 210, "Apollo Hospitals", "Mumbai"),
+            ("doc_3", "usr_doc3", "Ayurvedic Doctor", "BAMS, MD (Ayurveda)", 12, 500.0, 4.9, 180, "Patanjali Wellness Center", "Bengaluru"),
+            ("doc_4", "usr_doc4", "Pediatrics", "MD (Pediatrics)", 8, 600.0, 4.7, 145, "Fortis Healthcare", "Gurugram")
+        ]
+        cur.executemany("INSERT INTO doctors (id,user_id,specialty,qualification,experience_years,consultation_fee,rating,reviews_count,hospital,location) VALUES (?,?,?,?,?,?,?,?,?,?)", doctors_data)
 
         slots = [
             ("slot_1", "doc_1", "Tomorrow, 10:30 AM", 800.0, 0, None),

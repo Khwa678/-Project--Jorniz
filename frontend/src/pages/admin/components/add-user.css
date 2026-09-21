@@ -1,0 +1,160 @@
+.admin-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  background: rgba(16, 29, 45, 0.48);
+  backdrop-filter: blur(3px);
+}
+
+.admin-dialog-content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 1501;
+  width: min(620px, calc(100vw - 32px));
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
+  border: 1px solid #dfe7e3;
+  border-radius: 18px;
+  padding: 24px;
+  background: #fff;
+  color: #172033;
+  box-shadow: 0 24px 70px rgba(17, 32, 51, 0.24);
+}
+
+.admin-dialog-heading {
+  margin-bottom: 20px;
+}
+
+.admin-dialog-heading h2,
+.admin-delete-dialog h2 {
+  margin: 0 0 7px;
+  font-size: 22px;
+}
+
+.admin-dialog-heading p,
+.admin-delete-dialog > p {
+  margin: 0;
+  color: #687582;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.admin-add-user-form {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+}
+
+.admin-form-field {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+  color: #243443;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.admin-form-field input,
+.admin-form-field .account-select-trigger {
+  width: 100%;
+  min-height: 43px;
+  box-sizing: border-box;
+  border: 1px solid #cbd8d2;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fff;
+  color: #172033;
+  font: inherit;
+}
+
+.admin-form-field input:focus,
+.admin-form-field .account-select-trigger:focus {
+  border-color: #2367f2;
+  outline: 3px solid rgba(35, 103, 242, 0.14);
+}
+
+.admin-form-field .account-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+}
+
+.account-select-content {
+  z-index: 1600;
+  min-width: var(--radix-select-trigger-width);
+  max-height: var(--radix-select-content-available-height);
+  overflow: hidden;
+  border: 1px solid #cbd8d2;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(17, 32, 51, 0.16);
+}
+
+.account-select-viewport { padding: 5px; }
+.account-select-icon { display: inline-flex; color: #687582; }
+.account-select-item {
+  position: relative;
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  border-radius: 7px;
+  padding: 6px 34px 6px 9px;
+  color: #243443;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+}
+.account-select-item[data-highlighted] { background: #eef3ff; color: #1d5bd8; }
+.account-select-indicator { position: absolute; right: 9px; display: inline-flex; }
+
+.admin-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.admin-form-error {
+  margin: 0;
+  border: 1px solid #f3cac6;
+  border-radius: 9px;
+  padding: 10px 12px;
+  background: #fff0ef;
+  color: #a62d28;
+  font-size: 13px;
+}
+
+.admin-delete-dialog {
+  width: min(440px, calc(100vw - 32px));
+}
+
+.admin-delete-dialog-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  margin-bottom: 15px;
+  border-radius: 50%;
+  background: #fff1ef;
+  color: #c23b32;
+}
+
+.admin-delete-dialog .admin-dialog-actions {
+  margin-top: 22px;
+}
+
+@media (max-width: 620px) {
+  .admin-dialog-content { padding: 20px; }
+  .admin-form-grid { grid-template-columns: 1fr; }
+}

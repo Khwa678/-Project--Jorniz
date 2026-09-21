@@ -51,12 +51,16 @@ def validate_signup(data, normalize_user_type, allowed_user_types):
             "allowed_user_types": sorted(allowed_user_types),
         })
 
+    specialty = (data.get("specialty") or "").strip()
+    if user_type == "doctor" and not specialty:
+        raise ValidationError({"detail": "Specialty is required for doctor accounts"})
+
     return SignupData(
         name=name,
         email=email,
         password=password,
         user_type=user_type,
-        specialty=(data.get("specialty") or "General Medicine").strip(),
+        specialty=specialty if user_type == "doctor" else "",
         hospital=data.get("hospital") or "",
         bio=data.get("bio") or "",
         title=data.get("title") or "",

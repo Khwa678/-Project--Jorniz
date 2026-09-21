@@ -58,6 +58,71 @@
   color: #7b8794;
 }
 
+.reward-ledger-table-card {
+  overflow: hidden;
+  padding: 0;
+}
+
+.wallet-ledger-heading,
+.wallet-ledger-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+}
+
+.wallet-ledger-heading,
+.wallet-ledger-toolbar {
+  border-bottom: 1px solid #edf0ee;
+}
+
+.wallet-ledger-heading p {
+  margin: 0;
+  color: #6c7887;
+  font-size: 13px;
+}
+
+.wallet-ledger-heading > span {
+  color: #6c7887;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.wallet-ledger-user-id {
+  color: #647184;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+.wallet-ledger-change {
+  font-size: 13px;
+}
+
+.wallet-ledger-source,
+.wallet-ledger-status {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: #eef3ff;
+  color: #1d5bd8;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.wallet-ledger-status {
+  background: #f0f3f6;
+  color: #4e5c6d;
+}
+
+.wallet-ledger-reason {
+  display: block;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .reward-balance-card-primary {
   color: #fff;
   border-color: transparent;
@@ -132,6 +197,16 @@
 
   .reward-ledger-row {
     grid-template-columns: 34px 1fr;
+  }
+
+  .wallet-ledger-heading,
+  .wallet-ledger-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .wallet-ledger-toolbar .admin-search-bar {
+    width: 100%;
   }
 
   .reward-entry-amount {

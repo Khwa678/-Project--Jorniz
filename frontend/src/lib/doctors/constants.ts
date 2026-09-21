@@ -1,4 +1,4 @@
-export const DOCTOR_SPECIALTIES = [
+export const DOCTOR_SPECIALTY_SUGGESTIONS = [
   "General Medicine",
   "Cardiology",
   "Dermatology",
@@ -13,5 +13,3 @@ export const DOCTOR_SPECIALTIES = [
   "Nutrition",
   "Other",
 ] as const;
-
-export type DoctorSpecialty = typeof DOCTOR_SPECIALTIES[number];

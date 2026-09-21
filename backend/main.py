@@ -13,6 +13,12 @@ except ImportError:
 from flask_socketio import SocketIO, emit, join_room
 from auth_policy import is_active_account, permission_decision, professional_approval_state
 from app.modules.auth import AuthDependencies, create_auth_blueprint
+from app.modules.posts import AdminPostDependencies, create_posts_blueprint
+from app.modules.rewards import AdminRewardDependencies, create_rewards_blueprint
+from app.modules.users import UserManagementDependencies, create_users_blueprint
+from services.wallet_service import credit as wallet_credit
+from services.wallet_service import debit as wallet_debit
+from services.wallet_service import reverse_entry as wallet_reverse_entry
 
 load_dotenv()
 
@@ -246,8 +252,6 @@ def safe_user(u) -> dict:
     if not u: return {}
     u = dict(u)
     u.pop("password", None)
-    u.pop("verification_doc", None)
-    u.pop("verification_doc_url", None)
     for k, v in u.items():
         if isinstance(v, datetime):
             u[k] = v.isoformat()
@@ -255,7 +259,7 @@ def safe_user(u) -> dict:
 
 def user_payload(user) -> dict:
     data = safe_user(user)
-    user_type = normalize_user_type(data.get("user_type") or data.get("role")) or "general_user"
+    user_type = normalize_user_type(data.get("user_type")) or "general_user"
     data["user_type"] = user_type
     data["system_role"] = data.get("system_role") if data.get("system_role") in SYSTEM_ROLES else "member"
     uid = data.get("id")
@@ -268,9 +272,34 @@ def user_payload(user) -> dict:
         "pharmacy_partner": "SELECT id,category AS partner_type,status AS verification_status FROM creator_verifications WHERE user_id=%s ORDER BY created_at DESC LIMIT 1",
         "diagnostic_partner": "SELECT id,category AS partner_type,status AS verification_status FROM creator_verifications WHERE user_id=%s ORDER BY created_at DESC LIMIT 1",
     }
-    data["profile"] = db_one(profile_queries[user_type], (uid,)) if uid and user_type in profile_queries else {}
-    data["verification_status"] = professional_approval_state(data)
-    data["professional_access"] = data["verification_status"] in {"approved", "not_required"}
+    profile = db_one(profile_queries[user_type], (uid,)) if uid and user_type in profile_queries else {}
+    profile = dict(profile or {})
+    verification = None
+    if uid and user_type not in {"general_user", "doctor"}:
+        verification = db_one(
+            "SELECT status,document_url FROM creator_verifications "
+            "WHERE user_id=%s ORDER BY created_at DESC LIMIT 1",
+            (uid,),
+        )
+        if verification and not profile.get("verification_status"):
+            profile["verification_status"] = verification.get("status")
+    data["profile"] = profile
+
+    if user_type == "recruiter":
+        verification_status = "approved" if profile.get("is_verified") else "pending"
+    elif user_type == "seller":
+        seller_status = str(profile.get("status") or "").strip().lower()
+        verification_status = "approved" if seller_status in {"approved", "verified"} else seller_status or "pending"
+    elif user_type == "advertiser":
+        verification_status = "approved" if profile.get("verified") else "pending"
+    elif verification:
+        verification_status = str(verification.get("status") or "pending").strip().lower()
+    else:
+        verification_status = professional_approval_state(data)
+    data["verification_status"] = verification_status
+    data["is_verified"] = verification_status == "approved"
+    access_status = professional_approval_state(data)
+    data["professional_access"] = access_status in {"approved", "not_required"}
     return data
 
 def create_notification(user_id, actor_id, ntype, post_id=None, message=""):
@@ -324,7 +353,7 @@ def post_with_author(post, viewer_id=None) -> dict:
     if not post: return {}
     post = dict(post)
     post["created_at"] = utc_iso_timestamp(post.get("created_at"))
-    a = user_payload(db_one("SELECT id,name,user_type,system_role,avatar_url,is_verified FROM users WHERE id=%s",
+    a = user_payload(db_one("SELECT id,name,user_type,system_role,avatar_url FROM users WHERE id=%s",
                             (post.get("creator_user_id"),)) or {})
     profile = a.get("profile") or {}
     post["author"] = {
@@ -527,14 +556,14 @@ def health():
     })
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  GENERIC IMAGE UPLOAD — used by "browse photo" fields (doctor avatar, job logo)
+#  GENERIC IMAGE UPLOAD — used by "browse photo" fields (profile image, job logo)
 # ══════════════════════════════════════════════════════════════════════════════
 
 @app.route("/api/upload/image", methods=["POST"])
 @require_auth
 def upload_generic_image():
     """Generic image upload used by any 'browse for a photo' field in the UI
-    (doctor avatar, job/company logo, profile picture, etc). Returns a public URL."""
+    (profile image, job/company logo, etc). Returns a public URL."""
     file = request.files.get("file") or request.files.get("image")
     if not file or not file.filename:
         return jsonify({"detail": "No file provided"}), 400
@@ -567,6 +596,38 @@ auth_dependencies = AuthDependencies(
     max_file_bytes=MAX_FILE_BYTES,
 )
 app.register_blueprint(create_auth_blueprint(auth_dependencies))
+
+user_management_dependencies = UserManagementDependencies(
+    get_db=get_db,
+    db_exec=db_exec,
+    require_admin=require_admin,
+    allowed_user_types=USER_TYPES,
+    allowed_system_roles=SYSTEM_ROLES,
+)
+app.register_blueprint(create_users_blueprint(user_management_dependencies))
+
+admin_post_dependencies = AdminPostDependencies(
+    get_db=get_db,
+    db_exec=db_exec,
+    require_admin=require_admin,
+    upload_post_media=upload_post_media_to_blob,
+    delete_post_media=delete_post_media_blob,
+    normalize_hashtags=normalize_post_hashtags,
+    allowed_media=ALLOWED_IMAGES | ALLOWED_VIDEOS,
+    allowed_images=ALLOWED_IMAGES,
+    max_file_bytes=MAX_FILE_BYTES,
+)
+app.register_blueprint(create_posts_blueprint(admin_post_dependencies))
+
+admin_reward_dependencies = AdminRewardDependencies(
+    get_db=get_db,
+    db_exec=db_exec,
+    require_admin=require_admin,
+    wallet_credit=wallet_credit,
+    wallet_debit=wallet_debit,
+    wallet_reverse_entry=wallet_reverse_entry,
+)
+app.register_blueprint(create_rewards_blueprint(admin_reward_dependencies))
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  AUTH ROUTES
@@ -618,6 +679,8 @@ def update_profile():
     data      = request.form if is_multipart else (request.get_json(force=True, silent=True) or {})
     uid       = str(request.current_user["id"])
     name      = (data.get("name") or "").strip()
+    supplied_user_type = data.get("user_type") if "user_type" in data else request.current_user.get("user_type")
+    user_type = normalize_user_type(supplied_user_type)
     bio       =  data.get("bio")       or ""
     current_user = dict(request.current_user)
     old_avatar_url = current_user.get("avatar_url", "") or ""
@@ -626,10 +689,13 @@ def update_profile():
     specialty = (data.get("specialty") or "").strip()
     hospital = (data.get("hospital") or "").strip()
     location = (data.get("location") or "").strip()
-    doctor = db_one("SELECT id FROM doctors WHERE user_id=%s", (uid,))
 
     if not name:
         return jsonify({"detail": "Name cannot be empty"}), 400
+    if not user_type or user_type not in USER_TYPES:
+        return jsonify({"detail": "Select a valid account type"}), 400
+    if user_type == "doctor" and not specialty:
+        return jsonify({"detail": "Specialty is required for doctor accounts"}), 400
 
     if avatar_file and avatar_file.filename:
         content_type = avatar_file.content_type or ""
@@ -645,10 +711,36 @@ def update_profile():
         except Exception as upload_error:
             return jsonify({"detail": f"Could not upload profile image: {upload_error}"}), 502
 
-    db_run("UPDATE users SET name=%s,bio=%s,avatar_url=%s WHERE id=%s", (name, bio, avatar_url, uid))
-    if normalize_user_type(current_user.get("user_type") or current_user.get("role")) == "doctor":
-        db_run("UPDATE doctors SET name=%s,specialty=%s,hospital=%s,location=%s,bio=%s,updated_at=CURRENT_TIMESTAMP WHERE user_id=%s",
-               (name, specialty or "General Medicine", hospital, location, bio, uid))
+    conn = get_db()
+    try:
+        db_exec(
+            conn,
+            "UPDATE users SET name=%s,user_type=%s,bio=%s,avatar_url=%s WHERE id=%s",
+            (name, user_type, bio, avatar_url, uid),
+        )
+        if user_type == "doctor":
+            doctor = db_exec(conn, "SELECT id FROM doctors WHERE user_id=%s LIMIT 1", (uid,)).fetchone()
+            if doctor:
+                db_exec(
+                    conn,
+                    "UPDATE doctors SET name=%s,specialty=%s,hospital=%s,location=%s,bio=%s,updated_at=CURRENT_TIMESTAMP WHERE user_id=%s",
+                    (name, specialty, hospital, location, bio, uid),
+                )
+            else:
+                db_exec(
+                    conn,
+                    "INSERT INTO doctors (id,user_id,name,specialty,hospital,location,bio,verification_status,created_at,updated_at) "
+                    "VALUES (%s,%s,%s,%s,%s,%s,%s,'pending',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)",
+                    (str(uuid.uuid4()), uid, name, specialty, hospital, location, bio),
+                )
+        else:
+            db_exec(conn, "DELETE FROM doctors WHERE user_id=%s", (uid,))
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
     cleanup_warning = ""
     if avatar_url != old_avatar_url and old_avatar_url:
         try:
@@ -883,7 +975,7 @@ def create_post():
         row = db_exec(conn, lock, (uid,)).fetchone()
         current_coins = (dict(row).get("hu_coins") if row else 0) or 0
         new_coins = current_coins + 10
-        db_exec(conn, "UPDATE users SET hu_coins=%s,coins=%s WHERE id=%s", (new_coins, new_coins, uid))
+        db_exec(conn, "UPDATE users SET hu_coins=%s WHERE id=%s", (new_coins, uid))
         db_exec(conn, """INSERT INTO wallet_ledger
                   (id,user_id,credit_debit,value_type,amount,source_type,source_id,idempotency_key,balance_before,balance_after,status)
                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
@@ -1034,7 +1126,10 @@ def get_comments(post_id):
         c = dict(c)
         for k, v in c.items():
             if isinstance(v, datetime): c[k] = v.isoformat()
-        a = db_one("SELECT name, avatar_url, is_verified FROM users WHERE id=%s", (c["user_id"],)) or {}
+        a = user_payload(db_one(
+            "SELECT id,name,user_type,system_role,avatar_url FROM users WHERE id=%s",
+            (c["user_id"],),
+        ) or {})
         c["author"] = {
             "name": a.get("name", "Unknown"),
             "avatar": a.get("avatar_url", ""),
@@ -1076,7 +1171,7 @@ def add_comment(post_id):
     comment["author"] = {
         "name": request.current_user.get("name", "Unknown"),
         "avatar": request.current_user.get("avatar_url", ""),
-        "verified": bool(request.current_user.get("is_verified", False)),
+        "verified": bool(user_payload(request.current_user).get("is_verified", False)),
     }
     count = db_one("SELECT COUNT(*) AS n FROM post_actions WHERE post_id=%s AND action_type='comment'", (post_id,))["n"]
     comment["comments_count"] = count
@@ -1117,7 +1212,7 @@ def update_comment(post_id, comment_id):
     updated["author"] = {
         "name": request.current_user.get("name", "Unknown"),
         "avatar": request.current_user.get("avatar_url", ""),
-        "verified": bool(request.current_user.get("is_verified", False)),
+        "verified": bool(user_payload(request.current_user).get("is_verified", False)),
     }
     return jsonify(updated)
 
@@ -1586,13 +1681,15 @@ def search_users():
     uid = str(request.current_user["id"])
     if q:
         rows = db_all(
-            """SELECT id, name, specialty, avatar_url FROM users
-               WHERE id != %s AND name ILIKE %s LIMIT 20""",
+            """SELECT u.id,u.name,d.specialty,u.avatar_url FROM users u
+               LEFT JOIN doctors d ON d.user_id=u.id
+               WHERE u.id != %s AND u.name ILIKE %s LIMIT 20""",
             (uid, f"%{q}%")
         )
     else:
         rows = db_all(
-            "SELECT id, name, specialty, avatar_url FROM users WHERE id != %s LIMIT 20",
+            """SELECT u.id,u.name,d.specialty,u.avatar_url FROM users u
+               LEFT JOIN doctors d ON d.user_id=u.id WHERE u.id != %s LIMIT 20""",
             (uid,)
         )
     return jsonify([dict(r) for r in rows])
@@ -1666,14 +1763,26 @@ def update_follow(other_user_id):
 def get_follow_suggestions():
     uid = str(request.current_user["id"])
     users = db_all(
-        """SELECT id,name,user_type,specialty,avatar_url,is_verified FROM users
+        """SELECT id,name,user_type,system_role,avatar_url FROM users
            WHERE id!=%s AND id NOT IN (
              SELECT followed_id FROM follows WHERE follower_id=%s AND status='Active'
            )
-           ORDER BY is_verified DESC,created_at DESC LIMIT 3""",
+           ORDER BY created_at DESC LIMIT 3""",
         (uid, uid),
     )
-    return jsonify({"suggestions": [dict(user) for user in users]})
+    suggestions = []
+    for user in users:
+        payload = user_payload(user)
+        suggestions.append({
+            "id": payload.get("id"),
+            "name": payload.get("name"),
+            "user_type": payload.get("user_type"),
+            "specialty": (payload.get("profile") or {}).get("specialty", ""),
+            "avatar_url": payload.get("avatar_url"),
+            "is_verified": payload.get("is_verified", False),
+        })
+    suggestions.sort(key=lambda item: item["is_verified"], reverse=True)
+    return jsonify({"suggestions": suggestions})
 
 
 @app.route("/api/messages/conversations")
@@ -1694,7 +1803,11 @@ def list_conversations():
     for c in rows:
         c = dict(c)
         other_id = c["user_b_id"] if str(c["user_a_id"]) == uid else c["user_a_id"]
-        other = db_one("SELECT id, name, specialty, avatar_url FROM users WHERE id=%s", (other_id,)) or {}
+        other = db_one(
+            """SELECT u.id,u.name,d.specialty,u.avatar_url FROM users u
+               LEFT JOIN doctors d ON d.user_id=u.id WHERE u.id=%s""",
+            (other_id,),
+        ) or {}
         last_msg = db_one(
             "SELECT * FROM messages WHERE conversation_id=%s AND is_deleted=FALSE ORDER BY created_at DESC LIMIT 1",
             (c["id"],)
@@ -2080,15 +2193,6 @@ def admin_check():
     return jsonify({"is_admin": True})
 
 
-@app.route("/api/admin/users")
-@require_admin
-def admin_list_users():
-    rows = db_all("""SELECT id,name,email,user_type,system_role,is_verified,verification_status,
-                             verification_doc_url,is_banned,balance,hu_coins,created_at
-                      FROM users ORDER BY created_at DESC""")
-    return jsonify([user_payload(r) for r in rows])
-
-
 @app.route("/api/admin/users/<user_id>/ban", methods=["POST"])
 @require_admin
 def admin_toggle_ban(user_id):
@@ -2103,31 +2207,31 @@ def admin_toggle_ban(user_id):
 @app.route("/api/admin/users/<user_id>/verify", methods=["POST"])
 @require_admin
 def admin_toggle_verify(user_id):
-    """Admin reviews the uploaded verification_doc_url and approves/rejects a
-    professional account. This is the only place is_verified gets flipped on."""
+    """Approve or reject verification on the account type's canonical profile."""
     data = request.get_json(force=True, silent=True) or {}
     approve = bool(data.get("approve", True))
-    user = db_one("SELECT id FROM users WHERE id=%s", (user_id,))
+    user = db_one("SELECT id,user_type FROM users WHERE id=%s", (user_id,))
     if not user:
         return jsonify({"detail": "User not found"}), 404
-    db_run(
-        "UPDATE users SET is_verified=%s, verification_status=%s WHERE id=%s",
-        (approve, "approved" if approve else "rejected", user_id)
-    )
-    db_run(
-        "UPDATE doctors SET verification_status=%s, verified_at=%s WHERE user_id=%s",
-        ("approved" if approve else "rejected", datetime.now(timezone.utc) if approve else None, user_id)
-    )
-    return jsonify({"is_verified": approve})
+    user_type = normalize_user_type(user.get("user_type")) or "general_user"
+    if user_type == "general_user":
+        return jsonify({"detail": "General user accounts do not require verification"}), 400
 
-
-@app.route("/api/admin/users/<user_id>", methods=["DELETE"])
-@require_admin
-def admin_delete_user(user_id):
-    if not db_one("SELECT id FROM users WHERE id=%s", (user_id,)):
-        return jsonify({"detail": "User not found"}), 404
-    db_run("DELETE FROM users WHERE id=%s", (user_id,))
-    return jsonify({"message": "User deleted"})
+    status = "approved" if approve else "rejected"
+    if user_type == "doctor":
+        db_run(
+            "UPDATE doctors SET verification_status=%s,verified_at=%s WHERE user_id=%s",
+            (status, datetime.now(timezone.utc) if approve else None, user_id),
+        )
+    else:
+        db_run("UPDATE creator_verifications SET status=%s WHERE user_id=%s", (status, user_id))
+        if user_type == "recruiter":
+            db_run("UPDATE company_profiles SET is_verified=%s WHERE user_id=%s", (approve, user_id))
+        elif user_type == "seller":
+            db_run("UPDATE seller_profiles SET status=%s WHERE user_id=%s", (status, user_id))
+        elif user_type == "advertiser":
+            db_run("UPDATE advertisers SET verified=%s WHERE user_id=%s", (approve, user_id))
+    return jsonify({"is_verified": approve, "verification_status": status})
 
 
 @app.route("/api/admin/posts")
@@ -2290,12 +2394,12 @@ def doctor_to_frontend_shape(d) -> dict:
         "id": d["id"], "user_id": d.get("user_id"), "name": d["name"],
         "specialty": d["specialty"], "qualification": d.get("qualification"),
         "experience_years": d.get("experience_years") or 0, "hospital": d.get("hospital") or "",
-        "location": d.get("location") or "", "avatar": d.get("avatar") or "",
+        "location": d.get("location") or "", "avatar_url": d.get("avatar_url") or "",
         "bio": d.get("bio") or "", "available_days": d.get("available_days") or [],
         "registration_number": d.get("registration_number"), "jurisdiction": d.get("jurisdiction"),
         "verification_status": d.get("verification_status") or "pending",
         "is_verified": d.get("verification_status") == "approved",
-        "consultation_fee": float(d.get("consultation_fee") or d.get("fee") or 0),
+        "consultation_fee": float(d.get("consultation_fee") or 0),
         "rating": float(d.get("rating") or 0), "reviews_count": d.get("reviews_count") or 0,
     }
 
@@ -2415,7 +2519,7 @@ def admin_delete_job(job_id):
 # ── DOCTORS / CONSULTATIONS ───────────────────────────────────────
 @app.route("/api/doctors")
 def get_doctors():
-    rows = db_all("SELECT * FROM doctors WHERE user_id IS NOT NULL AND verification_status='approved' ORDER BY rating DESC")
+    rows = db_all("SELECT d.*,u.avatar_url FROM doctors d JOIN users u ON u.id=d.user_id WHERE d.verification_status='approved' ORDER BY d.rating DESC")
     return jsonify([doctor_to_frontend_shape(row) for row in rows])
 
 @app.route("/api/doctors/book", methods=["POST"])
@@ -2444,24 +2548,24 @@ def admin_create_doctor():
         return jsonify({"detail": "A valid doctor user ID and specialty are required"}), 400
     existing = db_one("SELECT id FROM doctors WHERE user_id=%s", (user_id,))
     did = existing["id"] if existing else str(uuid.uuid4())
-    values = (name or user["name"], specialty, data.get("hospital") or "", data.get("avatar") or "",
+    values = (name or user["name"], specialty, data.get("hospital") or "",
               int(data.get("experience_years") or 0), float(data.get("consultation_fee") or 0),
               float(data.get("rating") or 0), int(data.get("reviews_count") or 0),
               _json.dumps(data.get("available_days") or []), did)
     if existing:
-        db_run("""UPDATE doctors SET name=%s,specialty=%s,hospital=%s,avatar=%s,experience_years=%s,
-                  consultation_fee=%s,fee=%s,rating=%s,reviews_count=%s,available_days=%s,updated_at=CURRENT_TIMESTAMP WHERE id=%s""",
-               values[:6] + (values[5],) + values[6:])
+        db_run("""UPDATE doctors SET name=%s,specialty=%s,hospital=%s,experience_years=%s,
+                  consultation_fee=%s,rating=%s,reviews_count=%s,available_days=%s,updated_at=CURRENT_TIMESTAMP WHERE id=%s""",
+               values)
     else:
-        db_run("""INSERT INTO doctors (id,user_id,name,specialty,hospital,avatar,experience_years,consultation_fee,fee,rating,reviews_count,available_days)
-                  VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-               (did, user_id, values[0], values[1], values[2], values[3], values[4], values[5], values[5], values[6], values[7], values[8]))
-    return jsonify(doctor_to_frontend_shape(db_one("SELECT * FROM doctors WHERE id=%s", (did,)))), 201
+        db_run("""INSERT INTO doctors (id,user_id,name,specialty,hospital,experience_years,consultation_fee,rating,reviews_count,available_days)
+                  VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+               (did, user_id, *values[:-1]))
+    return jsonify(doctor_to_frontend_shape(db_one("SELECT d.*,u.avatar_url FROM doctors d JOIN users u ON u.id=d.user_id WHERE d.id=%s", (did,)))), 201
 
 @app.route("/api/admin/doctors")
 @require_admin
 def admin_list_doctors():
-    rows = db_all("SELECT * FROM doctors WHERE user_id IS NOT NULL ORDER BY created_at DESC")
+    rows = db_all("SELECT d.*,u.avatar_url FROM doctors d JOIN users u ON u.id=d.user_id ORDER BY d.created_at DESC")
     return jsonify([doctor_to_frontend_shape(r) for r in rows])
 
 @app.route("/api/admin/doctors/<doctor_id>", methods=["DELETE"])
@@ -2477,11 +2581,7 @@ def admin_delete_doctor(doctor_id):
 @app.route("/api/doctors/add", methods=["POST"])
 @require_auth
 def user_add_doctor():
-    """Accepts multipart/form-data so a doctor photo can be uploaded directly
-    ('browse' a photo) instead of pasting a URL."""
-    is_multipart = request.content_type and "multipart/form-data" in request.content_type
-    data = request.form if is_multipart else (request.get_json(force=True, silent=True) or {})
-    avatar_file = request.files.get("avatar") if is_multipart else None
+    data = request.get_json(force=True, silent=True) or {}
 
     uid = str(request.current_user["id"])
     if normalize_user_type(request.current_user.get("user_type")) != "doctor":
@@ -2492,35 +2592,22 @@ def user_add_doctor():
         return jsonify({"detail": "Name and specialty are required"}), 400
 
     available_days = data.get("available_days") or []
-    avatar_url = data.get("avatar") or ""
-    if avatar_file and avatar_file.filename:
-        ct = avatar_file.content_type or ""
-        if ct not in ALLOWED_IMAGES:
-            return jsonify({"detail": "Doctor photo must be an image (jpg/png/gif/webp)"}), 400
-        file_bytes = avatar_file.read()
-        if len(file_bytes) > MAX_FILE_BYTES:
-            return jsonify({"detail": "Photo file too large"}), 400
-        ext   = os.path.splitext(avatar_file.filename)[1] or ".jpg"
-        fname = str(uuid.uuid4()) + ext
-        avatar_url = upload_to_supabase(file_bytes, fname, ct)
-
     existing = db_one("SELECT id FROM doctors WHERE user_id=%s", (uid,))
     did = existing["id"] if existing else str(uuid.uuid4())
-    values = (name, specialty, data.get("hospital") or "", avatar_url,
+    values = (name, specialty, data.get("hospital") or "",
               int(data.get("experience_years") or 0), float(data.get("consultation_fee") or 0),
               _json.dumps(available_days), did)
     if existing:
-        db_run("""UPDATE doctors SET name=%s,specialty=%s,hospital=%s,avatar=%s,experience_years=%s,
-                  consultation_fee=%s,fee=%s,available_days=%s,updated_at=CURRENT_TIMESTAMP WHERE id=%s""",
-               values[:6] + (values[5], values[6], values[7]))
+        db_run("""UPDATE doctors SET name=%s,specialty=%s,hospital=%s,experience_years=%s,
+                  consultation_fee=%s,available_days=%s,updated_at=CURRENT_TIMESTAMP WHERE id=%s""",
+               values)
     else:
-        db_run("""INSERT INTO doctors (id,user_id,name,specialty,hospital,avatar,experience_years,consultation_fee,fee,available_days,verification_status)
-                  VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-               (did, uid, name, specialty, data.get("hospital") or "", avatar_url,
+        db_run("""INSERT INTO doctors (id,user_id,name,specialty,hospital,experience_years,consultation_fee,available_days,verification_status)
+                  VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+               (did, uid, name, specialty, data.get("hospital") or "",
                 int(data.get("experience_years") or 0), float(data.get("consultation_fee") or 0),
-                float(data.get("consultation_fee") or 0), _json.dumps(available_days),
-                request.current_user.get("verification_status") or "pending"))
-    doctor = db_one("SELECT * FROM doctors WHERE id=%s", (did,))
+                _json.dumps(available_days), user_payload(request.current_user).get("verification_status") or "pending"))
+    doctor = db_one("SELECT d.*,u.avatar_url FROM doctors d JOIN users u ON u.id=d.user_id WHERE d.id=%s", (did,))
     return jsonify(doctor_to_frontend_shape(doctor)), 201
 
 
@@ -2569,7 +2656,7 @@ def get_categories():
 @require_auth
 def get_cart():
     uid = str(request.current_user["id"])
-    user = db_one("SELECT id, hu_coins, wallet_balance FROM users WHERE id = %s", (uid,))
+    user = db_one("SELECT id,hu_coins FROM users WHERE id=%s", (uid,))
     cart_items = db_all(
         """SELECT c.id, c.product_id, c.quantity, c.price, p.name, p.image_url, p.description, p.stock, p.reward_coins_earn 
            FROM cart c JOIN products p ON c.product_id = p.id WHERE c.user_id = %s""",
@@ -2577,7 +2664,6 @@ def get_cart():
     )
     total = sum(item["price"] * item["quantity"] for item in cart_items)
     hu_coins = user["hu_coins"] if user and user.get("hu_coins") is not None else 500
-    wallet_balance = user["wallet_balance"] if user and user.get("wallet_balance") is not None else 0.0
     
     max_coin_discount = round(total * 0.50, 2)
     max_coins_use = min(hu_coins, int(max_coin_discount * 10))
@@ -2587,7 +2673,6 @@ def get_cart():
         "items": cart_items,
         "total": total,
         "hu_coins_balance": hu_coins,
-        "wallet_balance": wallet_balance,
         "max_coins_redeemable": max_coins_use,
         "max_coin_discount": est_discount
     })
@@ -2679,7 +2764,7 @@ def process_checkout():
 
     # Perform Atomic Balance & Stock Updates
     new_hu_coins = user_coins - coins_spent + coins_earned
-    db_run("UPDATE users SET hu_coins = %s, coins = %s WHERE id = %s", (new_hu_coins, new_hu_coins, uid))
+    db_run("UPDATE users SET hu_coins=%s WHERE id=%s", (new_hu_coins, uid))
 
     # Decrement Stock
     for item in cart_items:
@@ -2769,7 +2854,7 @@ def cancel_order(order_id):
     net_coin_refund = coins_spent - coins_earned
     new_coins = max(0, current_coins + net_coin_refund)
     
-    db_run("UPDATE users SET hu_coins = %s, coins = %s WHERE id = %s", (new_coins, new_coins, uid))
+    db_run("UPDATE users SET hu_coins=%s WHERE id=%s", (new_coins, uid))
 
     # Ledger Entry for Refund
     if coins_spent > 0:
@@ -2927,7 +3012,7 @@ def get_order_tracking(order_id):
 @require_auth
 def get_rewards_summary():
     uid = str(request.current_user["id"])
-    user = db_one("SELECT hu_coins, wallet_balance FROM users WHERE id = %s", (uid,))
+    user = db_one("SELECT hu_coins FROM users WHERE id=%s", (uid,))
     hu_coins = user["hu_coins"] if user and user.get("hu_coins") is not None else 500
     
     # Ledger History
@@ -3078,7 +3163,7 @@ def global_search():
     if not q:
         return jsonify({"users": [], "posts": [], "jobs": [], "doctors": [], "products": []})
     
-    users = db_all("SELECT id, name, role, avatar_url FROM users WHERE name LIKE %s OR email LIKE %s LIMIT 5", (f"%{q}%", f"%{q}%"))
+    users = db_all("SELECT id,name,user_type AS role,avatar_url FROM users WHERE name LIKE %s OR email LIKE %s LIMIT 5", (f"%{q}%", f"%{q}%"))
     posts = db_all("SELECT id, content, created_at FROM posts WHERE content LIKE %s LIMIT 5", (f"%{q}%",))
     jobs = db_all("SELECT id, title, company, location FROM jobs WHERE title LIKE %s OR company LIKE %s LIMIT 5", (f"%{q}%", f"%{q}%"))
     doctors = db_all("SELECT id, name, specialty, hospital FROM doctors WHERE name LIKE %s OR specialty LIKE %s LIMIT 5", (f"%{q}%", f"%{q}%"))
@@ -3114,7 +3199,7 @@ def save_candidate_profile():
         current_coins = user_row["hu_coins"] if user_row and user_row.get("hu_coins") is not None else 500
         new_coins = current_coins + 50
         coins_earned = 50
-        db_run("UPDATE users SET hu_coins = %s, coins = %s WHERE id = %s", (new_coins, new_coins, uid))
+        db_run("UPDATE users SET hu_coins=%s WHERE id=%s", (new_coins, uid))
         db_run("""INSERT INTO wallet_ledger 
                   (id, user_id, credit_debit, value_type, amount, source_type, source_id, idempotency_key, balance_before, balance_after, status)
                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
@@ -3152,7 +3237,7 @@ def apply_for_job(job_id):
     user_row = db_one("SELECT hu_coins FROM users WHERE id=%s", (uid,))
     current_coins = user_row["hu_coins"] if user_row and user_row.get("hu_coins") is not None else 500
     new_coins = current_coins + 20
-    db_run("UPDATE users SET hu_coins = %s, coins = %s WHERE id = %s", (new_coins, new_coins, uid))
+    db_run("UPDATE users SET hu_coins=%s WHERE id=%s", (new_coins, uid))
     db_run("""INSERT INTO wallet_ledger 
               (id, user_id, credit_debit, value_type, amount, source_type, source_id, idempotency_key, balance_before, balance_after, status)
               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
@@ -3408,7 +3493,7 @@ def accept_connection_request(conn_id):
     user_row = db_one("SELECT hu_coins FROM users WHERE id=%s", (uid,))
     current_coins = user_row["hu_coins"] if user_row and user_row.get("hu_coins") is not None else 500
     new_coins = current_coins + 10
-    db_run("UPDATE users SET hu_coins=%s, coins=%s WHERE id=%s", (new_coins, new_coins, uid))
+    db_run("UPDATE users SET hu_coins=%s WHERE id=%s", (new_coins, uid))
     
     actor_name = request.current_user.get("name", "Someone")
     create_notification(conn["requester_id"], uid, "connection_accept", message=f"{actor_name} accepted your connection request.")
@@ -3479,7 +3564,7 @@ def endorse_skill():
         row = db_one("SELECT hu_coins FROM users WHERE id=%s", (user_id,))
         cur_coins = row["hu_coins"] if row and row.get("hu_coins") is not None else 500
         new_c = cur_coins + 5
-        db_run("UPDATE users SET hu_coins=%s, coins=%s WHERE id=%s", (new_c, new_c, user_id))
+        db_run("UPDATE users SET hu_coins=%s WHERE id=%s", (new_c, user_id))
         db_run("""INSERT INTO wallet_ledger 
                   (id, user_id, credit_debit, value_type, amount, source_type, source_id, idempotency_key, balance_before, balance_after, status)
                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
@@ -3538,7 +3623,7 @@ def react_to_post(post_id):
             author_row = db_one("SELECT hu_coins FROM users WHERE id=%s", (post["creator_user_id"],))
             cur_coins = author_row["hu_coins"] if author_row and author_row.get("hu_coins") is not None else 500
             new_c = cur_coins + 5
-            db_run("UPDATE users SET hu_coins=%s, coins=%s WHERE id=%s", (new_c, new_c, post["creator_user_id"]))
+            db_run("UPDATE users SET hu_coins=%s WHERE id=%s", (new_c, post["creator_user_id"]))
             actor_name = request.current_user.get("name", "Someone")
             create_notification(post["creator_user_id"], uid, "reaction", post_id, message=f"{actor_name} reacted '{reaction_type}' to your post!")
 
@@ -3615,7 +3700,9 @@ def get_mutual_connections(target_user_id):
 
     placeholders = ",".join(["%s"] * len(mutual_ids))
     mutual_users = db_all(
-        f"SELECT id, name, specialty, hospital, avatar_url, role FROM users WHERE id IN ({placeholders})",
+        f"""SELECT u.id,u.name,d.specialty,d.hospital,u.avatar_url,u.user_type AS role
+            FROM users u LEFT JOIN doctors d ON d.user_id=u.id
+            WHERE u.id IN ({placeholders})""",
         tuple(mutual_ids)
     )
 
@@ -3636,12 +3723,12 @@ def get_explore_hub():
     # 1. People You May Know (Smart Recommendation Engine)
     if current_uid:
         raw_users = db_all(
-            "SELECT id, name, email, role, specialty, hospital, avatar_url, is_verified FROM users WHERE id != %s LIMIT 8",
+            "SELECT id,name,email,user_type,system_role,avatar_url FROM users WHERE id != %s LIMIT 8",
             (current_uid,)
         )
     else:
         raw_users = db_all(
-            "SELECT id, name, email, role, specialty, hospital, avatar_url, is_verified FROM users LIMIT 8"
+            "SELECT id,name,email,user_type,system_role,avatar_url FROM users LIMIT 8"
         )
 
     people_you_may_know = []
@@ -3655,7 +3742,9 @@ def get_explore_hub():
     ]
 
     for idx, u in enumerate(raw_users):
-        u_id = u["id"]
+        account = user_payload(u)
+        profile = account.get("profile") or {}
+        u_id = account["id"]
         reason = sample_reasons[idx % len(sample_reasons)]
         
         # Calculate real mutual connections if user logged in
@@ -3682,14 +3771,14 @@ def get_explore_hub():
             mutual_cnt = len(s1.intersection(s2))
 
         people_you_may_know.append({
-            "id": u["id"],
-            "name": u["name"],
-            "role": u["role"],
-            "specialty": u.get("specialty") or "Healthcare Professional",
-            "hospital": u.get("hospital") or "Medical Center",
+            "id": account["id"],
+            "name": account["name"],
+            "role": account["user_type"],
+            "specialty": profile.get("specialty") or "Healthcare Professional",
+            "hospital": profile.get("hospital") or "Medical Center",
             "location": "Delhi, India",
-            "avatar_url": u.get("avatar_url"),
-            "is_verified": bool(u.get("is_verified", 0)),
+            "avatar_url": account.get("avatar_url"),
+            "is_verified": bool(account.get("is_verified", False)),
             "recommendation_reason": reason,
             "mutual_count": mutual_cnt or (idx * 3 + 2),
             "connection_status": conn_status,
@@ -3697,7 +3786,7 @@ def get_explore_hub():
         })
 
     # 2. Trending Professionals (Ranked Doctors)
-    docs = db_all("SELECT * FROM doctors ORDER BY reviews_count DESC LIMIT 6")
+    docs = db_all("SELECT d.*,u.avatar_url FROM doctors d JOIN users u ON u.id=d.user_id ORDER BY d.reviews_count DESC LIMIT 6")
     trending_professionals = []
     for d in docs:
         trending_professionals.append({
@@ -3709,7 +3798,7 @@ def get_explore_hub():
             "hospital": d.get("hospital"),
             "rating": d.get("rating", 4.9),
             "reviews_count": d.get("reviews_count", 120),
-            "avatar": d.get("avatar")
+            "avatar_url": d.get("avatar_url")
         })
 
     # 3. Trending Posts & Case Studies
@@ -3783,12 +3872,24 @@ def search_advanced():
     q_pattern = f"%{query}%"
 
     viewer_id = optional_uid_from_request()
-    res_people = db_all("SELECT id, name, role, specialty, hospital, avatar_url, is_verified FROM users WHERE name LIKE %s OR specialty LIKE %s OR hospital LIKE %s LIMIT 10", (q_pattern, q_pattern, q_pattern))
-    for person in res_people:
+    res_people = db_all(
+        """SELECT DISTINCT u.id,u.name,u.user_type,u.system_role,u.avatar_url
+           FROM users u LEFT JOIN doctors d ON d.user_id=u.id
+           WHERE u.name LIKE %s OR d.specialty LIKE %s OR d.hospital LIKE %s LIMIT 10""",
+        (q_pattern, q_pattern, q_pattern),
+    )
+    for index, person in enumerate(res_people):
+        account = user_payload(person)
+        profile = account.get("profile") or {}
+        account["role"] = account.get("user_type")
+        account["specialty"] = profile.get("specialty", "")
+        account["hospital"] = profile.get("hospital", "")
         person["is_following"] = bool(viewer_id and db_one(
             "SELECT 1 AS found FROM follows WHERE follower_id=%s AND followed_id=%s AND status='Active'",
             (viewer_id, person["id"]),
         ))
+        account["is_following"] = person["is_following"]
+        res_people[index] = account
     res_posts = db_all("SELECT p.*, u.name as author_name FROM posts p JOIN users u ON p.creator_user_id=u.id WHERE p.title LIKE %s OR p.content LIKE %s OR p.category LIKE %s LIMIT 10", (q_pattern, q_pattern, q_pattern))
     res_jobs = db_all("SELECT * FROM jobs WHERE title LIKE %s OR company LIKE %s LIMIT 10", (q_pattern, q_pattern))
     res_prods = db_all("SELECT * FROM products WHERE name LIKE %s OR description LIKE %s LIMIT 10", (q_pattern, q_pattern))
@@ -3813,7 +3914,7 @@ def attend_event(event_id):
     user_row = db_one("SELECT hu_coins FROM users WHERE id=%s", (uid,))
     cur_coins = user_row["hu_coins"] if user_row and user_row.get("hu_coins") is not None else 500
     new_coins = cur_coins + 25
-    db_run("UPDATE users SET hu_coins=%s, coins=%s WHERE id=%s", (new_coins, new_coins, uid))
+    db_run("UPDATE users SET hu_coins=%s WHERE id=%s", (new_coins, uid))
 
     # Log double-entry ledger
     db_run("""INSERT INTO wallet_ledger 

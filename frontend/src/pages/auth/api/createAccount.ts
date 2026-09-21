@@ -11,7 +11,7 @@ export async function createAccount(
   form.append("user_type", account.userType);
 
   if (account.userType === "doctor") {
-    form.append("specialty", account.specialty);
+    form.append("specialty", account.specialty.trim());
     form.append("hospital", account.organization.trim());
   } else if (account.userType === "seller") {
     form.append("store_name", account.organization.trim());

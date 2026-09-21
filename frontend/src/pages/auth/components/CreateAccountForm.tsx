@@ -27,7 +27,7 @@ export function CreateAccountForm({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [accountType, setAccountType] = useState<JornizAccountType>("general_user");
-  const [specialty, setSpecialty] = useState("General Medicine");
+  const [specialty, setSpecialty] = useState("");
   const [organization, setOrganization] = useState("");
   const [verificationDocument, setVerificationDocument] = useState<File | null>(null);
   const [submissionError, setSubmissionError] = useState("");
@@ -47,6 +47,10 @@ export function CreateAccountForm({
     }
     if (password.length < 6) {
       setSubmissionError("Password must contain at least 6 characters.");
+      return;
+    }
+    if (accountType === "doctor" && !specialty.trim()) {
+      setSubmissionError("Select or enter your specialization.");
       return;
     }
     if (accountTypesRequiringVerification.has(accountType) && !verificationDocument) {

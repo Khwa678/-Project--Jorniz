@@ -112,7 +112,7 @@ export function JornizRouteMap({
   if (destination === "jobs") return <HealthcareJobsPage signedInAccount={account} />;
   if (destination === "network") return <ProfessionalNetworkPage />;
   if (destination === "wallet") {
-    return <RewardsWalletPage onOpenMarketplace={() => onNavigate("store")} onConfirmedBalance={onConfirmedCoins} />;
+    return <RewardsWalletPage account={account} onOpenMarketplace={() => onNavigate("store")} onConfirmedBalance={onConfirmedCoins} />;
   }
   if (destination === "advertising") return <AdvertisingCampaignsPage />;
   if (destination === "store") {

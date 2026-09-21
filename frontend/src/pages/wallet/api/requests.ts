@@ -8,9 +8,13 @@ export interface RewardBalanceSnapshot {
 
 export interface RewardLedgerEntry {
   id: string;
+  userId: string;
   direction: "credit" | "debit";
   amount: number;
+  balanceAfter: number;
   source: string;
+  sourceId: string;
+  reason: string;
   status: string;
   createdAt: string;
 }
@@ -53,9 +57,13 @@ export async function loadRewardLedger(): Promise<RewardLedgerEntry[]> {
     const rawDirection = String(row.credit_debit ?? row.direction ?? "").toLowerCase();
     return {
       id: String(row.id ?? "reward-entry-" + index),
+      userId: String(row.user_id ?? ""),
       direction: rawDirection === "debit" ? "debit" : "credit",
       amount: confirmedNumber(row.amount),
+      balanceAfter: confirmedNumber(row.balance_after),
       source: String(row.source_type ?? row.source ?? "Reward activity"),
+      sourceId: String(row.source_id ?? ""),
+      reason: String(row.reason ?? ""),
       status: String(row.status ?? "available"),
       createdAt: String(row.created_at ?? ""),
     };

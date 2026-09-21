@@ -12,7 +12,7 @@ export interface DoctorProfile {
   reviews_count: number;
   hospital?: string;
   location?: string;
-  avatar?: string;
+  avatar_url?: string;
   bio?: string;
   available_days: string[];
   verification_status?: string;
@@ -63,7 +63,7 @@ function normalizeDoctor(raw: Record<string, unknown>): DoctorProfile {
     reviews_count: Number(raw.reviews_count ?? raw.reviews ?? 0),
     hospital: raw.hospital ? String(raw.hospital) : undefined,
     location: raw.location ? String(raw.location) : undefined,
-    avatar: raw.avatar ? String(raw.avatar) : undefined,
+    avatar_url: raw.avatar_url ? String(raw.avatar_url) : undefined,
     bio: raw.bio ? String(raw.bio) : undefined,
     available_days: parseAvailableDays(raw.available_days),
     verification_status: raw.verification_status ? String(raw.verification_status) : undefined,

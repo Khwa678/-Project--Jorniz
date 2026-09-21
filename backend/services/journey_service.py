@@ -237,8 +237,8 @@ def checkout(connection, user_id, address, use_coins, idempotency_key):
         _ledger(connection, user_id, "CREDIT", coins_earned,
                 "ECOMMERCE_ORDER_REWARD", order_id,
                 f"checkout:{order_id}:earn", after_debit, final_balance)
-        _execute(connection, "UPDATE users SET hu_coins=%s,coins=%s WHERE id=%s",
-                 (final_balance, final_balance, user_id))
+        _execute(connection, "UPDATE users SET hu_coins=%s WHERE id=%s",
+                 (final_balance, user_id))
         _execute(connection, "DELETE FROM cart WHERE user_id=%s", (user_id,))
         order = _row(_execute(connection, "SELECT * FROM orders WHERE id=%s", (order_id,)))
 
@@ -311,8 +311,8 @@ def cancel_order(connection, user_id, order_id):
                 order_id, f"cancel:{order_id}:refund", before, after_refund)
         _ledger(connection, user_id, "DEBIT", reversed_reward, "ORDER_CANCEL_COIN_REVERSAL",
                 order_id, f"cancel:{order_id}:reversal", after_refund, final_balance)
-        _execute(connection, "UPDATE users SET hu_coins=%s,coins=%s WHERE id=%s",
-                 (final_balance, final_balance, user_id))
+        _execute(connection, "UPDATE users SET hu_coins=%s WHERE id=%s",
+                 (final_balance, user_id))
 
         refund_status = "CoinsRefundedGatewayPending" if float(order.get("gateway_spent") or 0) else "CoinsRefunded"
         changed = _execute(connection, """UPDATE orders SET status=%s,refund_status=%s
@@ -327,4 +327,3 @@ def cancel_order(connection, user_id, order_id):
 
 
 checkout_cart = checkout
-
